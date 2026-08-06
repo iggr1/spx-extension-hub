@@ -1,20 +1,30 @@
+const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
+const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+
 const grid = document.getElementById('moduleGrid');
 const status = document.getElementById('status');
 const loaderVersion = document.getElementById('loaderVersion');
 const workspace = document.getElementById('workspace');
 const descriptionSidebar = document.getElementById('descriptionSidebar');
 const descriptionTitle = document.getElementById('descriptionTitle');
-const descriptionFrame = document.getElementById('descriptionFrame');
+const descriptionViewer = document.getElementById('descriptionViewer');
 const descriptionLoading = document.getElementById('descriptionLoading');
 const descriptionError = document.getElementById('descriptionError');
+const descriptionToolbar = document.getElementById('descriptionToolbar');
+const descriptionPageCount = document.getElementById('descriptionPageCount');
+const openPdfButton = document.getElementById('openPdfButton');
 const closeDescriptionButton = document.getElementById('closeDescriptionButton');
 
 let activeDescriptionModuleId = null;
-let descriptionLoadTimeout = null;
+let activePdfUrl = null;
+let pdfJsPromise = null;
+let pdfRenderToken = 0;
 
 document.getElementById('refreshButton').addEventListener('click', () => loadModules(true));
 closeDescriptionButton.addEventListener('click', closeDescription);
-descriptionFrame.addEventListener('load', handleDescriptionLoaded);
+openPdfButton.addEventListener('click', () => {
+  if (activePdfUrl) window.open(activePdfUrl, '_blank', 'noopener,noreferrer');
+});
 loadModules(false);
 
 async function loadModules(forceRefresh) {
@@ -108,7 +118,7 @@ function resolveDescriptionPdf(module) {
   }
 }
 
-function openDescription(module) {
+async function openDescription(module) {
   if (!module.descriptionPdf) return;
 
   let pdfUrl;
@@ -123,62 +133,121 @@ function openDescription(module) {
     return;
   }
 
+  const renderToken = ++pdfRenderToken;
   activeDescriptionModuleId = module.id;
+  activePdfUrl = pdfUrl.toString();
   descriptionTitle.textContent = module.name;
   descriptionError.hidden = true;
-  descriptionError.textContent = 'Não foi possível exibir o PDF. Verifique se o arquivo está publicado no repositório.';
   descriptionLoading.hidden = false;
-  descriptionFrame.classList.remove('is-ready');
-
-  pdfUrl.searchParams.set('moduleVersion', module.version || 'latest');
-  pdfUrl.hash = 'toolbar=1&navpanes=0&view=FitH';
+  descriptionToolbar.hidden = true;
+  descriptionViewer.replaceChildren();
 
   workspace.classList.add('is-description-open');
   descriptionSidebar.setAttribute('aria-hidden', 'false');
-  descriptionFrame.src = pdfUrl.toString();
   syncDescriptionButtons();
 
-  clearTimeout(descriptionLoadTimeout);
-  descriptionLoadTimeout = setTimeout(() => {
-    if (!descriptionFrame.classList.contains('is-ready')) {
-      descriptionLoading.hidden = true;
-      descriptionError.hidden = false;
+  pdfUrl.searchParams.set('moduleVersion', module.version || 'latest');
+
+  try {
+    const pdfJs = await loadPdfJs();
+    if (renderToken !== pdfRenderToken) return;
+
+    const loadingTask = pdfJs.getDocument({
+      url: pdfUrl.toString(),
+      withCredentials: false
+    });
+    const pdf = await loadingTask.promise;
+    if (renderToken !== pdfRenderToken) {
+      await pdf.destroy();
+      return;
     }
-  }, 12000);
+
+    descriptionPageCount.textContent = `${pdf.numPages} página${pdf.numPages === 1 ? '' : 's'}`;
+    descriptionToolbar.hidden = false;
+    descriptionLoading.hidden = true;
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      if (renderToken !== pdfRenderToken) break;
+      await renderPdfPage(pdf, pageNumber, renderToken);
+    }
+  } catch (error) {
+    if (renderToken !== pdfRenderToken) return;
+    showDescriptionError(
+      module.name,
+      error?.message || 'Não foi possível carregar o PDF deste módulo.'
+    );
+  }
 }
 
-function handleDescriptionLoaded() {
-  if (!activeDescriptionModuleId) return;
+async function loadPdfJs() {
+  if (!pdfJsPromise) {
+    pdfJsPromise = import(PDFJS_MODULE_URL).then(pdfJs => {
+      pdfJs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+      return pdfJs;
+    });
+  }
 
-  clearTimeout(descriptionLoadTimeout);
-  descriptionLoading.hidden = true;
-  descriptionError.hidden = true;
-  descriptionFrame.classList.add('is-ready');
+  return pdfJsPromise;
+}
+
+async function renderPdfPage(pdf, pageNumber, renderToken) {
+  const page = await pdf.getPage(pageNumber);
+  if (renderToken !== pdfRenderToken) return;
+
+  const baseViewport = page.getViewport({ scale: 1 });
+  const availableWidth = Math.max(280, descriptionViewer.clientWidth - 28);
+  const cssScale = availableWidth / baseViewport.width;
+  const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+  const renderViewport = page.getViewport({ scale: cssScale * outputScale });
+
+  const pageElement = document.createElement('section');
+  pageElement.className = 'pdf-page';
+
+  const pageLabel = document.createElement('span');
+  pageLabel.className = 'pdf-page-label';
+  pageLabel.textContent = `Página ${pageNumber}`;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(renderViewport.width);
+  canvas.height = Math.ceil(renderViewport.height);
+  canvas.style.width = `${Math.floor(baseViewport.width * cssScale)}px`;
+  canvas.style.height = `${Math.floor(baseViewport.height * cssScale)}px`;
+
+  pageElement.append(pageLabel, canvas);
+  descriptionViewer.append(pageElement);
+
+  const context = canvas.getContext('2d', { alpha: false });
+  await page.render({
+    canvasContext: context,
+    viewport: renderViewport
+  }).promise;
 }
 
 function showDescriptionError(moduleName, message) {
-  activeDescriptionModuleId = null;
+  pdfRenderToken += 1;
+  activePdfUrl = null;
   descriptionTitle.textContent = moduleName || 'Descrição';
   descriptionLoading.hidden = true;
+  descriptionToolbar.hidden = true;
   descriptionError.hidden = false;
   descriptionError.textContent = message || 'Não foi possível abrir a descrição deste módulo.';
+  descriptionViewer.replaceChildren();
   workspace.classList.add('is-description-open');
   descriptionSidebar.setAttribute('aria-hidden', 'false');
-  descriptionFrame.removeAttribute('src');
-  descriptionFrame.classList.remove('is-ready');
   syncDescriptionButtons();
 }
 
 function closeDescription() {
-  clearTimeout(descriptionLoadTimeout);
+  pdfRenderToken += 1;
   activeDescriptionModuleId = null;
+  activePdfUrl = null;
   workspace.classList.remove('is-description-open');
   descriptionSidebar.setAttribute('aria-hidden', 'true');
   descriptionTitle.textContent = 'Descrição';
   descriptionLoading.hidden = false;
   descriptionError.hidden = true;
-  descriptionFrame.removeAttribute('src');
-  descriptionFrame.classList.remove('is-ready');
+  descriptionToolbar.hidden = true;
+  descriptionViewer.replaceChildren();
   syncDescriptionButtons();
 }
 

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPX Extension Hub</title>
+  <link rel="stylesheet" href="launcher.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header>
+      <div>
+        <span class="eyebrow">FERRAMENTAS OPERACIONAIS</span>
+        <h1>SPX Extension Hub</h1>
+        <p>Os módulos são publicados e atualizados diretamente pelo repositório.</p>
+      </div>
+      <button id="refreshButton" type="button">Atualizar lista</button>
+    </header>
+
+    <section class="status" id="status">Carregando módulos...</section>
+    <section class="module-grid" id="moduleGrid"></section>
+
+    <footer>
+      <p>Quando um módulo exigir uma permissão que ainda não existe no loader, contate <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
+      <span id="loaderVersion"></span>
+    </footer>
+  </main>
+
+  <script src="../shared/loader-bridge.js"></script>
+  <script src="launcher.js"></script>
+</body>
+</html>

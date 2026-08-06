@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-08-06T08:00:00Z",
+  "updatedAt": "2026-08-06T09:06:00Z",
   "launcher": {
     "url": "https://iggr1.github.io/spx-extension-hub/launcher/"
   },
@@ -80,7 +80,8 @@
             "x-sap-sec"
           ]
         }
-      ]
+      ],
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf"
     }
   ]
 }

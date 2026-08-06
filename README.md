@@ -61,3 +61,21 @@ Nesse caso específico, será necessária uma nova versão do loader. Alteraçõ
 ## Distribuição
 
 O repositório remoto permite atualizar módulos sem empacotar novamente a extensão. Para publicação na Chrome Web Store, valide previamente a política de código remoto e o uso pretendido da API `chrome.userScripts`. Para uso interno, prefira uma política empresarial de instalação e controle do repositório.
+
+## PDF de descrição dos módulos
+
+Cada módulo pode publicar um PDF próprio, exibido na sidebar à direita da central.
+
+1. Adicione o arquivo dentro da pasta do módulo, por exemplo `modules/meu-modulo/descricao.pdf`.
+2. No objeto correspondente em `catalog.json`, informe a URL pública no campo `descriptionPdf`.
+
+Exemplo:
+
+```json
+{
+  "id": "meu-modulo",
+  "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/meu-modulo/descricao.pdf"
+}
+```
+
+Quando o campo não estiver presente, o botão **Descrição** ficará desabilitado. O PDF é aberto dentro do launcher, sem criar uma nova aba.

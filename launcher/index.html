@@ -17,8 +17,34 @@
       <button id="refreshButton" type="button">Atualizar lista</button>
     </header>
 
-    <section class="status" id="status">Carregando módulos...</section>
-    <section class="module-grid" id="moduleGrid"></section>
+    <div class="workspace" id="workspace">
+      <section class="module-panel">
+        <div class="status" id="status">Carregando módulos...</div>
+        <section class="module-grid" id="moduleGrid"></section>
+      </section>
+
+      <aside class="description-sidebar" id="descriptionSidebar" aria-hidden="true">
+        <div class="description-header">
+          <div>
+            <span class="description-label">DESCRIÇÃO DO MÓDULO</span>
+            <h2 id="descriptionTitle">Descrição</h2>
+          </div>
+          <button class="close-description" id="closeDescriptionButton" type="button" aria-label="Fechar descrição">×</button>
+        </div>
+
+        <div class="description-loading" id="descriptionLoading">Carregando PDF...</div>
+        <div class="description-error" id="descriptionError" hidden>
+          Não foi possível exibir o PDF. Verifique se o arquivo está publicado no repositório.
+        </div>
+
+        <iframe
+          class="description-frame"
+          id="descriptionFrame"
+          title="Descrição do módulo em PDF"
+          loading="lazy"
+        ></iframe>
+      </aside>
+    </div>
 
     <footer>
       <p>Quando um módulo exigir uma permissão que ainda não existe no loader, contate <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>

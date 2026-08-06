@@ -50,7 +50,12 @@ function renderModules(modules) {
     return;
   }
 
-  grid.innerHTML = modules.map(module => {
+  const modulesWithDescription = modules.map(module => ({
+    ...module,
+    descriptionPdf: resolveDescriptionPdf(module)
+  }));
+
+  grid.innerHTML = modulesWithDescription.map(module => {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
 
@@ -76,7 +81,7 @@ function renderModules(modules) {
     `;
   }).join('');
 
-  const modulesById = new Map(modules.map(module => [module.id, module]));
+  const modulesById = new Map(modulesWithDescription.map(module => [module.id, module]));
 
   for (const button of grid.querySelectorAll('[data-module-id]')) {
     button.addEventListener('click', () => LoaderBridge.openModule(button.dataset.moduleId));
@@ -87,6 +92,19 @@ function renderModules(modules) {
       const module = modulesById.get(button.dataset.descriptionId);
       if (module) openDescription(module);
     });
+  }
+}
+
+function resolveDescriptionPdf(module) {
+  const configuredPdf = String(module.descriptionPdf || '').trim();
+  if (configuredPdf) return configuredPdf;
+
+  if (module.type !== 'web_app' || !module.entry) return '';
+
+  try {
+    return new URL('descricao.pdf', module.entry).toString();
+  } catch {
+    return '';
   }
 }
 

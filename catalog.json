@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-08-06T10:30:00Z",
+  "updatedAt": "2026-08-06T11:04:00Z",
   "launcher": {
     "url": "https://iggr1.github.io/spx-extension-hub/launcher/"
   },
@@ -114,7 +114,8 @@
           "world": "MAIN",
           "allFrames": false
         }
-      ]
+      ],
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf"
     }
   ]
 }

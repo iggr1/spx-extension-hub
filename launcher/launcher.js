@@ -1,5 +1,6 @@
 const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.1.0';
 
 const grid = document.getElementById('moduleGrid');
 const status = document.getElementById('status');
@@ -19,6 +20,9 @@ let activeDescriptionModuleId = null;
 let activePdfUrl = null;
 let pdfJsPromise = null;
 let pdfRenderToken = 0;
+let currentModules = [];
+let currentLoaderVersion = '0.0.0';
+const userScriptStates = new Map();
 
 document.getElementById('refreshButton').addEventListener('click', () => loadModules(true));
 closeDescriptionButton.addEventListener('click', closeDescription);
@@ -40,58 +44,56 @@ async function loadModules(forceRefresh) {
       throw new Error(catalogResponse?.error || 'Catálogo indisponível.');
     }
 
-    const modules = catalogResponse.catalog.modules.filter(module => module.enabled);
-    renderModules(modules);
-    status.textContent = `${modules.length} módulo(s) disponível(is)`;
-    loaderVersion.textContent = loaderResponse?.ok ? `Loader ${loaderResponse.version}` : '';
+    currentLoaderVersion = loaderResponse?.ok ? String(loaderResponse.version || '0.0.0') : '0.0.0';
+    currentModules = catalogResponse.catalog.modules
+      .filter(module => module.enabled)
+      .map(module => ({
+        ...module,
+        descriptionPdf: resolveDescriptionPdf(module)
+      }));
 
-    if (activeDescriptionModuleId && !modules.some(module => module.id === activeDescriptionModuleId)) {
+    renderModules();
+    status.textContent = `${currentModules.length} módulo(s) disponível(is)`;
+    loaderVersion.textContent = loaderResponse?.ok ? `Loader ${currentLoaderVersion}` : '';
+
+    if (activeDescriptionModuleId && !currentModules.some(module => module.id === activeDescriptionModuleId)) {
       closeDescription();
     }
+
+    await loadUserScriptStates();
   } catch (error) {
     status.textContent = error.message || String(error);
     grid.innerHTML = '<div class="empty">Não foi possível carregar a lista de módulos.</div>';
   }
 }
 
-function renderModules(modules) {
-  if (!modules.length) {
+function renderModules() {
+  if (!currentModules.length) {
     grid.innerHTML = '<div class="empty">Nenhum módulo está publicado no momento.</div>';
     return;
   }
 
-  const modulesWithDescription = modules.map(module => ({
-    ...module,
-    descriptionPdf: resolveDescriptionPdf(module)
-  }));
-
-  grid.innerHTML = modulesWithDescription.map(module => {
+  grid.innerHTML = currentModules.map(module => {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
+    const actions = module.type === 'user_script'
+      ? renderUserScriptSwitch(module)
+      : renderWebModuleActions(module, hasDescription, isDescriptionActive);
 
     return `
-      <article class="module-card">
+      <article class="module-card" data-module-card="${escapeHtml(module.id)}">
         <div class="module-icon">${escapeHtml(module.name.slice(0, 2).toUpperCase())}</div>
         <h2>${escapeHtml(module.name)}</h2>
         <p>${escapeHtml(module.description || 'Módulo operacional publicado no hub.')}</p>
         <div class="module-footer">
           <span class="module-version">v${escapeHtml(module.version)}</span>
-          <div class="module-actions">
-            <button
-              class="description-button${isDescriptionActive ? ' is-active' : ''}"
-              type="button"
-              data-description-id="${escapeHtml(module.id)}"
-              aria-pressed="${isDescriptionActive}"
-              ${hasDescription ? '' : 'disabled title="PDF de descrição não publicado"'}
-            >Descrição</button>
-            <button class="open-button" type="button" data-module-id="${escapeHtml(module.id)}">Abrir</button>
-          </div>
+          <div class="module-actions">${actions}</div>
         </div>
       </article>
     `;
   }).join('');
 
-  const modulesById = new Map(modulesWithDescription.map(module => [module.id, module]));
+  const modulesById = new Map(currentModules.map(module => [module.id, module]));
 
   for (const button of grid.querySelectorAll('[data-module-id]')) {
     button.addEventListener('click', () => LoaderBridge.openModule(button.dataset.moduleId));
@@ -103,6 +105,170 @@ function renderModules(modules) {
       if (module) openDescription(module);
     });
   }
+
+  for (const input of grid.querySelectorAll('[data-user-script-toggle]')) {
+    input.addEventListener('change', () => {
+      const module = modulesById.get(input.dataset.userScriptToggle);
+      if (module) toggleUserScript(module, input.checked);
+    });
+  }
+}
+
+function renderWebModuleActions(module, hasDescription, isDescriptionActive) {
+  return `
+    <button
+      class="description-button${isDescriptionActive ? ' is-active' : ''}"
+      type="button"
+      data-description-id="${escapeHtml(module.id)}"
+      aria-pressed="${isDescriptionActive}"
+      ${hasDescription ? '' : 'disabled title="PDF de descrição não publicado"'}
+    >Descrição</button>
+    <button class="open-button" type="button" data-module-id="${escapeHtml(module.id)}">Abrir</button>
+  `;
+}
+
+function renderUserScriptSwitch(module) {
+  const state = userScriptStates.get(module.id) || {
+    loading: true,
+    enabled: false,
+    message: 'Consultando estado do módulo...'
+  };
+  const loaderSupported = compareVersions(currentLoaderVersion, USER_SCRIPT_SWITCH_MIN_LOADER_VERSION) >= 0;
+  const disabled = state.loading || state.busy || state.unavailable || !loaderSupported;
+  const message = !loaderSupported
+    ? `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`
+    : state.message || (state.enabled ? 'Ativo nas páginas compatíveis do SPX.' : 'Desativado.');
+
+  return `
+    <label class="module-toggle${state.enabled ? ' is-enabled' : ''}${state.error ? ' has-error' : ''}">
+      <input
+        type="checkbox"
+        data-user-script-toggle="${escapeHtml(module.id)}"
+        ${state.enabled ? 'checked' : ''}
+        ${disabled ? 'disabled' : ''}
+        aria-label="Ligar ou desligar ${escapeHtml(module.name)}"
+      >
+      <span class="module-toggle-track" aria-hidden="true"><span></span></span>
+      <span class="module-toggle-copy">
+        <strong>${state.busy ? 'Aplicando...' : state.enabled ? 'Ligado' : 'Desligado'}</strong>
+        <small>${escapeHtml(message)}</small>
+      </span>
+    </label>
+  `;
+}
+
+async function loadUserScriptStates() {
+  const modules = currentModules.filter(module => module.type === 'user_script');
+  if (!modules.length) return;
+
+  if (compareVersions(currentLoaderVersion, USER_SCRIPT_SWITCH_MIN_LOADER_VERSION) < 0) {
+    for (const module of modules) {
+      userScriptStates.set(module.id, {
+        enabled: false,
+        unavailable: true,
+        message: `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`
+      });
+    }
+    renderModules();
+    return;
+  }
+
+  await Promise.all(modules.map(async module => {
+    try {
+      const response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Não foi possível consultar o estado do módulo.');
+      }
+
+      userScriptStates.set(module.id, {
+        enabled: response.enabled === true,
+        registered: response.registered === true,
+        message: response.enabled
+          ? 'Ativo nas páginas compatíveis do SPX.'
+          : 'Desativado.'
+      });
+    } catch (error) {
+      userScriptStates.set(module.id, {
+        enabled: false,
+        unavailable: true,
+        error: true,
+        message: normalizeSwitchError(error)
+      });
+    }
+  }));
+
+  renderModules();
+}
+
+async function toggleUserScript(module, enabled) {
+  const previous = userScriptStates.get(module.id) || { enabled: !enabled };
+  userScriptStates.set(module.id, {
+    ...previous,
+    enabled,
+    busy: true,
+    error: false,
+    message: enabled ? 'Ativando e recarregando abas SPX...' : 'Desativando e recarregando abas SPX...'
+  });
+  renderModules();
+
+  try {
+    const response = await LoaderBridge.requestForModule(
+      module.id,
+      'userscripts.setEnabled',
+      { enabled }
+    );
+
+    if (!response?.ok) {
+      throw new Error(response?.error || 'Não foi possível alterar o módulo.');
+    }
+
+    userScriptStates.set(module.id, {
+      enabled: response.enabled === true,
+      registered: response.registered === true,
+      message: response.enabled
+        ? `Ligado. ${formatReloadedTabs(response.reloadedTabs)}`
+        : `Desligado. ${formatReloadedTabs(response.reloadedTabs)}`
+    });
+    status.textContent = `${module.name} ${enabled ? 'ativado' : 'desativado'} com sucesso.`;
+  } catch (error) {
+    userScriptStates.set(module.id, {
+      ...previous,
+      busy: false,
+      error: true,
+      message: normalizeSwitchError(error)
+    });
+    status.textContent = normalizeSwitchError(error);
+  }
+
+  renderModules();
+}
+
+function formatReloadedTabs(value) {
+  const count = Number(value || 0);
+  if (!count) return 'Abra ou recarregue a página de recebimento para aplicar.';
+  return `${count} aba${count === 1 ? '' : 's'} do SPX recarregada${count === 1 ? '' : 's'}.`;
+}
+
+function normalizeSwitchError(error) {
+  const message = String(error?.message || error || 'Falha desconhecida.');
+  if (/Permitir scripts de usuário/i.test(message)) return message;
+  if (/launcher não pode|operação|capability/i.test(message)) {
+    return `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`;
+  }
+  return message;
+}
+
+function compareVersions(left, right) {
+  const a = String(left || '').split('.').map(value => Number.parseInt(value, 10) || 0);
+  const b = String(right || '').split('.').map(value => Number.parseInt(value, 10) || 0);
+  const length = Math.max(a.length, b.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const difference = (a[index] || 0) - (b[index] || 0);
+    if (difference) return difference;
+  }
+
+  return 0;
 }
 
 function resolveDescriptionPdf(module) {

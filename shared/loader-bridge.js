@@ -15,6 +15,10 @@
   });
 
   function request(operation, payload = {}) {
+    return requestForModule(moduleId, operation, payload);
+  }
+
+  function requestForModule(targetModuleId, operation, payload = {}) {
     return new Promise((resolve, reject) => {
       if (window.parent === window) {
         reject(new Error('Este módulo precisa ser aberto pelo SPX Extension Loader.'));
@@ -38,7 +42,7 @@
         channel: CHANNEL,
         type: 'BRIDGE_REQUEST',
         requestId,
-        moduleId,
+        moduleId: targetModuleId,
         operation,
         payload
       }, '*');
@@ -63,6 +67,7 @@
   window.LoaderBridge = Object.freeze({
     moduleId,
     request,
+    requestForModule,
     openModule,
     openLauncher
   });

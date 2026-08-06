@@ -41,11 +41,17 @@ button:disabled { cursor: not-allowed; opacity: .4; }
 .description-label { color: #ff8a43; font-size: 10px; font-weight: 850; letter-spacing: .14em; }
 .description-header h2 { margin: 5px 0 0; font-size: 20px; }
 .close-description { display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; padding: 0; border: 1px solid #3a4251; border-radius: 10px; background: #202530; font-size: 24px; line-height: 1; }
+.description-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #2b3240; color: #aeb5c3; font-size: 12px; }
+.description-toolbar[hidden] { display: none; }
+.description-toolbar button { padding: 8px 11px; border: 1px solid #3a4251; background: #202530; font-size: 12px; }
 .description-loading, .description-error { display: grid; place-items: center; flex: 1; padding: 30px; text-align: center; color: #9da5b3; }
 .description-error { color: #ff9d72; }
 .description-error[hidden], .description-loading[hidden] { display: none; }
-.description-frame { display: none; width: 100%; flex: 1; min-height: 0; border: 0; background: #242424; }
-.description-frame.is-ready { display: block; }
+.description-viewer { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 14px; overflow: auto; padding: 14px; background: #252830; scrollbar-color: #4c5361 #1a1d24; }
+.description-viewer:empty { display: none; }
+.pdf-page { position: relative; flex: 0 0 auto; width: 100%; padding-top: 24px; }
+.pdf-page-label { position: absolute; top: 0; left: 2px; color: #929aa8; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.pdf-page canvas { display: block; max-width: 100%; height: auto !important; margin: 0 auto; border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.28); }
 
 footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #242a35; color: #8e96a6; font-size: 13px; }
 footer p { margin: 0; }

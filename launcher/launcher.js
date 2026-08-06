@@ -76,9 +76,10 @@ function renderModules() {
   grid.innerHTML = currentModules.map(module => {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
+    const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive);
     const actions = module.type === 'user_script'
-      ? renderUserScriptSwitch(module)
-      : renderWebModuleActions(module, hasDescription, isDescriptionActive);
+      ? `${descriptionAction}${renderUserScriptSwitch(module)}`
+      : `${descriptionAction}<button class="open-button" type="button" data-module-id="${escapeHtml(module.id)}">Abrir</button>`;
 
     return `
       <article class="module-card" data-module-card="${escapeHtml(module.id)}">
@@ -114,7 +115,7 @@ function renderModules() {
   }
 }
 
-function renderWebModuleActions(module, hasDescription, isDescriptionActive) {
+function renderDescriptionAction(module, hasDescription, isDescriptionActive) {
   return `
     <button
       class="description-button${isDescriptionActive ? ' is-active' : ''}"
@@ -123,7 +124,6 @@ function renderWebModuleActions(module, hasDescription, isDescriptionActive) {
       aria-pressed="${isDescriptionActive}"
       ${hasDescription ? '' : 'disabled title="PDF de descrição não publicado"'}
     >Descrição</button>
-    <button class="open-button" type="button" data-module-id="${escapeHtml(module.id)}">Abrir</button>
   `;
 }
 
@@ -275,10 +275,14 @@ function resolveDescriptionPdf(module) {
   const configuredPdf = String(module.descriptionPdf || '').trim();
   if (configuredPdf) return configuredPdf;
 
-  if (module.type !== 'web_app' || !module.entry) return '';
-
   try {
-    return new URL('descricao.pdf', module.entry).toString();
+    if (module.type === 'web_app' && module.entry) {
+      return new URL('descricao.pdf', module.entry).toString();
+    }
+    if (module.type === 'user_script') {
+      return new URL(`../modules/${encodeURIComponent(module.id)}/descricao.pdf`, window.location.href).toString();
+    }
+    return '';
   } catch {
     return '';
   }

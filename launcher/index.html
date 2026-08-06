@@ -32,17 +32,22 @@
           <button class="close-description" id="closeDescriptionButton" type="button" aria-label="Fechar descrição">×</button>
         </div>
 
+        <div class="description-toolbar" id="descriptionToolbar" hidden>
+          <span id="descriptionPageCount"></span>
+          <button id="openPdfButton" type="button">Abrir PDF</button>
+        </div>
+
         <div class="description-loading" id="descriptionLoading">Carregando PDF...</div>
         <div class="description-error" id="descriptionError" hidden>
           Não foi possível exibir o PDF. Verifique se o arquivo está publicado no repositório.
         </div>
 
-        <iframe
-          class="description-frame"
-          id="descriptionFrame"
-          title="Descrição do módulo em PDF"
-          loading="lazy"
-        ></iframe>
+        <div
+          class="description-viewer"
+          id="descriptionViewer"
+          role="document"
+          aria-label="Descrição do módulo em PDF"
+        ></div>
       </aside>
     </div>
 

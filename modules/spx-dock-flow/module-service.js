@@ -165,7 +165,6 @@ async function fetchDriverRoutes(payload) {
     body: {
       station_id: stationId,
       driver_id: driverId,
-      status: '1',
       pageno: 1,
       count: 20,
       search_type: 0
@@ -465,7 +464,13 @@ function extractAssignmentTaskId(item) {
 }
 
 function selectLatestAssignment(list) {
-  return [...list].sort((a, b) => {
+  const assignments = Array.isArray(list) ? list : [];
+  const assignmentsWithRoute = assignments.filter(item =>
+    String(item?.corridor_cage || item?.route || '').trim()
+  );
+  const candidates = assignmentsWithRoute.length ? assignmentsWithRoute : assignments;
+
+  return [...candidates].sort((a, b) => {
     const assignedDifference = numberOrZero(b.driver_assigned_time) - numberOrZero(a.driver_assigned_time);
     if (assignedDifference !== 0) return assignedDifference;
 

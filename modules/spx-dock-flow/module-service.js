@@ -148,14 +148,9 @@ async function fetchDockQueues(payload) {
 
 async function fetchDriverRoutes(payload) {
   const driverIds = uniquePositiveIntegers(payload.driverIds);
-  const stationId = Number(payload.stationId);
 
   if (!driverIds.length) {
     return { ok: true, source: 'none', routes: {} };
-  }
-
-  if (!Number.isInteger(stationId) || stationId <= 0) {
-    return { ok: false, source: 'none', error: 'Station ID inválido.', routes: {} };
   }
 
   const requests = driverIds.map(driverId => ({
@@ -163,7 +158,6 @@ async function fetchDriverRoutes(payload) {
     url: ASSIGNMENT_API_URL,
     method: 'POST',
     body: {
-      station_id: stationId,
       driver_id: driverId,
       pageno: 1,
       count: 20,
@@ -209,7 +203,6 @@ async function fetchDriverRoutes(payload) {
     routes
   };
 }
-
 
 async function getAssignmentStats(payload) {
   const assignmentTaskId = normalizeAssignmentTaskId(payload.assignmentTaskId);
@@ -480,7 +473,6 @@ function selectLatestAssignment(list) {
     return numberOrZero(b.id) - numberOrZero(a.id);
   })[0] || null;
 }
-
 
 async function fetchBatch(requests) {
   const response = await LoaderBridge.request('network.fetchBatch', {

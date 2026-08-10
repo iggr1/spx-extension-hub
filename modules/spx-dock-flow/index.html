@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Dock Flow</title>
   <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="dashboard-settings.css">
 </head>
 <body>
   <div class="app-shell">
@@ -43,6 +44,16 @@
         </div>
 
         <div class="utility-actions">
+        <div class="header-zoom-control" aria-label="Controle de zoom da dashboard">
+          <button id="zoomOutButton" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
+          <output id="zoomHeaderValue" aria-live="polite">100%</output>
+          <button id="zoomInButton" type="button" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
+        </div>
+
+        <button class="icon-button" id="settingsButton" type="button" aria-label="Configurações" title="Configurações">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.1a1.7 1.7 0 0 0-1.5.6z"></path></svg>
+        </button>
+
         <button class="icon-button" id="themeToggle" type="button" aria-label="Alternar tema" title="Alternar tema">
           <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
           <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -125,6 +136,88 @@
     </main>
   </div>
 
+  <div class="settings-modal" id="settingsModal" aria-hidden="true">
+    <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <header class="settings-panel-header">
+        <div>
+          <h2 id="settingsTitle">Configurações da dashboard</h2>
+          <p>As preferências são salvas apenas neste navegador e podem ser alteradas a qualquer momento.</p>
+        </div>
+        <button class="settings-close-button" id="settingsCloseButton" type="button" aria-label="Fechar configurações" title="Fechar">×</button>
+      </header>
+
+      <div class="settings-form">
+        <section class="settings-section">
+          <h3 class="settings-section-title">Atualização</h3>
+          <div class="settings-grid">
+            <label class="settings-field full-width">
+              <span class="settings-switch-row">
+                <span>
+                  <span class="settings-field-label">Atualização automática</span>
+                  <small>Atualiza mesas, filas e rotas automaticamente.</small>
+                </span>
+                <span class="settings-switch">
+                  <input id="settingAutoRefresh" type="checkbox">
+                  <span aria-hidden="true"></span>
+                </span>
+              </span>
+            </label>
+
+            <label class="settings-field" id="refreshIntervalField">
+              <span class="settings-field-label">Intervalo de atualização</span>
+              <input id="settingRefreshInterval" type="number" min="5" max="120" step="1" inputmode="numeric">
+              <small>Em segundos. Padrão: 10.</small>
+            </label>
+
+            <label class="settings-field">
+              <span class="settings-field-label">Janela da média por rota</span>
+              <input id="settingHistoryWindow" type="number" min="1" max="24" step="1" inputmode="numeric">
+              <small>Em horas. Define a janela usada no card de tempo médio.</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="settings-section-title">Alertas operacionais</h3>
+          <div class="settings-grid">
+            <label class="settings-field">
+              <span class="settings-field-label">Alerta de carregamento</span>
+              <input id="settingLoadingAlert" type="number" min="0" max="120" step="1" inputmode="numeric">
+              <small>Minutos até destacar um carregamento. Use 0 para desativar.</small>
+            </label>
+
+            <label class="settings-field">
+              <span class="settings-field-label">Alerta de espera</span>
+              <input id="settingWaitingAlert" type="number" min="0" max="120" step="1" inputmode="numeric">
+              <small>Minutos até destacar a espera do próximo motorista. Use 0 para desativar.</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="settings-section-title">Visualização</h3>
+          <div class="settings-grid">
+            <label class="settings-field full-width">
+              <span class="settings-field-label">Zoom da dashboard</span>
+              <div class="settings-zoom-row">
+                <input id="settingZoomPercent" type="range" min="70" max="130" step="5">
+                <output class="settings-zoom-value" id="settingZoomValue">100%</output>
+              </div>
+              <small>70% mostra mais conteúdo. 130% aumenta a leitura em telas maiores ou mais distantes.</small>
+            </label>
+          </div>
+        </section>
+
+        <div class="settings-actions">
+          <button class="settings-action-button settings-reset" id="settingsResetButton" type="button">Restaurar padrões</button>
+          <button class="settings-action-button" id="settingsCancelButton" type="button">Cancelar</button>
+          <button class="settings-action-button primary" id="settingsSaveButton" type="button">Salvar</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="dashboard-settings.js"></script>
   <script src="../../shared/loader-bridge.js"></script>
   <script src="module-service.js"></script>
   <script src="dashboard.js"></script>

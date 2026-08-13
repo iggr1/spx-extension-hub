@@ -3,8 +3,22 @@
   const STATUS_CLASSES = ['occupied', 'next', 'available', 'inactive', 'unknown', 'loading'];
   const routeCache = new Map();
 
+  preserveCollectionDuringRefresh('dockQueues');
+  preserveCollectionDuringRefresh('driverRoutes');
+
   const originalGetRouteDisplay = getRouteDisplay;
+  const originalGetDisplayStatus = getDisplayStatus;
   const originalRenderDockGroups = renderDockGroups;
+
+  getDisplayStatus = function stableGetDisplayStatus(dock, nextDriver = getNextDriver(dock)) {
+    const result = originalGetDisplayStatus(dock, nextDriver);
+
+    if (result?.key === 'loading' && Number(dock?.dock_status) === 2) {
+      return { key: 'available', label: 'Disponível' };
+    }
+
+    return result;
+  };
 
   getRouteDisplay = function stableGetRouteDisplay(dock, driverId, nextDriver, displayStatus) {
     const result = originalGetRouteDisplay(dock, driverId, nextDriver, displayStatus);
@@ -43,9 +57,41 @@
 
   renderDockGroups = function renderDockGroupsWithStatusFeedback() {
     const previousStatuses = collectCurrentStatuses();
+    prunePreservedDockQueues();
     originalRenderDockGroups();
-    flashChangedStatuses(previousStatuses);
+    highlightChangedStatuses(previousStatuses);
   };
+
+  function preserveCollectionDuringRefresh(propertyName) {
+    let currentValue = state[propertyName];
+
+    Object.defineProperty(state, propertyName, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return currentValue;
+      },
+      set(nextValue) {
+        const isPlainObject = nextValue && typeof nextValue === 'object' && !Array.isArray(nextValue);
+        const isEmptyReset = isPlainObject && Object.keys(nextValue).length === 0;
+        const hasValidCurrentValue = currentValue
+          && typeof currentValue === 'object'
+          && Object.keys(currentValue).length > 0;
+
+        if (state.loading && isEmptyReset && hasValidCurrentValue) return;
+        currentValue = nextValue;
+      }
+    });
+  }
+
+  function prunePreservedDockQueues() {
+    if (!state.dockQueues || typeof state.dockQueues !== 'object') return;
+
+    for (const dock of state.docks) {
+      if (!isDockOccupied(dock)) continue;
+      delete state.dockQueues[numberOrZero(dock.dock_id)];
+    }
+  }
 
   function getRouteCacheKey(dock, driverId) {
     const dockId = numberOrZero(dock?.dock_id);
@@ -91,7 +137,7 @@
     return 'unknown';
   }
 
-  function flashChangedStatuses(previousStatuses) {
+  function highlightChangedStatuses(previousStatuses) {
     document.querySelectorAll('.dock-card[data-dock-id]').forEach(card => {
       const dockId = String(card.dataset.dockId || '').trim();
       const previousStatus = previousStatuses.get(dockId);

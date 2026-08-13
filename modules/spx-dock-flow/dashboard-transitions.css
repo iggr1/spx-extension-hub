@@ -1,0 +1,31 @@
+.dock-card.status-change-flash {
+  z-index: 4;
+  animation: spx-dock-status-highlight 2.6s ease-out;
+}
+
+.dock-card.occupied.status-change-flash { --status-highlight-color: var(--orange); }
+.dock-card.next.status-change-flash { --status-highlight-color: var(--blue); }
+.dock-card.available.status-change-flash { --status-highlight-color: var(--green); }
+.dock-card.loading-finished.status-change-flash { --status-highlight-color: var(--purple); }
+.dock-card.inactive.status-change-flash,
+.dock-card.unknown.status-change-flash,
+.dock-card.loading.status-change-flash { --status-highlight-color: var(--amber); }
+
+@keyframes spx-dock-status-highlight {
+  0% {
+    box-shadow: 0 0 0 3px var(--status-highlight-color), 0 0 28px var(--status-highlight-color), var(--card-shadow);
+  }
+  45% {
+    box-shadow: 0 0 0 2px var(--status-highlight-color), 0 0 18px var(--status-highlight-color), var(--card-shadow);
+  }
+  100% {
+    box-shadow: var(--card-shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-card.status-change-flash {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--status-highlight-color), var(--card-shadow);
+  }
+}

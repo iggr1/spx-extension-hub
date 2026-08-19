@@ -1,17 +1,22 @@
 (() => {
   const SETTINGS_STORAGE_KEY = 'spxDockFlowSettingsV1';
+  const DOCKS_PER_PAGE = 20;
+  const DOCK_PAGE_INTERVAL_SECONDS = 10;
   const DEFAULT_SETTINGS = Object.freeze({
     autoRefreshEnabled: true,
     refreshIntervalSeconds: 10,
     loadingAlertMinutes: 10,
     waitingAlertMinutes: 10,
-    historyWindowHours: 4,
+    historyWindowHours: 2.5,
     zoomPercent: 100
   });
 
   let settings = loadSettings();
   let installed = false;
   let originalLoadDocks = null;
+  let dockPageIndex = 0;
+  let dockPageElapsedSeconds = 0;
+  let dockPageTimer = null;
 
   const nativeSetInterval = window.setInterval.bind(window);
   window.setInterval = function patchedSetInterval(callback, delay, ...args) {
@@ -40,6 +45,7 @@
 
     bindSettingsUi();
     installDashboardOverrides();
+    startDockPagination();
     applySettingsToDashboard(false);
   }
 
@@ -59,7 +65,7 @@
   function sanitizeSettings(value) {
     return {
       autoRefreshEnabled: value.autoRefreshEnabled !== false,
-      refreshIntervalSeconds: clampNumber(value.refreshIntervalSeconds, 5, 120, DEFAULT_SETTINGS.refreshIntervalSeconds),
+      refreshIntervalSeconds: clampNumber(value.refreshIntervalSeconds, 10, 120, DEFAULT_SETTINGS.refreshIntervalSeconds),
       loadingAlertMinutes: clampNumber(value.loadingAlertMinutes, 0, 120, DEFAULT_SETTINGS.loadingAlertMinutes),
       waitingAlertMinutes: clampNumber(value.waitingAlertMinutes, 0, 120, DEFAULT_SETTINGS.waitingAlertMinutes),
       historyWindowHours: clampNumber(value.historyWindowHours, 1, 24, DEFAULT_SETTINGS.historyWindowHours),
@@ -89,6 +95,21 @@
     const zoomInButton = document.getElementById('zoomInButton');
     const zoomRange = document.getElementById('settingZoomPercent');
     const autoRefresh = document.getElementById('settingAutoRefresh');
+    const refreshInterval = document.getElementById('settingRefreshInterval');
+    const historyWindow = document.getElementById('settingHistoryWindow');
+
+    if (refreshInterval) {
+      refreshInterval.min = '10';
+      const help = refreshInterval.closest('.settings-field')?.querySelector('small');
+      if (help) help.textContent = 'Em segundos. Mínimo e padrão: 10.';
+    }
+
+    if (historyWindow) {
+      historyWindow.min = '1';
+      historyWindow.step = '0.5';
+      const help = historyWindow.closest('.settings-field')?.querySelector('small');
+      if (help) help.textContent = 'Em horas. Padrão: 2,5. Define a janela usada no card de tempo médio e nos tempos ociosos.';
+    }
 
     settingsButton?.addEventListener('click', openSettingsModal);
     closeButton?.addEventListener('click', closeSettingsModal);
@@ -239,6 +260,7 @@
 
       handleSecondTick = configuredHandleSecondTick;
       updateCountdown = configuredUpdateCountdown;
+      renderDockGroups = configuredRenderDockGroups;
       renderDockCard = configuredRenderDockCard;
       updateLiveTimes = configuredUpdateLiveTimes;
       syncLoadingHistory = configuredSyncLoadingHistory;
@@ -250,6 +272,59 @@
     } catch (error) {
       console.warn('[SPX Dock Flow] Não foi possível aplicar todas as configurações dinâmicas.', error);
     }
+  }
+
+  function startDockPagination() {
+    if (dockPageTimer) return;
+    dockPageTimer = nativeSetInterval(handleDockPageTick, 1000);
+  }
+
+  function handleDockPageTick() {
+    const totalPages = getDockPageCount();
+
+    if (totalPages <= 1) {
+      dockPageIndex = 0;
+      dockPageElapsedSeconds = 0;
+      return;
+    }
+
+    dockPageElapsedSeconds += 1;
+    if (dockPageElapsedSeconds < DOCK_PAGE_INTERVAL_SECONDS) return;
+
+    dockPageElapsedSeconds = 0;
+    dockPageIndex = (dockPageIndex + 1) % totalPages;
+    configuredRenderDockGroups();
+  }
+
+  function getDockPageCount() {
+    return Math.max(1, Math.ceil(state.docks.length / DOCKS_PER_PAGE));
+  }
+
+  function configuredRenderDockGroups() {
+    if (!state.docks.length) {
+      dockPageIndex = 0;
+      dockPageElapsedSeconds = 0;
+      elements.dockGroups.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">↻</div>
+          <strong>Nenhuma mesa disponível</strong>
+          <p>Aguardando dados da operação.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const sorted = [...state.docks].sort((a, b) => naturalDockSort(a.dock_name, b.dock_name));
+    const totalPages = Math.max(1, Math.ceil(sorted.length / DOCKS_PER_PAGE));
+    dockPageIndex = Math.min(dockPageIndex, totalPages - 1);
+
+    if (totalPages <= 1) dockPageElapsedSeconds = 0;
+
+    const start = dockPageIndex * DOCKS_PER_PAGE;
+    const visibleDocks = sorted.slice(start, start + DOCKS_PER_PAGE);
+
+    elements.dockGroups.innerHTML = `<div class="dock-grid" data-page="${dockPageIndex + 1}" data-pages="${totalPages}">${visibleDocks.map(renderDockCard).join('')}</div>`;
+    scheduleGridFit();
   }
 
   function configuredHandleSecondTick() {
@@ -297,16 +372,18 @@
       : nextDriver?.driver_name || (displayStatus.key === 'available' ? 'Aguardando próximo motorista' : 'Nenhum motorista aguardando');
     const driverName = formatPersonName(rawDriverName);
     const route = getRouteDisplay(dock, driverId, nextDriver, displayStatus);
-    const dockSeconds = getLiveSeconds(occupied ? numberOrZero(dock.occupation_time) : numberOrZero(dock.idle_time));
-    const waitingSeconds = nextDriver ? getLiveSeconds(numberOrZero(nextDriver.waiting_time)) : 0;
+    const rawDockSeconds = getLiveSeconds(occupied ? numberOrZero(dock.occupation_time) : numberOrZero(dock.idle_time));
+    const rawWaitingSeconds = nextDriver ? getLiveSeconds(numberOrZero(nextDriver.waiting_time)) : 0;
+    const dockSeconds = occupied ? rawDockSeconds : limitIdleToHistoryWindow(rawDockSeconds);
+    const waitingSeconds = nextDriver ? limitIdleToHistoryWindow(rawWaitingSeconds) : 0;
     const id = numberOrZero(dock.dock_id);
     const loadingFinalized = route.kind === 'route-finished';
     const statusLabel = loadingFinalized ? 'Finalizado' : displayStatus.label;
     const statusClass = loadingFinalized ? 'finished' : displayStatus.key;
     const loadingThreshold = getLoadingAlertSeconds();
     const waitingThreshold = getWaitingAlertSeconds();
-    const loadingOverLimit = occupied && !loadingFinalized && loadingThreshold > 0 && dockSeconds > loadingThreshold;
-    const waitingOverLimit = Boolean(nextDriver) && waitingThreshold > 0 && waitingSeconds > waitingThreshold;
+    const loadingOverLimit = occupied && !loadingFinalized && loadingThreshold > 0 && rawDockSeconds > loadingThreshold;
+    const waitingOverLimit = Boolean(nextDriver) && waitingThreshold > 0 && rawWaitingSeconds > waitingThreshold;
     const alertTitle = loadingFinalized
       ? 'Carregamento finalizado · aguardando saída do motorista'
       : loadingOverLimit
@@ -363,19 +440,22 @@
     const waitingThreshold = getWaitingAlertSeconds();
 
     document.querySelectorAll('.live-duration').forEach(element => {
-      const seconds = getLiveSeconds(numberOrZero(element.dataset.baseSeconds));
-      element.textContent = formatDuration(seconds);
+      const rawSeconds = getLiveSeconds(numberOrZero(element.dataset.baseSeconds));
+      const timerKind = element.dataset.timerKind;
+      const displaySeconds = timerKind === 'waiting' || timerKind === 'idle'
+        ? limitIdleToHistoryWindow(rawSeconds)
+        : rawSeconds;
+      element.textContent = formatDuration(displaySeconds);
 
       const card = element.closest('.dock-card');
-      const timerKind = element.dataset.timerKind;
 
       if (timerKind === 'occupation') {
-        const isOverLimit = !card?.classList.contains('loading-finished') && loadingThreshold > 0 && seconds > loadingThreshold;
+        const isOverLimit = !card?.classList.contains('loading-finished') && loadingThreshold > 0 && rawSeconds > loadingThreshold;
         card?.classList.toggle('overdue', isOverLimit);
       }
 
       if (timerKind === 'waiting') {
-        const isOverLimit = waitingThreshold > 0 && seconds > waitingThreshold;
+        const isOverLimit = waitingThreshold > 0 && rawSeconds > waitingThreshold;
         card?.classList.toggle('waiting-overdue', isOverLimit);
       }
 
@@ -512,18 +592,30 @@
     return Math.max(1, settings.historyWindowHours) * 60 * 60;
   }
 
+  function limitIdleToHistoryWindow(seconds) {
+    return Math.min(Math.max(0, seconds), getHistoryWindowSeconds());
+  }
+
   function formatMinutes(minutes) {
     const value = Number(minutes);
     return `${value} minuto${value === 1 ? '' : 's'}`;
   }
 
   function formatHours(hours) {
-    const value = Number(hours);
-    return `${value} hora${value === 1 ? '' : 's'}`;
+    const totalMinutes = Math.max(0, Math.round(Number(hours) * 60));
+    const wholeHours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (!minutes) return `${wholeHours} hora${wholeHours === 1 ? '' : 's'}`;
+    if (!wholeHours) return `${minutes} minuto${minutes === 1 ? '' : 's'}`;
+    return `${wholeHours}h ${String(minutes).padStart(2, '0')}min`;
   }
 
   function formatCompactHours(hours) {
-    return `${Number(hours)}h`;
+    const totalMinutes = Math.max(0, Math.round(Number(hours) * 60));
+    const wholeHours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes ? `${wholeHours}h${String(minutes).padStart(2, '0')}` : `${wholeHours}h`;
   }
 
   function scheduleDashboardFit() {

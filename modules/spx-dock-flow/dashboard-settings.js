@@ -1,7 +1,9 @@
 (() => {
   const SETTINGS_STORAGE_KEY = 'spxDockFlowSettingsV1';
-  const DOCKS_PER_PAGE = 20;
+  const MAX_DOCKS_PER_PAGE = 15;
   const DOCK_PAGE_INTERVAL_SECONDS = 10;
+  const PAGE_EXIT_DURATION_MS = 260;
+  const PAGE_ENTER_DURATION_MS = 340;
   const DEFAULT_SETTINGS = Object.freeze({
     autoRefreshEnabled: true,
     refreshIntervalSeconds: 10,
@@ -17,6 +19,7 @@
   let dockPageIndex = 0;
   let dockPageElapsedSeconds = 0;
   let dockPageTimer = null;
+  let pageTransitioning = false;
 
   const nativeSetInterval = window.setInterval.bind(window);
   window.setInterval = function patchedSetInterval(callback, delay, ...args) {
@@ -285,25 +288,36 @@
     if (totalPages <= 1) {
       dockPageIndex = 0;
       dockPageElapsedSeconds = 0;
+      pageTransitioning = false;
       return;
     }
 
     dockPageElapsedSeconds += 1;
-    if (dockPageElapsedSeconds < DOCK_PAGE_INTERVAL_SECONDS) return;
+    if (dockPageElapsedSeconds < DOCK_PAGE_INTERVAL_SECONDS || pageTransitioning) return;
 
     dockPageElapsedSeconds = 0;
-    dockPageIndex = (dockPageIndex + 1) % totalPages;
-    configuredRenderDockGroups();
+    transitionToDockPage((dockPageIndex + 1) % totalPages);
   }
 
-  function getDockPageCount() {
-    return Math.max(1, Math.ceil(state.docks.length / DOCKS_PER_PAGE));
+  function getDockPageCount(count = state.docks.length) {
+    if (count <= MAX_DOCKS_PER_PAGE) return 1;
+    return Math.ceil(count / MAX_DOCKS_PER_PAGE);
+  }
+
+  function getBalancedPageRange(count, pageIndex) {
+    const totalPages = getDockPageCount(count);
+    const baseSize = Math.floor(count / totalPages);
+    const pagesWithExtraItem = count % totalPages;
+    const size = baseSize + (pageIndex < pagesWithExtraItem ? 1 : 0);
+    const start = pageIndex * baseSize + Math.min(pageIndex, pagesWithExtraItem);
+    return { start, size, totalPages };
   }
 
   function configuredRenderDockGroups() {
     if (!state.docks.length) {
       dockPageIndex = 0;
       dockPageElapsedSeconds = 0;
+      pageTransitioning = false;
       elements.dockGroups.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">↻</div>
@@ -314,17 +328,80 @@
       return;
     }
 
+    renderCurrentDockPage();
+  }
+
+  function renderCurrentDockPage() {
     const sorted = [...state.docks].sort((a, b) => naturalDockSort(a.dock_name, b.dock_name));
-    const totalPages = Math.max(1, Math.ceil(sorted.length / DOCKS_PER_PAGE));
+    const totalPages = getDockPageCount(sorted.length);
     dockPageIndex = Math.min(dockPageIndex, totalPages - 1);
 
     if (totalPages <= 1) dockPageElapsedSeconds = 0;
 
-    const start = dockPageIndex * DOCKS_PER_PAGE;
-    const visibleDocks = sorted.slice(start, start + DOCKS_PER_PAGE);
+    const range = getBalancedPageRange(sorted.length, dockPageIndex);
+    const visibleDocks = sorted.slice(range.start, range.start + range.size);
 
-    elements.dockGroups.innerHTML = `<div class="dock-grid" data-page="${dockPageIndex + 1}" data-pages="${totalPages}">${visibleDocks.map(renderDockCard).join('')}</div>`;
+    elements.dockGroups.innerHTML = `<div class="dock-grid" data-page="${dockPageIndex + 1}" data-pages="${range.totalPages}">${visibleDocks.map(renderDockCard).join('')}</div>`;
+
+    if (state.demo && elements.noticeDetails) {
+      elements.noticeDetails.textContent = 'Use a quantidade de docas para testar densidade e paginação automática. Acima de 15, as páginas são equilibradas e alternam a cada 10 segundos.';
+    }
+
     scheduleGridFit();
+  }
+
+  function transitionToDockPage(nextPageIndex) {
+    const totalPages = getDockPageCount();
+    if (totalPages <= 1) return;
+
+    const normalizedNextPage = ((nextPageIndex % totalPages) + totalPages) % totalPages;
+    const currentGrid = elements.dockGroups.querySelector('.dock-grid');
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    if (!currentGrid || reducedMotion || typeof currentGrid.animate !== 'function') {
+      dockPageIndex = normalizedNextPage;
+      renderCurrentDockPage();
+      return;
+    }
+
+    pageTransitioning = true;
+    currentGrid.style.willChange = 'transform, opacity';
+
+    const exitAnimation = currentGrid.animate([
+      { transform: 'translateX(0)', opacity: 1 },
+      { transform: 'translateX(-14%)', opacity: 0 }
+    ], {
+      duration: PAGE_EXIT_DURATION_MS,
+      easing: 'cubic-bezier(.4, 0, .6, 1)',
+      fill: 'forwards'
+    });
+
+    exitAnimation.finished
+      .catch(() => null)
+      .then(() => {
+        dockPageIndex = normalizedNextPage;
+        renderCurrentDockPage();
+
+        const incomingGrid = elements.dockGroups.querySelector('.dock-grid');
+        if (!incomingGrid || typeof incomingGrid.animate !== 'function') return null;
+
+        incomingGrid.style.willChange = 'transform, opacity';
+        const enterAnimation = incomingGrid.animate([
+          { transform: 'translateX(14%)', opacity: 0 },
+          { transform: 'translateX(0)', opacity: 1 }
+        ], {
+          duration: PAGE_ENTER_DURATION_MS,
+          easing: 'cubic-bezier(.16, 1, .3, 1)',
+          fill: 'both'
+        });
+
+        return enterAnimation.finished.catch(() => null).then(() => {
+          incomingGrid.style.willChange = '';
+        });
+      })
+      .finally(() => {
+        pageTransitioning = false;
+      });
   }
 
   function configuredHandleSecondTick() {

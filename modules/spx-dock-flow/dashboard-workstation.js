@@ -2,7 +2,6 @@
   const STORAGE_KEY = 'spxDockFlowWorkstationV1';
 
   let selectedDockName = loadSelectedDockName();
-  let selectingDock = false;
   let lastObservedStatus = null;
   let selectedDockWasPresent = false;
   let refreshTimer = 0;
@@ -12,10 +11,8 @@
   initialize();
 
   function initialize() {
-    const button = ensureButton();
     const dockGroups = document.getElementById('dockGroups');
 
-    button?.addEventListener('click', handleButtonClick);
     dockGroups?.addEventListener('click', handleDockClick);
 
     if (dockGroups && 'MutationObserver' in window) {
@@ -26,44 +23,10 @@
     document.addEventListener('pointerdown', unlockAudio, { capture: true, once: true });
     document.addEventListener('keydown', unlockAudio, { capture: true, once: true });
 
-    updateButton();
-    applySelectionMode();
     scheduleRefresh();
   }
 
-  function ensureButton() {
-    let button = document.getElementById('workstationDockButton');
-    if (button) return button;
-
-    const utilityActions = document.querySelector('.utility-actions');
-    if (!utilityActions) return null;
-
-    button = document.createElement('button');
-    button.id = 'workstationDockButton';
-    button.type = 'button';
-    button.className = 'button secondary workstation-dock-button';
-
-    const zoomControl = utilityActions.querySelector('.header-zoom-control');
-    utilityActions.insertBefore(button, zoomControl || utilityActions.firstChild);
-    return button;
-  }
-
-  function handleButtonClick() {
-    unlockAudio();
-
-    if (selectedDockName) {
-      clearSelectedDock();
-      return;
-    }
-
-    selectingDock = !selectingDock;
-    updateButton();
-    applySelectionMode();
-  }
-
   function handleDockClick(event) {
-    if (!selectingDock) return;
-
     const card = event.target.closest('.dock-card[data-dock-id]');
     if (!card) return;
 
@@ -72,77 +35,25 @@
     const dockName = String(dock?.dock_name || '').trim();
     if (!dockName) return;
 
-    event.preventDefault();
-    event.stopPropagation();
     unlockAudio();
 
+    if (normalizeDockName(selectedDockName) === normalizeDockName(dockName)) {
+      clearSelectedDock();
+      return;
+    }
+
     selectedDockName = dockName;
-    selectingDock = false;
     saveSelectedDockName(dockName);
     selectedDockWasPresent = true;
     lastObservedStatus = getDockOperationalStatus(dock);
-
-    updateButton();
-    applySelectionMode();
     applyHighlight();
   }
 
   function clearSelectedDock() {
     selectedDockName = '';
-    selectingDock = false;
     selectedDockWasPresent = false;
     lastObservedStatus = null;
     localStorage.removeItem(STORAGE_KEY);
-
-    updateButton();
-    applySelectionMode();
-    applyHighlight();
-  }
-
-  function updateButton() {
-    const button = ensureButton();
-    if (!button) return;
-
-    button.classList.toggle('has-selection', Boolean(selectedDockName));
-    button.classList.toggle('is-selecting', selectingDock);
-
-    if (selectedDockName) {
-      button.textContent = 'Desmarcar doca';
-      button.title = `Doca atual: ${selectedDockName}. Clique para desmarcar.`;
-      button.setAttribute('aria-label', `Desmarcar ${selectedDockName} como doca atual`);
-      return;
-    }
-
-    if (selectingDock) {
-      button.textContent = 'Cancelar seleção';
-      button.title = 'Cancelar seleção da doca atual';
-      button.setAttribute('aria-label', 'Cancelar seleção da doca atual');
-      return;
-    }
-
-    button.textContent = 'Selecionar doca atual';
-    button.title = 'Selecionar a doca deste computador';
-    button.setAttribute('aria-label', 'Selecionar doca atual');
-  }
-
-  function applySelectionMode() {
-    document.body.classList.toggle('dock-selection-mode', selectingDock);
-
-    let hint = document.getElementById('dockSelectionHint');
-
-    if (selectingDock) {
-      if (!hint) {
-        hint = document.createElement('div');
-        hint.id = 'dockSelectionHint';
-        hint.className = 'dock-selection-hint';
-        hint.setAttribute('role', 'status');
-        document.body.appendChild(hint);
-      }
-      hint.textContent = 'Clique no card da doca deste computador';
-    } else {
-      hint?.remove();
-    }
-
     applyHighlight();
   }
 
@@ -172,13 +83,9 @@
         && normalizeDockName(dock?.dock_name) === normalizedSelected;
 
       card.classList.toggle('workstation-dock', isSelected);
-      card.classList.toggle('workstation-selectable', selectingDock);
 
-      if (isSelected) {
-        card.setAttribute('aria-current', 'true');
-      } else {
-        card.removeAttribute('aria-current');
-      }
+      if (isSelected) card.setAttribute('aria-current', 'true');
+      else card.removeAttribute('aria-current');
     });
   }
 
@@ -294,21 +201,8 @@
     const style = document.createElement('style');
     style.id = 'spxDockFlowWorkstationStyles';
     style.textContent = `
-      .workstation-dock-button {
-        min-width: 128px;
-        white-space: nowrap;
-      }
-
-      .workstation-dock-button.has-selection {
-        color: var(--blue);
-        border-color: color-mix(in srgb, var(--blue) 52%, var(--line));
-        background: var(--blue-soft);
-      }
-
-      .workstation-dock-button.is-selecting {
-        color: var(--orange);
-        border-color: color-mix(in srgb, var(--orange) 52%, var(--line));
-        background: var(--orange-soft);
+      .dock-card[data-dock-id] {
+        cursor: pointer;
       }
 
       .dock-card.workstation-dock {
@@ -317,51 +211,6 @@
         outline-offset: -2px;
         border-color: color-mix(in srgb, var(--blue) 76%, var(--line));
         box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 18%, transparent), var(--card-shadow);
-      }
-
-      .dock-selection-mode .dock-card.workstation-selectable {
-        cursor: pointer;
-        opacity: 0.74;
-        transition: opacity 0.14s ease, transform 0.14s ease, outline-color 0.14s ease;
-      }
-
-      .dock-selection-mode .dock-card.workstation-selectable:hover {
-        z-index: 4;
-        opacity: 1;
-        outline: 3px solid var(--orange);
-        outline-offset: -2px;
-        transform: translateY(-2px);
-      }
-
-      .dock-selection-hint {
-        position: fixed;
-        left: 50%;
-        bottom: 18px;
-        z-index: 10000;
-        transform: translateX(-50%);
-        padding: 9px 16px;
-        border: 1px solid color-mix(in srgb, var(--orange) 62%, var(--line));
-        border-radius: 999px;
-        color: #fff;
-        background: color-mix(in srgb, var(--orange) 88%, #000);
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
-        font-size: 11px;
-        font-weight: 900;
-        white-space: nowrap;
-        pointer-events: none;
-      }
-
-      .dashboard-header.is-collapsed #workstationDockButton {
-        display: none;
-      }
-
-      @media (max-width: 1180px) {
-        .workstation-dock-button {
-          min-width: 0;
-          max-width: 124px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
       }
     `;
 

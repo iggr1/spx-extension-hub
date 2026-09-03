@@ -1,31 +1,34 @@
-.dock-card.status-change-flash {
-  z-index: 4;
-  animation: spx-dock-status-highlight 2.6s ease-out;
+.dock-reload-button {
+  position: relative;
+  flex: 0 0 auto;
+  font-size: 0;
 }
 
-.dock-card.occupied.status-change-flash { --status-highlight-color: var(--orange); }
-.dock-card.next.status-change-flash { --status-highlight-color: var(--blue); }
-.dock-card.available.status-change-flash { --status-highlight-color: var(--green); }
-.dock-card.loading-finished.status-change-flash { --status-highlight-color: var(--purple); }
-.dock-card.inactive.status-change-flash,
-.dock-card.unknown.status-change-flash,
-.dock-card.loading.status-change-flash { --status-highlight-color: var(--amber); }
+.dock-reload-button::before {
+  content: '↻';
+  display: block;
+  font-size: 20px;
+  line-height: 1;
+  transform-origin: 50% 50%;
+}
 
-@keyframes spx-dock-status-highlight {
-  0% {
-    box-shadow: 0 0 0 3px var(--status-highlight-color), 0 0 28px var(--status-highlight-color), var(--card-shadow);
-  }
-  45% {
-    box-shadow: 0 0 0 2px var(--status-highlight-color), 0 0 18px var(--status-highlight-color), var(--card-shadow);
-  }
-  100% {
-    box-shadow: var(--card-shadow);
+.dock-reload-button:disabled {
+  cursor: default;
+  opacity: 0.78;
+}
+
+.dock-reload-button:disabled::before {
+  animation: spx-dock-reload-spin 0.72s linear infinite;
+}
+
+@keyframes spx-dock-reload-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-card.status-change-flash {
-    animation: none;
-    box-shadow: 0 0 0 2px var(--status-highlight-color), var(--card-shadow);
+  .dock-reload-button:disabled::before {
+    animation-duration: 1.4s;
   }
 }

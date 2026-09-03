@@ -229,8 +229,10 @@
     style.id = 'spxDockFlowWorkstationStyles';
     style.textContent = `
       .dock-card[data-dock-id] {
+        --selection-accent: var(--status-accent, var(--muted));
         cursor: pointer;
         isolation: isolate;
+        overflow: visible;
         transition:
           border-color 0.2s ease,
           box-shadow 0.2s ease,
@@ -244,38 +246,37 @@
 
       .dock-selection-checkbox {
         position: absolute;
-        top: -7px;
-        right: -7px;
+        top: -4px;
+        left: -4px;
         z-index: 7;
-        display: grid;
-        width: 19px;
-        height: 19px;
-        place-items: center;
-        border: 2px solid color-mix(in srgb, var(--muted) 44%, var(--line));
-        border-radius: 6px;
-        color: transparent;
-        background: var(--surface);
-        box-shadow:
-          0 5px 14px color-mix(in srgb, var(--background) 72%, transparent),
-          inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
-        opacity: 0.58;
-        transform: scale(0.9);
+        display: block;
+        width: 34px;
+        height: 34px;
+        overflow: hidden;
+        border-radius: 10px 0 0;
+        color: #fff;
+        background: var(--selection-accent);
+        clip-path: polygon(0 0, 100% 0, 0 100%);
+        filter: drop-shadow(2px 3px 4px color-mix(in srgb, var(--selection-accent) 22%, transparent));
+        opacity: 0;
+        transform: scale(0.74);
+        transform-origin: top left;
         transition:
-          color 0.18s ease,
-          border-color 0.18s ease,
-          background-color 0.18s ease,
-          box-shadow 0.18s ease,
           opacity 0.18s ease,
-          transform 0.18s ease;
+          transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+          filter 0.18s ease;
         pointer-events: none;
       }
 
       .dock-selection-checkbox svg {
-        width: 12px;
-        height: 12px;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 17px;
+        height: 17px;
         fill: none;
         stroke: currentColor;
-        stroke-width: 3;
+        stroke-width: 3.2;
         stroke-linecap: round;
         stroke-linejoin: round;
         stroke-dasharray: 24;
@@ -283,33 +284,27 @@
         transition: stroke-dashoffset 0.22s ease 0.04s;
       }
 
-      .dock-card[data-dock-id]:hover .dock-selection-checkbox,
-      .dock-card[data-dock-id]:focus-visible .dock-selection-checkbox {
-        border-color: color-mix(in srgb, var(--blue) 50%, var(--line));
-        opacity: 1;
-        transform: scale(1);
+      .dock-card[data-dock-id]:not(.workstation-dock):hover .dock-selection-checkbox,
+      .dock-card[data-dock-id]:not(.workstation-dock):focus-visible .dock-selection-checkbox {
+        opacity: 0.28;
+        transform: scale(0.92);
       }
 
       .dock-card.workstation-dock {
         z-index: 3;
-        outline: 2px solid var(--blue);
+        outline: 2px solid var(--selection-accent);
         outline-offset: 2px;
-        border-color: color-mix(in srgb, var(--blue) 76%, var(--line));
+        border-color: color-mix(in srgb, var(--selection-accent) 76%, var(--line));
         box-shadow:
-          0 0 0 5px color-mix(in srgb, var(--blue) 12%, transparent),
-          0 14px 30px color-mix(in srgb, var(--blue) 15%, transparent),
+          0 0 0 5px color-mix(in srgb, var(--selection-accent) 12%, transparent),
+          0 14px 30px color-mix(in srgb, var(--selection-accent) 15%, transparent),
           var(--card-shadow);
       }
 
       .dock-card.workstation-dock .dock-selection-checkbox {
-        color: #fff;
-        border-color: color-mix(in srgb, var(--blue) 84%, white);
-        background: var(--blue);
-        box-shadow:
-          0 0 0 4px color-mix(in srgb, var(--blue) 16%, transparent),
-          0 7px 18px color-mix(in srgb, var(--blue) 35%, transparent);
         opacity: 1;
         transform: scale(1);
+        filter: drop-shadow(2px 4px 5px color-mix(in srgb, var(--selection-accent) 34%, transparent));
       }
 
       .dock-card.workstation-dock .dock-selection-checkbox svg {

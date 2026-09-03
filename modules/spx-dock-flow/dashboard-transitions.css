@@ -28,11 +28,17 @@
 
 .dock-reload-button:disabled {
   cursor: default;
-  opacity: 0.78;
+  color: #fff;
+  background: var(--orange);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--orange) 12%, transparent),
+    0 6px 16px color-mix(in srgb, var(--orange) 24%, transparent);
+  opacity: 1;
+  transform: none;
 }
 
 .dock-reload-button:disabled::before {
-  animation: spx-dock-reload-spin 0.72s linear infinite;
+  animation: spx-dock-reload-spin 0.68s linear infinite;
 }
 
 @keyframes spx-dock-reload-spin {
@@ -47,6 +53,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dock-reload-button:disabled::before {
-    animation-duration: 1.4s;
+    animation: none;
   }
 }

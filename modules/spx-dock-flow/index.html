@@ -13,102 +13,103 @@
     <section class="dashboard-header" id="dashboardHeader">
       <header class="topbar">
         <div class="brand-block">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 48 48" role="img">
-            <path d="M9 13h20l10 9v13H9z"></path>
-            <path d="M29 13v9h10"></path>
-            <circle cx="17" cy="36" r="4"></circle>
-            <circle cx="33" cy="36" r="4"></circle>
-          </svg>
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path d="M9 13h20l10 9v13H9z"></path>
+              <path d="M29 13v9h10"></path>
+              <circle cx="17" cy="36" r="4"></circle>
+              <circle cx="33" cy="36" r="4"></circle>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <p class="eyebrow">OPERAÇÃO EM TEMPO REAL</p>
+            <h1>SPX Dock Flow</h1>
+            <span class="data-source" id="dataSource">Fonte: aguardando conexão</span>
+          </div>
         </div>
-        <div class="brand-copy">
-          <p class="eyebrow">OPERAÇÃO EM TEMPO REAL</p>
-          <h1>SPX Dock Flow</h1>
-          <span class="data-source" id="dataSource">Fonte: aguardando conexão</span>
-        </div>
-      </div>
 
         <div class="header-actions">
-        <div class="status-cluster">
-          <div class="connection-pill" id="connectionPill">
-            <span class="connection-dot"></span>
-            <span id="connectionText">Verificando sessão</span>
-          </div>
+          <div class="status-cluster">
+            <div class="connection-pill" id="connectionPill">
+              <span class="connection-dot"></span>
+              <span id="connectionText">Verificando sessão</span>
+            </div>
 
-          <div class="refresh-box" title="Atualização automática a cada 10 segundos">
-            <div class="countdown-ring" id="countdownRing"><span id="countdownValue">10</span></div>
-            <div class="refresh-copy">
-              <span>Atualizado às</span>
-              <strong id="lastUpdated">--:--:--</strong>
+            <div class="refresh-box" title="Atualização automática a cada 10 segundos">
+              <div class="countdown-ring" id="countdownRing"><span id="countdownValue">10</span></div>
+              <div class="refresh-copy">
+                <span>Atualizado às</span>
+                <strong id="lastUpdated">--:--:--</strong>
+              </div>
             </div>
           </div>
+
+          <div class="utility-actions">
+            <div class="header-zoom-control" aria-label="Controle de zoom da dashboard">
+              <button id="zoomOutButton" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
+              <output id="zoomHeaderValue" aria-live="polite">100%</output>
+              <button id="zoomInButton" type="button" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
+            </div>
+
+            <button class="icon-button dock-reload-button" id="refreshButton" type="button" aria-label="Atualizar" title="Atualizar"></button>
+
+            <button class="icon-button" id="settingsButton" type="button" aria-label="Configurações" title="Configurações">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.1a1.7 1.7 0 0 0-1.5.6z"></path></svg>
+            </button>
+
+            <button class="icon-button" id="themeToggle" type="button" aria-label="Alternar tema" title="Alternar tema">
+              <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
+              <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+
+            <button class="icon-button" id="fullscreenButton" type="button" aria-label="Tela cheia" title="Tela cheia">
+              <svg class="fullscreen-enter" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path></svg>
+              <svg class="fullscreen-exit" viewBox="0 0 24 24"><path d="M3 8h5V3M21 8h-5V3M3 16h5v5M21 16h-5v5"></path></svg>
+            </button>
+
+            <button class="icon-button header-toggle" id="headerToggle" type="button" aria-label="Recolher cabeçalho" title="Recolher cabeçalho" aria-expanded="true">
+              <svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"></path></svg>
+            </button>
+          </div>
+
+          <button id="openSpxButton" type="button" hidden tabindex="-1" aria-hidden="true"></button>
         </div>
-
-        <div class="utility-actions">
-        <div class="header-zoom-control" aria-label="Controle de zoom da dashboard">
-          <button id="zoomOutButton" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
-          <output id="zoomHeaderValue" aria-live="polite">100%</output>
-          <button id="zoomInButton" type="button" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
-        </div>
-
-        <button class="icon-button" id="settingsButton" type="button" aria-label="Configurações" title="Configurações">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.1a1.7 1.7 0 0 0-1.5.6z"></path></svg>
-        </button>
-
-        <button class="icon-button" id="themeToggle" type="button" aria-label="Alternar tema" title="Alternar tema">
-          <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
-          <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        </button>
-
-        <button class="icon-button" id="fullscreenButton" type="button" aria-label="Tela cheia" title="Tela cheia">
-          <svg class="fullscreen-enter" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path></svg>
-          <svg class="fullscreen-exit" viewBox="0 0 24 24"><path d="M3 8h5V3M21 8h-5V3M3 16h5v5M21 16h-5v5"></path></svg>
-        </button>
-
-        <button class="icon-button header-toggle" id="headerToggle" type="button" aria-label="Recolher cabeçalho" title="Recolher cabeçalho" aria-expanded="true">
-          <svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"></path></svg>
-        </button>
-        </div>
-
-        <button class="button secondary" id="openSpxButton" type="button">Abrir SPX</button>
-        <button class="button primary" id="refreshButton" type="button">Atualizar</button>
-      </div>
       </header>
 
       <section class="summary-grid" aria-label="Resumo das mesas">
-      <article class="summary-card accent">
-        <span>Total</span>
-        <strong id="totalDocks">0</strong>
-      </article>
-      <article class="summary-card occupied">
-        <span>Carregando</span>
-        <strong id="occupiedDocks">0</strong>
-      </article>
-      <article class="summary-card next">
-        <span>Próximos</span>
-        <strong id="nextDocks">0</strong>
-      </article>
-      <article class="summary-card available">
-        <span>Livres</span>
-        <strong id="availableDocks">0</strong>
-      </article>
-      <article class="summary-card routes" id="validationRoutesCard" title="Aguardando a VT ativa">
-        <span>Carregado / Total</span>
-        <strong id="validationRoutes">— / —</strong>
-      </article>
-      <article class="summary-card progress" id="validationPercentageCard" title="Aguardando a VT ativa">
-        <div class="summary-card-copy">
-          <span>% Carregamento</span>
-          <strong id="validationPercentage">—</strong>
-        </div>
-        <div class="summary-progress-track" role="progressbar" aria-label="Percentual de carregamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <i id="validationProgressBar"></i>
-        </div>
-      </article>
-      <article class="summary-card time" id="averageOccupationCard" title="Média por rota acompanhada na janela de quatro horas">
-        <span>Média por rota · 4h</span>
-        <strong id="averageOccupation">00:00</strong>
-      </article>
+        <article class="summary-card accent">
+          <span>Total</span>
+          <strong id="totalDocks">0</strong>
+        </article>
+        <article class="summary-card occupied">
+          <span>Carregando</span>
+          <strong id="occupiedDocks">0</strong>
+        </article>
+        <article class="summary-card next">
+          <span>Próximos</span>
+          <strong id="nextDocks">0</strong>
+        </article>
+        <article class="summary-card available">
+          <span>Livres</span>
+          <strong id="availableDocks">0</strong>
+        </article>
+        <article class="summary-card routes" id="validationRoutesCard" title="Aguardando a VT ativa">
+          <span>Carregado / Total</span>
+          <strong id="validationRoutes">— / —</strong>
+        </article>
+        <article class="summary-card progress" id="validationPercentageCard" title="Aguardando a VT ativa">
+          <div class="summary-card-copy">
+            <span>% Carregamento</span>
+            <strong id="validationPercentage">—</strong>
+          </div>
+          <div class="summary-progress-track" role="progressbar" aria-label="Percentual de carregamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <i id="validationProgressBar"></i>
+          </div>
+        </article>
+        <article class="summary-card time" id="averageOccupationCard" title="Média por rota acompanhada na janela de quatro horas">
+          <span>Média por rota · 4h</span>
+          <strong id="averageOccupation">00:00</strong>
+        </article>
       </section>
 
       <div class="header-resizer" id="headerResizer" role="separator" aria-label="Redimensionar altura do cabeçalho" aria-orientation="horizontal" tabindex="0">

@@ -1,14 +1,11 @@
 .dock-reload-button {
   position: relative;
   flex: 0 0 auto;
-  font-size: 0;
 }
 
-.dock-reload-button::before {
-  content: '↻';
-  display: block;
-  font-size: 20px;
-  line-height: 1;
+.dock-reload-button .dock-reload-icon {
+  width: 18px;
+  height: 18px;
   transform-origin: 50% 50%;
 }
 
@@ -17,7 +14,7 @@
   opacity: 0.78;
 }
 
-.dock-reload-button:disabled::before {
+.dock-reload-button:disabled .dock-reload-icon {
   animation: spx-dock-reload-spin 0.72s linear infinite;
 }
 
@@ -28,7 +25,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-reload-button:disabled::before {
+  .dock-reload-button:disabled .dock-reload-icon {
     animation-duration: 1.4s;
   }
 }

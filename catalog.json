@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-03T14:20:00Z",
+  "updatedAt": "2026-09-03T14:25:00Z",
   "launcher": {
     "url": "https://iggr1.github.io/spx-extension-hub/launcher/"
   },
@@ -10,7 +10,7 @@
       "id": "spx-dock-flow",
       "name": "SPX Dock Flow",
       "description": "Dashboard em tempo real para mesas, motoristas, rotas, carregamento e volumetria por AT.",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "enabled": true,
       "type": "web_app",
       "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/",

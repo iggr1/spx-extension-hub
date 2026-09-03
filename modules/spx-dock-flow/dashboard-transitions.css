@@ -1,26 +1,13 @@
 .dock-reload-button {
   position: relative;
   flex: 0 0 auto;
-  overflow: hidden;
-  font-size: 0;
+  overflow: visible;
 }
 
 .dock-reload-button .dock-reload-icon {
-  display: none;
-}
-
-.dock-reload-button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
   display: block;
   width: 18px;
   height: 18px;
-  background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11a8 8 0 0 0-14.9-4L3 10'/%3E%3Cpath d='M3 4v6h6'/%3E%3Cpath d='M4 13a8 8 0 0 0 14.9 4L21 14'/%3E%3Cpath d='M21 20v-6h-6'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11a8 8 0 0 0-14.9-4L3 10'/%3E%3Cpath d='M3 4v6h6'/%3E%3Cpath d='M4 13a8 8 0 0 0 14.9 4L21 14'/%3E%3Cpath d='M21 20v-6h-6'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
-  transform: translate(-50%, -50%) rotate(0deg);
   transform-origin: 50% 50%;
   will-change: transform;
   pointer-events: none;
@@ -28,31 +15,31 @@
 
 .dock-reload-button:disabled {
   cursor: default;
-  color: #fff;
-  background: var(--orange);
+  color: var(--orange);
+  background: var(--orange-soft);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--orange) 12%, transparent),
-    0 6px 16px color-mix(in srgb, var(--orange) 24%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--orange) 8%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--orange) 24%, transparent);
   opacity: 1;
   transform: none;
 }
 
-.dock-reload-button:disabled::before {
+.dock-reload-button:disabled .dock-reload-icon {
   animation: spx-dock-reload-spin 0.68s linear infinite;
 }
 
 @keyframes spx-dock-reload-spin {
   from {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: rotate(0deg);
   }
 
   to {
-    transform: translate(-50%, -50%) rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-reload-button:disabled::before {
+  .dock-reload-button:disabled .dock-reload-icon {
     animation: none;
   }
 }

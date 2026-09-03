@@ -6,14 +6,21 @@
   let selectedDockWasPresent = false;
   let refreshTimer = 0;
   let audioContext = null;
+  const renderDockGroupsWithoutWorkstationState = renderDockGroups;
 
   installStyles();
+  renderDockGroups = function renderDockGroupsWithWorkstationState(...args) {
+    const result = renderDockGroupsWithoutWorkstationState.apply(this, args);
+    applyHighlight();
+    return result;
+  };
   initialize();
 
   function initialize() {
     const dockGroups = document.getElementById('dockGroups');
 
     dockGroups?.addEventListener('click', handleDockClick);
+    dockGroups?.addEventListener('keydown', handleDockKeydown);
 
     if (dockGroups && 'MutationObserver' in window) {
       const observer = new MutationObserver(scheduleRefresh);
@@ -28,6 +35,22 @@
 
   function handleDockClick(event) {
     const card = event.target.closest('.dock-card[data-dock-id]');
+    if (!card) return;
+
+    toggleDockCardSelection(card);
+  }
+
+  function handleDockKeydown(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    const card = event.target.closest('.dock-card[data-dock-id]');
+    if (!card) return;
+
+    event.preventDefault();
+    toggleDockCardSelection(card);
+  }
+
+  function toggleDockCardSelection(card) {
     if (!card) return;
 
     const dockId = numberOrZero(card.dataset.dockId);
@@ -83,6 +106,10 @@
         && normalizeDockName(dock?.dock_name) === normalizedSelected;
 
       card.classList.toggle('workstation-dock', isSelected);
+      card.setAttribute('role', 'checkbox');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-checked', String(isSelected));
+      card.setAttribute('aria-label', `${isSelected ? 'Desmarcar' : 'Selecionar'} ${String(dock?.dock_name || 'doca')}`);
 
       if (isSelected) card.setAttribute('aria-current', 'true');
       else card.removeAttribute('aria-current');
@@ -203,14 +230,98 @@
     style.textContent = `
       .dock-card[data-dock-id] {
         cursor: pointer;
+        isolation: isolate;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
+          outline-color 0.2s ease;
+      }
+
+      .dock-card[data-dock-id]:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--blue) 82%, white);
+        outline-offset: 3px;
+      }
+
+      .dock-selection-checkbox {
+        position: absolute;
+        top: -7px;
+        right: -7px;
+        z-index: 7;
+        display: grid;
+        width: 19px;
+        height: 19px;
+        place-items: center;
+        border: 2px solid color-mix(in srgb, var(--muted) 44%, var(--line));
+        border-radius: 6px;
+        color: transparent;
+        background: var(--surface);
+        box-shadow:
+          0 5px 14px color-mix(in srgb, var(--background) 72%, transparent),
+          inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
+        opacity: 0.58;
+        transform: scale(0.9);
+        transition:
+          color 0.18s ease,
+          border-color 0.18s ease,
+          background-color 0.18s ease,
+          box-shadow 0.18s ease,
+          opacity 0.18s ease,
+          transform 0.18s ease;
+        pointer-events: none;
+      }
+
+      .dock-selection-checkbox svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 24;
+        stroke-dashoffset: 24;
+        transition: stroke-dashoffset 0.22s ease 0.04s;
+      }
+
+      .dock-card[data-dock-id]:hover .dock-selection-checkbox,
+      .dock-card[data-dock-id]:focus-visible .dock-selection-checkbox {
+        border-color: color-mix(in srgb, var(--blue) 50%, var(--line));
+        opacity: 1;
+        transform: scale(1);
       }
 
       .dock-card.workstation-dock {
         z-index: 3;
-        outline: 3px solid var(--blue);
-        outline-offset: -2px;
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
         border-color: color-mix(in srgb, var(--blue) 76%, var(--line));
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 18%, transparent), var(--card-shadow);
+        box-shadow:
+          0 0 0 5px color-mix(in srgb, var(--blue) 12%, transparent),
+          0 14px 30px color-mix(in srgb, var(--blue) 15%, transparent),
+          var(--card-shadow);
+      }
+
+      .dock-card.workstation-dock .dock-selection-checkbox {
+        color: #fff;
+        border-color: color-mix(in srgb, var(--blue) 84%, white);
+        background: var(--blue);
+        box-shadow:
+          0 0 0 4px color-mix(in srgb, var(--blue) 16%, transparent),
+          0 7px 18px color-mix(in srgb, var(--blue) 35%, transparent);
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .dock-card.workstation-dock .dock-selection-checkbox svg {
+        stroke-dashoffset: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dock-card[data-dock-id],
+        .dock-selection-checkbox,
+        .dock-selection-checkbox svg {
+          transition-duration: 0.01ms;
+        }
       }
     `;
 

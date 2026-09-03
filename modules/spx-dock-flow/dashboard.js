@@ -465,6 +465,11 @@ function renderDockCard(dock) {
 
   return `
     <article class="dock-card ${displayStatus.key}${loadingFinalized ? ' loading-finished' : ''}${loadingOverLimit ? ' overdue' : ''}${waitingOverLimit ? ' waiting-overdue' : ''}" data-dock-id="${id}">
+      <span class="dock-selection-checkbox" aria-hidden="true">
+        <svg class="lucide-icon" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6"></path>
+        </svg>
+      </span>
       <div class="dock-card-header">
         <div class="dock-name-block">
           <span>MESA / DOCA</span>

@@ -14,11 +14,12 @@
       <header class="topbar">
         <div class="brand-block">
           <div class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" role="img">
-              <path d="M9 13h20l10 9v13H9z"></path>
-              <path d="M29 13v9h10"></path>
-              <circle cx="17" cy="36" r="4"></circle>
-              <circle cx="33" cy="36" r="4"></circle>
+            <svg class="lucide-icon" viewBox="0 0 24 24">
+              <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
+              <path d="M15 18H9"></path>
+              <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
             </svg>
           </div>
           <div class="brand-copy">
@@ -46,34 +47,68 @@
 
           <div class="utility-actions">
             <div class="header-zoom-control" aria-label="Controle de zoom da dashboard">
-              <button id="zoomOutButton" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
+              <button id="zoomOutButton" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">
+                <svg class="lucide-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                  <path d="M8 11h6"></path>
+                </svg>
+              </button>
               <output id="zoomHeaderValue" aria-live="polite">100%</output>
-              <button id="zoomInButton" type="button" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
+              <button id="zoomInButton" type="button" aria-label="Aumentar zoom" title="Aumentar zoom">
+                <svg class="lucide-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                  <path d="M11 8v6"></path>
+                  <path d="M8 11h6"></path>
+                </svg>
+              </button>
             </div>
 
             <button class="icon-button dock-reload-button" id="refreshButton" type="button" aria-label="Atualizar" title="Atualizar">
-              <svg class="dock-reload-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M20 6v5h-5"></path>
-                <path d="M19.1 11A7.5 7.5 0 1 0 20 15"></path>
+              <svg class="lucide-icon dock-reload-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M8 16H3v5"></path>
               </svg>
             </button>
 
             <button class="icon-button" id="settingsButton" type="button" aria-label="Configurações" title="Configurações">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.1a1.7 1.7 0 0 0-1.5.6z"></path></svg>
+              <svg class="lucide-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
             </button>
 
             <button class="icon-button" id="themeToggle" type="button" aria-label="Alternar tema" title="Alternar tema">
-              <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
-              <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <svg class="lucide-icon sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+              </svg>
+              <svg class="lucide-icon moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path>
+              </svg>
             </button>
 
             <button class="icon-button" id="fullscreenButton" type="button" aria-label="Tela cheia" title="Tela cheia">
-              <svg class="fullscreen-enter" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path></svg>
-              <svg class="fullscreen-exit" viewBox="0 0 24 24"><path d="M3 8h5V3M21 8h-5V3M3 16h5v5M21 16h-5v5"></path></svg>
+              <svg class="lucide-icon fullscreen-enter" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"></path>
+              </svg>
+              <svg class="lucide-icon fullscreen-exit" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"></path>
+              </svg>
             </button>
 
             <button class="icon-button header-toggle" id="headerToggle" type="button" aria-label="Recolher cabeçalho" title="Recolher cabeçalho" aria-expanded="true">
-              <svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"></path></svg>
+              <svg class="lucide-icon header-collapse-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                <path d="M3 9h18M9 16l3-3 3 3"></path>
+              </svg>
+              <svg class="lucide-icon header-expand-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                <path d="M3 9h18M15 14l-3 3-3-3"></path>
+              </svg>
             </button>
           </div>
 
@@ -150,7 +185,11 @@
           <h2 id="settingsTitle">Configurações da dashboard</h2>
           <p>As preferências são salvas apenas neste navegador e podem ser alteradas a qualquer momento.</p>
         </div>
-        <button class="settings-close-button" id="settingsCloseButton" type="button" aria-label="Fechar configurações" title="Fechar">×</button>
+        <button class="settings-close-button" id="settingsCloseButton" type="button" aria-label="Fechar configurações" title="Fechar">
+          <svg class="lucide-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
       </header>
 
       <div class="settings-form">

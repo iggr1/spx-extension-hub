@@ -9,20 +9,77 @@
   transform-origin: top left;
 }
 
+.utility-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 84%, var(--surface-soft));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.utility-actions > .dock-reload-button {
+  order: 1;
+  color: var(--orange);
+  background: var(--orange-soft);
+}
+
+.utility-actions > .header-zoom-control {
+  order: 2;
+}
+
+.utility-actions > #themeToggle {
+  order: 3;
+}
+
+.utility-actions > #fullscreenButton {
+  order: 4;
+}
+
+.utility-actions > #settingsButton {
+  order: 5;
+}
+
+.utility-actions > #headerToggle {
+  order: 6;
+  margin-left: 4px;
+  box-shadow: -5px 0 0 -4px var(--line);
+}
+
+.utility-actions > .icon-button {
+  width: 34px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+}
+
+.utility-actions > .icon-button:hover:not(:disabled) {
+  background-color: var(--surface);
+}
+
+.utility-actions > .dock-reload-button,
+.utility-actions > .dock-reload-button:hover:not(:disabled) {
+  background-color: var(--orange-soft);
+}
+
 .header-zoom-control {
   display: flex;
-  height: 36px;
+  height: 34px;
   flex: 0 0 auto;
   align-items: center;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-soft);
 }
 
 .header-zoom-control button {
   display: grid;
-  width: 31px;
+  width: 29px;
   height: 100%;
   padding: 0;
   place-items: center;
@@ -35,17 +92,18 @@
 
 .header-zoom-control button:hover {
   color: var(--orange);
-  background: var(--surface-soft);
+  background: var(--surface);
 }
 
 .header-zoom-control output {
   display: grid;
-  min-width: 48px;
+  min-width: 46px;
   height: 100%;
   place-items: center;
   border-right: 1px solid var(--line);
   border-left: 1px solid var(--line);
   color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
   font-size: 10px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -53,6 +111,19 @@
 
 .dashboard-header.is-collapsed .header-zoom-control {
   display: none;
+}
+
+.dashboard-header.is-collapsed .utility-actions {
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-header.is-collapsed .utility-actions > #headerToggle {
+  margin-left: 0;
+  box-shadow: none;
 }
 
 .settings-modal {
@@ -314,16 +385,44 @@
 }
 
 @media (max-width: 1180px) {
+  .utility-actions {
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .utility-actions > .icon-button {
+    width: 32px;
+    min-height: 32px;
+  }
+
+  .header-zoom-control {
+    height: 32px;
+  }
+
   .header-zoom-control output {
-    min-width: 42px;
+    min-width: 40px;
   }
 
   .header-zoom-control button {
-    width: 28px;
+    width: 26px;
+  }
+
+  .utility-actions > #headerToggle {
+    margin-left: 3px;
+    box-shadow: -4px 0 0 -3px var(--line);
   }
 }
 
 @media (max-width: 760px) {
+  .utility-actions {
+    border-radius: 10px;
+  }
+
+  .utility-actions > #headerToggle {
+    margin-left: 1px;
+    box-shadow: none;
+  }
+
   .settings-modal {
     padding: 10px;
   }

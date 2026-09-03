@@ -1,11 +1,22 @@
 .dock-reload-button {
   position: relative;
   flex: 0 0 auto;
+  font-size: 0;
 }
 
 .dock-reload-button .dock-reload-icon {
+  display: none;
+}
+
+.dock-reload-button::before {
+  content: '';
+  display: block;
   width: 18px;
   height: 18px;
+  flex: 0 0 auto;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6v5h-5'/%3E%3Cpath d='M19.1 11A7.5 7.5 0 1 0 20 15'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6v5h-5'/%3E%3Cpath d='M19.1 11A7.5 7.5 0 1 0 20 15'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
   transform-origin: 50% 50%;
 }
 
@@ -14,7 +25,7 @@
   opacity: 0.78;
 }
 
-.dock-reload-button:disabled .dock-reload-icon {
+.dock-reload-button:disabled::before {
   animation: spx-dock-reload-spin 0.72s linear infinite;
 }
 
@@ -25,7 +36,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-reload-button:disabled .dock-reload-icon {
+  .dock-reload-button:disabled::before {
     animation-duration: 1.4s;
   }
 }

@@ -262,7 +262,9 @@ async function loadDocks(manual = false) {
   state.loading = true;
   state.countdown = REFRESH_INTERVAL_SECONDS;
   elements.refreshButton.disabled = true;
-  elements.refreshButton.textContent = 'Atualizando...';
+  elements.refreshButton.setAttribute('aria-label', 'Atualizando');
+  elements.refreshButton.setAttribute('aria-busy', 'true');
+  elements.refreshButton.title = 'Atualizando';
 
   try {
     const [result, validationResult] = await Promise.all([
@@ -312,7 +314,9 @@ async function loadDocks(manual = false) {
   } finally {
     state.loading = false;
     elements.refreshButton.disabled = false;
-    elements.refreshButton.textContent = 'Atualizar';
+    elements.refreshButton.setAttribute('aria-label', 'Atualizar');
+    elements.refreshButton.removeAttribute('aria-busy');
+    elements.refreshButton.title = 'Atualizar';
   }
 }
 

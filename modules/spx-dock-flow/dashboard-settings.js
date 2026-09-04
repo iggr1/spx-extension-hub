@@ -450,7 +450,9 @@
     const driverName = formatPersonName(rawDriverName);
     const route = getRouteDisplay(dock, driverId, nextDriver, displayStatus);
     const rawDockSeconds = getLiveSeconds(occupied ? numberOrZero(dock.occupation_time) : numberOrZero(dock.idle_time));
-    const rawWaitingSeconds = nextDriver ? getLiveSeconds(numberOrZero(nextDriver.waiting_time)) : 0;
+    const rawWaitingSeconds = nextDriver
+      ? getCurrentWaitingSeconds(numberOrZero(nextDriver.waiting_time), driverId)
+      : 0;
     const dockSeconds = occupied ? rawDockSeconds : limitIdleToHistoryWindow(rawDockSeconds);
     const waitingSeconds = nextDriver ? limitIdleToHistoryWindow(rawWaitingSeconds) : 0;
     const id = numberOrZero(dock.dock_id);
@@ -500,7 +502,7 @@
           ${nextDriver ? `
             <div class="time-item emphasized waiting-time">
               <span>Tempo ocioso · total</span>
-              <strong class="live-duration" data-timer-kind="waiting" data-base-seconds="${numberOrZero(nextDriver.waiting_time)}">${formatDuration(waitingSeconds)}</strong>
+              <strong class="live-duration" data-timer-kind="waiting" data-driver-id="${driverId}" data-base-seconds="${numberOrZero(nextDriver.waiting_time)}">${formatDuration(waitingSeconds)}</strong>
             </div>
           ` : ''}
           <div class="time-item ${occupied ? 'loading-time' : 'idle-time'}">
@@ -517,8 +519,10 @@
     const waitingThreshold = getWaitingAlertSeconds();
 
     document.querySelectorAll('.live-duration').forEach(element => {
-      const rawSeconds = getLiveSeconds(numberOrZero(element.dataset.baseSeconds));
       const timerKind = element.dataset.timerKind;
+      const rawSeconds = timerKind === 'waiting'
+        ? getCurrentWaitingSeconds(numberOrZero(element.dataset.baseSeconds), numberOrZero(element.dataset.driverId))
+        : getLiveSeconds(numberOrZero(element.dataset.baseSeconds));
       const displaySeconds = timerKind === 'waiting' || timerKind === 'idle'
         ? limitIdleToHistoryWindow(rawSeconds)
         : rawSeconds;

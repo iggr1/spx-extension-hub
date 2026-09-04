@@ -452,7 +452,9 @@ function renderDockCard(dock) {
   const driverName = formatPersonName(rawDriverName);
   const route = getRouteDisplay(dock, driverId, nextDriver, displayStatus);
   const dockSeconds = getLiveSeconds(occupied ? numberOrZero(dock.occupation_time) : numberOrZero(dock.idle_time));
-  const waitingSeconds = nextDriver ? getLiveSeconds(numberOrZero(nextDriver.waiting_time)) : 0;
+  const waitingSeconds = nextDriver
+    ? getCurrentWaitingSeconds(numberOrZero(nextDriver.waiting_time), driverId)
+    : 0;
   const id = numberOrZero(dock.dock_id);
   const loadingFinalized = route.kind === 'route-finished';
   const statusLabel = loadingFinalized ? 'Finalizado' : displayStatus.label;
@@ -503,7 +505,7 @@ function renderDockCard(dock) {
         ${nextDriver ? `
           <div class="time-item emphasized waiting-time">
             <span>Tempo ocioso · total</span>
-            <strong class="live-duration" data-timer-kind="waiting" data-base-seconds="${numberOrZero(nextDriver.waiting_time)}">${formatDuration(waitingSeconds)}</strong>
+            <strong class="live-duration" data-timer-kind="waiting" data-driver-id="${driverId}" data-base-seconds="${numberOrZero(nextDriver.waiting_time)}">${formatDuration(waitingSeconds)}</strong>
           </div>
         ` : ''}
         <div class="time-item ${occupied ? 'loading-time' : 'idle-time'}">
@@ -984,11 +986,13 @@ function pruneLoadingHistory(now = Date.now()) {
 
 function updateLiveTimes() {
   document.querySelectorAll('.live-duration').forEach(element => {
-    const seconds = getLiveSeconds(numberOrZero(element.dataset.baseSeconds));
+    const timerKind = element.dataset.timerKind;
+    const seconds = timerKind === 'waiting'
+      ? getCurrentWaitingSeconds(numberOrZero(element.dataset.baseSeconds), numberOrZero(element.dataset.driverId))
+      : getLiveSeconds(numberOrZero(element.dataset.baseSeconds));
     element.textContent = formatDuration(seconds);
 
     const card = element.closest('.dock-card');
-    const timerKind = element.dataset.timerKind;
 
     if (timerKind === 'occupation') {
       const isOverLimit = !card?.classList.contains('loading-finished') && seconds > LOADING_ALERT_THRESHOLD_SECONDS;
@@ -1069,6 +1073,7 @@ function loadDemoData() {
     available: true,
     stale: false,
     taskId: 'VT202607200H5HB',
+    startedAt: Date.now() - 4 * 60 * 1000,
     loaded: 6,
     total: 22,
     percentage: 27.3,
@@ -1164,6 +1169,7 @@ function createEmptyValidationProgress() {
     available: false,
     stale: false,
     taskId: '',
+    startedAt: 0,
     loaded: 0,
     total: 0,
     percentage: 0,
@@ -1190,6 +1196,7 @@ function applyValidationProgress(result) {
       available: true,
       stale: false,
       taskId: '',
+      startedAt: 0,
       loaded: 0,
       total: 0,
       percentage: 0,
@@ -1207,11 +1214,19 @@ function applyValidationProgress(result) {
     : total > 0
       ? loaded / total * 100
       : 0;
+  const taskId = String(task.validation_task_id || '').trim();
+  const reportedStartedAt = [task.start_time, task.task_start_time, task.started_at, task.create_time]
+    .map(normalizeTimestampMilliseconds)
+    .find(Boolean) || 0;
+  const previousStartedAt = state.validationProgress.taskId === taskId
+    ? numberOrZero(state.validationProgress.startedAt)
+    : 0;
 
   state.validationProgress = {
     available: true,
     stale: false,
-    taskId: String(task.validation_task_id || '').trim(),
+    taskId,
+    startedAt: reportedStartedAt || previousStartedAt || Date.now(),
     loaded,
     total,
     percentage,
@@ -1281,6 +1296,35 @@ function sendMessage(message) {
 function getLiveSeconds(baseSeconds) {
   if (!state.fetchedAt) return baseSeconds;
   return Math.max(0, baseSeconds + Math.floor((Date.now() - state.fetchedAt) / 1000));
+}
+
+function getCurrentWaitingSeconds(baseSeconds, driverId = 0, now = Date.now()) {
+  const rawSeconds = getLiveSeconds(baseSeconds);
+  const routeStartedAt = normalizeTimestampMilliseconds(state.driverRoutes[numberOrZero(driverId)]?.driverAssignedTime);
+  const expeditionStartedAt = state.validationProgress.taskId
+    ? normalizeTimestampMilliseconds(state.validationProgress.startedAt)
+    : 0;
+  const fallbackStartedAt = expeditionStartedAt ? 0 : numberOrZero(state.openedAt);
+  const currentCycleStartedAt = Math.max(routeStartedAt, expeditionStartedAt, fallbackStartedAt);
+
+  if (!currentCycleStartedAt || currentCycleStartedAt > now) return rawSeconds;
+
+  const currentCycleSeconds = Math.max(0, Math.floor((now - currentCycleStartedAt) / 1000));
+  return Math.min(rawSeconds, currentCycleSeconds);
+}
+
+function normalizeTimestampMilliseconds(value) {
+  let timestamp = Number(value);
+
+  if (!Number.isFinite(timestamp)) {
+    timestamp = Date.parse(String(value || ''));
+    return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : 0;
+  }
+
+  if (timestamp <= 0) return 0;
+  if (timestamp > 100000000000000) timestamp /= 1000;
+  if (timestamp < 100000000000) timestamp *= 1000;
+  return Math.round(timestamp);
 }
 
 function formatDuration(totalSeconds) {

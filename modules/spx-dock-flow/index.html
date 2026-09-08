@@ -6,7 +6,6 @@
   <title>SPX Dock Flow</title>
   <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="dashboard-settings.css">
-  <link rel="stylesheet" href="dashboard-transitions.css">
 </head>
 <body>
   <div class="app-shell">
@@ -25,7 +24,13 @@
           <div class="brand-copy">
             <p class="eyebrow">OPERAÇÃO EM TEMPO REAL</p>
             <h1>SPX Dock Flow</h1>
-            <span class="data-source" id="dataSource">Fonte: aguardando conexão</span>
+            <div class="brand-meta">
+              <span class="data-source" id="dataSource">Fonte: aguardando conexão</span>
+              <span class="brand-meta-divider" aria-hidden="true"></span>
+              <button class="developer-credit" id="developerCreditButton" type="button" aria-haspopup="dialog" aria-controls="aboutModal">
+                developed by <strong>igor.camara</strong>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -37,10 +42,10 @@
             </div>
 
             <div class="refresh-box" title="Atualização automática a cada 10 segundos">
-              <div class="countdown-ring" id="countdownRing"><span id="countdownValue">10</span></div>
+              <div class="countdown-ring" id="countdownRing" aria-label="Atualização automática em 10 segundos"><span id="countdownValue">10</span></div>
               <div class="refresh-copy">
                 <span>Atualizado às</span>
-                <strong id="lastUpdated">--:--:--</strong>
+                <strong id="lastUpdated" aria-live="polite">--:--:--</strong>
               </div>
             </div>
           </div>
@@ -64,15 +69,6 @@
                 </svg>
               </button>
             </div>
-
-            <button class="icon-button dock-reload-button" id="refreshButton" type="button" aria-label="Atualizar" title="Atualizar">
-              <svg class="lucide-icon dock-reload-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                <path d="M21 3v5h-5"></path>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                <path d="M8 16H3v5"></path>
-              </svg>
-            </button>
 
             <button class="icon-button" id="settingsButton" type="button" aria-label="Configurações" title="Configurações">
               <svg class="lucide-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -259,6 +255,63 @@
           <button class="settings-action-button" id="settingsCancelButton" type="button">Cancelar</button>
           <button class="settings-action-button primary" id="settingsSaveButton" type="button">Salvar</button>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="settings-modal about-modal" id="aboutModal" aria-hidden="true">
+    <section class="settings-panel about-panel" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" aria-describedby="aboutDescription">
+      <header class="settings-panel-header about-panel-header">
+        <div class="about-heading">
+          <span class="about-mark" aria-hidden="true">
+            <svg class="lucide-icon" viewBox="0 0 24 24">
+              <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
+              <path d="M15 18H9"></path>
+              <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </svg>
+          </span>
+          <div>
+            <span class="about-eyebrow">SOBRE A DASHBOARD</span>
+            <h2 id="aboutTitle">SPX Dock Flow</h2>
+          </div>
+        </div>
+        <button class="settings-close-button" id="aboutCloseButton" type="button" aria-label="Fechar informações" title="Fechar">
+          <svg class="lucide-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
+      </header>
+
+      <div class="about-content">
+        <p class="about-description" id="aboutDescription">
+          O Dock Flow centraliza a operação das docas em tempo real, acompanhando disponibilidade, filas, motoristas, rotas e tempos de carregamento. A dashboard também destaca esperas e carregamentos fora dos limites configurados para facilitar a tomada de decisão durante a expedição.
+        </p>
+
+        <div class="about-capabilities" aria-label="Principais recursos">
+          <span>Docas em tempo real</span>
+          <span>Filas e rotas</span>
+          <span>Alertas operacionais</span>
+        </div>
+
+        <a class="about-contact" href="mailto:igor.camara@shopee.com">
+          <span class="about-contact-icon" aria-hidden="true">
+            <svg class="lucide-icon" viewBox="0 0 24 24">
+              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+          </span>
+          <span>
+            <small>CONTATO</small>
+            <strong>igor.camara@shopee.com</strong>
+          </span>
+          <svg class="lucide-icon about-contact-arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6"></path>
+          </svg>
+        </a>
+
+        <p class="about-signature">Developed by <strong>igor.camara</strong></p>
       </div>
     </section>
   </div>

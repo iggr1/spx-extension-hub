@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-04T12:20:02Z",
+  "updatedAt": "2026-09-08T19:00:19Z",
   "launcher": {
     "url": "https://iggr1.github.io/spx-extension-hub/launcher/"
   },
@@ -10,7 +10,7 @@
       "id": "spx-dock-flow",
       "name": "SPX Dock Flow",
       "description": "Dashboard em tempo real para mesas, motoristas, rotas, carregamento e volumetria por AT.",
-      "version": "1.8.11",
+      "version": "1.8.12",
       "enabled": true,
       "type": "web_app",
       "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/",
@@ -82,40 +82,6 @@
         }
       ],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf"
-    },
-    {
-      "id": "assistente-de-devolucoes",
-      "name": "Assistente de devoluções",
-      "description": "Modal de tentativas no recebimento, identificação de AutoAdd e confirmação ou cancelamento de Endereço não encontrado.",
-      "version": "1.0.0",
-      "enabled": true,
-      "type": "user_script",
-      "permissions": [
-        "storage",
-        "tabs",
-        "userScripts"
-      ],
-      "hostPermissions": [
-        "https://spx.shopee.com.br/*"
-      ],
-      "capabilities": [
-        "userscripts.status",
-        "userscripts.setEnabled"
-      ],
-      "userScripts": [
-        {
-          "id": "recebimento-historico",
-          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/assistente-de-devolucoes.js",
-          "matches": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "excludeMatches": [],
-          "runAt": "document_idle",
-          "world": "MAIN",
-          "allFrames": false
-        }
-      ],
-      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf"
     }
   ]
 }

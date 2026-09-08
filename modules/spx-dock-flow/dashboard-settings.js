@@ -429,10 +429,16 @@
     const progress = settings.autoRefreshEnabled
       ? Math.max(0, Math.min(100, countdown / settings.refreshIntervalSeconds * 100))
       : 0;
-    elements.countdownRing.style.setProperty('--progress', `${progress}%`);
+    elements.countdownRing.style.setProperty('--countdown-progress', `${progress * 3.6}deg`);
+    elements.countdownRing.setAttribute('aria-label', state.loading
+      ? 'Atualizando dados da operação'
+      : settings.autoRefreshEnabled
+        ? `Atualização automática em ${countdown} segundo${countdown === 1 ? '' : 's'}`
+        : 'Atualização automática desativada');
 
     const refreshBox = elements.countdownRing.closest('.refresh-box');
     if (refreshBox) {
+      refreshBox.classList.toggle('is-paused', !settings.autoRefreshEnabled);
       refreshBox.title = settings.autoRefreshEnabled
         ? `Atualização automática a cada ${settings.refreshIntervalSeconds} segundos`
         : 'Atualização automática desativada';

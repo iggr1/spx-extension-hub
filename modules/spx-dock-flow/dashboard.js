@@ -11,6 +11,8 @@ const HEADER_MIN_HEIGHT = 84;
 const HEADER_MAX_HEIGHT = 260;
 
 let gridFitFrame = 0;
+let refreshCompleteTimer = 0;
+let aboutPreviouslyFocusedElement = null;
 
 const state = {
   docks: [],
@@ -42,7 +44,6 @@ const elements = {
   countdownRing: document.getElementById('countdownRing'),
   countdownValue: document.getElementById('countdownValue'),
   lastUpdated: document.getElementById('lastUpdated'),
-  refreshButton: document.getElementById('refreshButton'),
   openSpxButton: document.getElementById('openSpxButton'),
   demoButton: document.getElementById('demoButton'),
   notice: document.getElementById('notice'),
@@ -67,7 +68,10 @@ const elements = {
   dataSource: document.getElementById('dataSource'),
   dashboardHeader: document.getElementById('dashboardHeader'),
   headerToggle: document.getElementById('headerToggle'),
-  headerResizer: document.getElementById('headerResizer')
+  headerResizer: document.getElementById('headerResizer'),
+  developerCreditButton: document.getElementById('developerCreditButton'),
+  aboutModal: document.getElementById('aboutModal'),
+  aboutCloseButton: document.getElementById('aboutCloseButton')
 };
 
 initializeTheme();
@@ -82,7 +86,6 @@ async function initialize() {
 }
 
 function bindEvents() {
-  elements.refreshButton.addEventListener('click', () => loadDocks(true));
   elements.openSpxButton.addEventListener('click', () => sendMessage({ type: 'OPEN_SPX' }));
   elements.demoButton.addEventListener('click', () => loadDemoData());
   elements.themeToggle.addEventListener('click', toggleTheme);
@@ -90,6 +93,15 @@ function bindEvents() {
   elements.headerToggle.addEventListener('click', toggleHeader);
   elements.headerResizer.addEventListener('pointerdown', beginHeaderResize);
   elements.headerResizer.addEventListener('keydown', handleHeaderResizeKeydown);
+  elements.developerCreditButton.addEventListener('click', openAboutModal);
+  elements.aboutCloseButton.addEventListener('click', closeAboutModal);
+  elements.aboutModal.addEventListener('click', event => {
+    if (event.target === elements.aboutModal) closeAboutModal();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && elements.aboutModal.classList.contains('is-open')) closeAboutModal();
+  });
 
   window.addEventListener('resize', () => {
     constrainHeaderHeight();
@@ -106,6 +118,26 @@ function bindEvents() {
     const resizeObserver = new ResizeObserver(scheduleGridFit);
     resizeObserver.observe(elements.dockGroups);
   }
+}
+
+function openAboutModal() {
+  aboutPreviouslyFocusedElement = document.activeElement;
+  elements.aboutModal.classList.add('is-open');
+  elements.aboutModal.setAttribute('aria-hidden', 'false');
+  elements.aboutCloseButton.focus();
+}
+
+function closeAboutModal() {
+  if (!elements.aboutModal.classList.contains('is-open')) return;
+
+  elements.aboutModal.classList.remove('is-open');
+  elements.aboutModal.setAttribute('aria-hidden', 'true');
+
+  if (aboutPreviouslyFocusedElement instanceof HTMLElement && aboutPreviouslyFocusedElement.isConnected) {
+    aboutPreviouslyFocusedElement.focus();
+  }
+
+  aboutPreviouslyFocusedElement = null;
 }
 
 function initializeHeader() {
@@ -261,10 +293,8 @@ async function loadDocks(manual = false) {
 
   state.loading = true;
   state.countdown = REFRESH_INTERVAL_SECONDS;
-  elements.refreshButton.disabled = true;
-  elements.refreshButton.setAttribute('aria-label', 'Atualizando');
-  elements.refreshButton.setAttribute('aria-busy', 'true');
-  elements.refreshButton.title = 'Atualizando';
+  setRefreshIndicatorState(true);
+  updateCountdown();
 
   try {
     const [result, validationResult] = await Promise.all([
@@ -313,10 +343,7 @@ async function loadDocks(manual = false) {
     await refreshConnectionStatus();
   } finally {
     state.loading = false;
-    elements.refreshButton.disabled = false;
-    elements.refreshButton.setAttribute('aria-label', 'Atualizar');
-    elements.refreshButton.removeAttribute('aria-busy');
-    elements.refreshButton.title = 'Atualizar';
+    setRefreshIndicatorState(false);
   }
 }
 
@@ -1021,9 +1048,30 @@ function updateSummaryTimes() {
 }
 
 function updateCountdown() {
-  elements.countdownValue.textContent = Math.max(0, state.countdown);
+  const countdown = Math.max(0, state.countdown);
+  elements.countdownValue.textContent = countdown;
   const progress = Math.max(0, Math.min(100, (state.countdown / REFRESH_INTERVAL_SECONDS) * 100));
-  elements.countdownRing.style.setProperty('--progress', `${progress}%`);
+  elements.countdownRing.style.setProperty('--countdown-progress', `${progress * 3.6}deg`);
+  elements.countdownRing.setAttribute('aria-label', state.loading
+    ? 'Atualizando dados da operação'
+    : `Atualização automática em ${countdown} segundo${countdown === 1 ? '' : 's'}`);
+}
+
+function setRefreshIndicatorState(refreshing) {
+  const refreshBox = elements.countdownRing.closest('.refresh-box');
+  if (!refreshBox) return;
+
+  window.clearTimeout(refreshCompleteTimer);
+  refreshBox.classList.toggle('is-refreshing', refreshing);
+  refreshBox.setAttribute('aria-busy', String(refreshing));
+
+  if (refreshing) {
+    refreshBox.classList.remove('just-refreshed');
+    return;
+  }
+
+  refreshBox.classList.add('just-refreshed');
+  refreshCompleteTimer = window.setTimeout(() => refreshBox.classList.remove('just-refreshed'), 650);
 }
 
 function updateLastUpdated() {

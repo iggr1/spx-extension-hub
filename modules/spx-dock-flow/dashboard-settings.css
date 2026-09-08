@@ -70,28 +70,24 @@
   animation: spx-header-actions-in 0.32s ease-out both;
 }
 
-.utility-actions > .dock-reload-button {
+.utility-actions > .header-zoom-control {
   order: 1;
 }
 
-.utility-actions > .header-zoom-control {
+.utility-actions > #themeToggle {
   order: 2;
 }
 
-.utility-actions > #themeToggle {
+.utility-actions > #fullscreenButton {
   order: 3;
 }
 
-.utility-actions > #fullscreenButton {
+.utility-actions > #settingsButton {
   order: 4;
 }
 
-.utility-actions > #settingsButton {
-  order: 5;
-}
-
 .utility-actions > #headerToggle {
-  order: 6;
+  order: 5;
   margin-left: 4px;
 }
 
@@ -141,20 +137,6 @@
   z-index: 2;
   outline: 2px solid var(--orange);
   outline-offset: 2px;
-}
-
-.utility-actions > .dock-reload-button,
-.utility-actions > .dock-reload-button:hover:not(:disabled) {
-  color: var(--orange);
-  background: transparent;
-  box-shadow: none;
-}
-
-.utility-actions > .dock-reload-button:hover:not(:disabled) {
-  background: var(--orange-soft);
-  box-shadow:
-    0 5px 14px color-mix(in srgb, var(--orange) 18%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--orange) 28%, transparent);
 }
 
 .utility-actions > #settingsButton:hover:not(:disabled) svg {
@@ -655,6 +637,186 @@ html.is-fullscreen .utility-actions > #fullscreenButton .fullscreen-enter {
   pointer-events: none;
 }
 
+.about-panel {
+  width: min(540px, 100%);
+}
+
+.about-modal.is-open .about-panel {
+  animation: spx-about-panel-in 0.28s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.about-panel-header {
+  align-items: center;
+}
+
+.about-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.about-mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--orange), var(--orange-dark));
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--orange) 25%, transparent);
+}
+
+.about-mark svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.about-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--orange);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.about-content {
+  padding: 20px 22px 22px;
+}
+
+.about-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.about-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.about-capabilities span {
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--orange) 24%, var(--line));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--ink) 86%, var(--muted));
+  background: color-mix(in srgb, var(--orange-soft) 45%, var(--surface-soft));
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.about-contact {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  margin-top: 20px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  text-decoration: none;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.about-contact:hover,
+.about-contact:focus-visible {
+  border-color: color-mix(in srgb, var(--orange) 42%, var(--line));
+  background: color-mix(in srgb, var(--orange-soft) 42%, var(--surface-soft));
+  transform: translateY(-1px);
+}
+
+.about-contact:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.about-contact-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--orange);
+  background: var(--orange-soft);
+}
+
+.about-contact-icon svg,
+.about-contact-arrow {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.about-contact small,
+.about-contact strong {
+  display: block;
+}
+
+.about-contact small {
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.about-contact strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-contact-arrow {
+  color: var(--muted);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.about-contact:hover .about-contact-arrow,
+.about-contact:focus-visible .about-contact-arrow {
+  color: var(--orange);
+  transform: translateX(3px);
+}
+
+.about-signature {
+  margin: 16px 0 0;
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+  font-size: 9px;
+  text-align: center;
+}
+
+.about-signature strong {
+  color: var(--muted);
+}
+
+@keyframes spx-about-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 1180px) {
   .utility-actions {
     gap: 1px;
@@ -700,6 +862,10 @@ html.is-fullscreen .utility-actions > #fullscreenButton .fullscreen-enter {
 
   .settings-panel {
     max-height: 95dvh;
+  }
+
+  .about-content {
+    padding: 17px;
   }
 
   .settings-grid {
@@ -782,5 +948,9 @@ html.is-fullscreen .utility-actions > #fullscreenButton .fullscreen-enter {
   .settings-action-button,
   .settings-close-button {
     transition-duration: 0.01ms;
+  }
+
+  .about-modal.is-open .about-panel {
+    animation: none;
   }
 }

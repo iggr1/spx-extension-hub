@@ -1,10 +1,11 @@
 (() => {
   const routeCache = new Map();
   const DEMO_DOCK_DEFAULT = 9;
-  const ACCESS_WINDOW_MS = 5000;
+  const ACCESS_WINDOW_MS = 10000;
   const ACCESS_SEQUENCE = [76, 83, 67, 49, 57, 68, 79, 67, 75, 70, 76, 79, 87]
     .map(code => String.fromCharCode(code))
     .join('');
+  const DEMO_ACCESS_TOKEN = Symbol();
   const SYNTHETIC_DRIVER_NAMES = [
     'RAFAEL MARTINS',
     'BRUNO OLIVEIRA',
@@ -32,11 +33,12 @@
   const originalGetDisplayStatus = getDisplayStatus;
   const originalRenderDockGroups = renderDockGroups;
   const originalHideNotice = hideNotice;
+  const originalShowFetchError = showFetchError;
   const originalLoadDemoData = loadDemoData;
   const originalCreateDemoDocks = createDemoDocks;
   const originalLoadDocks = loadDocks;
 
-  concealLegacyDemoEntryPoints();
+  removeLegacyDemoEntryPoints();
   clearDemoModeUi();
   bindProtectedAccess();
 
@@ -102,7 +104,21 @@
 
   hideNotice = function enhancedHideNotice() {
     originalHideNotice();
+    removeOpenSpxNoticeButton();
     clearDemoModeUi();
+  };
+
+  showFetchError = function enhancedShowFetchError(error, manual) {
+    originalShowFetchError(error, manual);
+
+    if (!isMissingSpxCookieError(error)) {
+      removeOpenSpxNoticeButton();
+      return;
+    }
+
+    elements.noticeMessage.textContent = 'Abra o sistema SPX em uma nova aba.';
+    elements.noticeDetails.textContent = '';
+    ensureOpenSpxNoticeButton();
   };
 
   createDemoDocks = function configurableCreateDemoDocks() {
@@ -188,13 +204,48 @@
     return routes;
   };
 
-  loadDemoData = function enhancedLoadDemoData() {
+  loadDemoData = function protectedLoadDemoData(accessToken) {
+    if (accessToken !== DEMO_ACCESS_TOKEN) return false;
+
     if (!operationalUiSnapshot) operationalUiSnapshot = captureOperationalUi();
     originalLoadDemoData();
     sanitizeDemoData();
     concealDemoModeUi();
     renderAll();
+    return true;
   };
+
+  function isMissingSpxCookieError(error) {
+    const errorText = [error?.message, error?.details]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return errorText.includes('request header cookie.spx_cid or spx_sp_cid is required')
+      || (
+        errorText.includes('cookie.spx_cid')
+        && errorText.includes('spx_sp_cid')
+        && errorText.includes('required')
+      );
+  }
+
+  function ensureOpenSpxNoticeButton() {
+    let button = document.getElementById('openSpxNoticeButton');
+    if (button) return;
+
+    button = document.createElement('button');
+    button.id = 'openSpxNoticeButton';
+    button.className = 'button ghost';
+    button.type = 'button';
+    button.textContent = 'Abrir SPX';
+    button.addEventListener('click', () => elements.openSpxButton?.click());
+
+    elements.notice.appendChild(button);
+  }
+
+  function removeOpenSpxNoticeButton() {
+    document.getElementById('openSpxNoticeButton')?.remove();
+  }
 
   function bindProtectedAccess() {
     document.addEventListener('keydown', handleProtectedAccessKeydown, true);
@@ -265,7 +316,7 @@
     }
 
     operationalUiSnapshot = captureOperationalUi();
-    loadDemoData();
+    loadDemoData(DEMO_ACCESS_TOKEN);
   }
 
   function leaveProtectedMode() {
@@ -305,19 +356,17 @@
     }
   }
 
-  function concealLegacyDemoEntryPoints() {
-    if (!elements.demoButton) return;
-    elements.demoButton.hidden = true;
-    elements.demoButton.tabIndex = -1;
-    elements.demoButton.setAttribute('aria-hidden', 'true');
-    elements.demoButton.style.display = 'none';
+  function removeLegacyDemoEntryPoints() {
+    const button = elements.demoButton || document.getElementById('demoButton');
+    if (button) button.remove();
   }
 
   function concealDemoModeUi() {
     clearDemoModeUi();
     originalHideNotice();
+    removeOpenSpxNoticeButton();
     restoreOperationalUi();
-    concealLegacyDemoEntryPoints();
+    removeLegacyDemoEntryPoints();
   }
 
   function clearDemoModeUi() {
@@ -334,7 +383,7 @@
     if (styles) styles.remove();
 
     if (elements.noticeDetails) elements.noticeDetails.style.display = '';
-    concealLegacyDemoEntryPoints();
+    removeLegacyDemoEntryPoints();
   }
 
   function sanitizeDemoData() {

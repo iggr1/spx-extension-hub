@@ -1,10 +1,29 @@
 (() => {
   const routeCache = new Map();
-  const DEMO_DOCK_MIN = 1;
-  const DEMO_DOCK_MAX = 100;
   const DEMO_DOCK_DEFAULT = 9;
+  const ACCESS_WINDOW_MS = 5000;
+  const ACCESS_SEQUENCE = [76, 83, 67, 49, 57, 68, 79, 67, 75, 70, 76, 79, 87]
+    .map(code => String.fromCharCode(code))
+    .join('');
+  const SYNTHETIC_DRIVER_NAMES = [
+    'RAFAEL MARTINS',
+    'BRUNO OLIVEIRA',
+    'LUCAS FERREIRA',
+    'MARCOS ALMEIDA',
+    'GABRIEL COSTA',
+    'DANIEL RIBEIRO',
+    'ANDRE SOUZA',
+    'FELIPE BARBOSA',
+    'RICARDO MENDES',
+    'THIAGO ROCHA',
+    'LEONARDO LIMA',
+    'GUSTAVO CARDOSO'
+  ];
 
   let demoDockCount = DEMO_DOCK_DEFAULT;
+  let accessArmedUntil = 0;
+  let accessBuffer = '';
+  let operationalUiSnapshot = null;
 
   preserveCollectionDuringRefresh('dockQueues');
   preserveCollectionDuringRefresh('driverRoutes');
@@ -15,8 +34,21 @@
   const originalHideNotice = hideNotice;
   const originalLoadDemoData = loadDemoData;
   const originalCreateDemoDocks = createDemoDocks;
+  const originalLoadDocks = loadDocks;
 
-  installDemoStyles();
+  concealLegacyDemoEntryPoints();
+  clearDemoModeUi();
+  bindProtectedAccess();
+
+  loadDocks = async function guardedLoadDocks(manual = false) {
+    if (state.demo) {
+      state.countdown = REFRESH_INTERVAL_SECONDS;
+      updateCountdown();
+      return null;
+    }
+
+    return originalLoadDocks(manual);
+  };
 
   getDisplayStatus = function stableGetDisplayStatus(dock, nextDriver = getNextDriver(dock)) {
     const result = originalGetDisplayStatus(dock, nextDriver);
@@ -81,9 +113,7 @@
       const cycle = Math.floor(index / templates.length);
       const occupied = Boolean(String(template.occupied_vehicle_number || '').trim());
       const driverId = occupied
-        ? cycle === 0
-          ? numberOrZero(template.occupied_driver_id)
-          : numberOrZero(template.occupied_driver_id) + cycle * 100000 + index
+        ? 8100000 + index * 37 + cycle
         : 0;
 
       return {
@@ -93,12 +123,8 @@
         occupation_time: occupied ? Math.max(45, numberOrZero(template.occupation_time) + cycle * 37) : 0,
         idle_time: occupied ? 0 : Math.max(30, numberOrZero(template.idle_time) + cycle * 53 + index * 7),
         occupied_driver_id: driverId,
-        occupied_driver_name: occupied
-          ? `${template.occupied_driver_name || 'MOTORISTA DEMO'}${cycle ? ` ${cycle + 1}` : ''}`
-          : '',
-        occupied_vehicle_number: occupied
-          ? createDemoVehicle(index, template.occupied_vehicle_number)
-          : ''
+        occupied_driver_name: occupied ? createSyntheticDriverName(index) : '',
+        occupied_vehicle_number: occupied ? createSyntheticVehicle(index) : ''
       };
     });
   };
@@ -110,7 +136,7 @@
       if (isDockOccupied(dock) || index % 3 !== 1) return;
 
       const dockId = numberOrZero(dock.dock_id);
-      const driverId = 7000000 + index;
+      const driverId = 8200000 + index * 41;
       queues[dockId] = {
         total: 1,
         error: null,
@@ -118,7 +144,7 @@
           queue_sequence: 1,
           waiting_time: 180 + index * 41,
           driver_id: driverId,
-          driver_name: `MOTORISTA DEMO ${index + 1}`,
+          driver_name: createSyntheticDriverName(index + 5),
           is_frozen: 0,
           frozen_dock_id: 0,
           is_prioritized: index % 2,
@@ -147,13 +173,13 @@
     });
 
     Object.values(state.dockQueues || {}).forEach(queue => {
-      (queue?.items || []).forEach(item => {
+      (queue?.items || []).forEach((item, index) => {
         const driverId = numberOrZero(item.driver_id);
         if (!driverId) return;
         routes[driverId] = {
           ok: true,
           found: true,
-          route: String(item.corridor_cage || 'DEMO'),
+          route: String(item.corridor_cage || createDemoRoute(index)),
           driverAssignedTime: Math.floor(Date.now() / 1000) - numberOrZero(item.waiting_time)
         };
       });
@@ -163,9 +189,167 @@
   };
 
   loadDemoData = function enhancedLoadDemoData() {
+    if (!operationalUiSnapshot) operationalUiSnapshot = captureOperationalUi();
     originalLoadDemoData();
-    showDemoModeUi();
+    sanitizeDemoData();
+    concealDemoModeUi();
+    renderAll();
   };
+
+  function bindProtectedAccess() {
+    document.addEventListener('keydown', handleProtectedAccessKeydown, true);
+    window.addEventListener('blur', resetProtectedAccess);
+  }
+
+  function handleProtectedAccessKeydown(event) {
+    if (event.repeat || isEditableTarget(event.target)) {
+      resetProtectedAccess();
+      return;
+    }
+
+    const firstStep = event.ctrlKey
+      && event.altKey
+      && event.shiftKey
+      && !event.metaKey
+      && event.code === 'KeyD';
+
+    if (firstStep) {
+      event.preventDefault();
+      accessArmedUntil = Date.now() + ACCESS_WINDOW_MS;
+      accessBuffer = '';
+      return;
+    }
+
+    if (!accessArmedUntil) return;
+
+    if (Date.now() > accessArmedUntil) {
+      resetProtectedAccess();
+      return;
+    }
+
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
+
+    if (event.key === 'Enter') {
+      if (accessBuffer === ACCESS_SEQUENCE) {
+        event.preventDefault();
+        toggleProtectedMode();
+      }
+      resetProtectedAccess();
+      return;
+    }
+
+    if (event.key.length !== 1) {
+      resetProtectedAccess();
+      return;
+    }
+
+    const nextBuffer = `${accessBuffer}${event.key.toUpperCase()}`;
+    if (!ACCESS_SEQUENCE.startsWith(nextBuffer)) {
+      resetProtectedAccess();
+      return;
+    }
+
+    event.preventDefault();
+    accessBuffer = nextBuffer;
+  }
+
+  function resetProtectedAccess() {
+    accessArmedUntil = 0;
+    accessBuffer = '';
+  }
+
+  function toggleProtectedMode() {
+    if (state.demo) {
+      leaveProtectedMode();
+      return;
+    }
+
+    operationalUiSnapshot = captureOperationalUi();
+    loadDemoData();
+  }
+
+  function leaveProtectedMode() {
+    state.demo = false;
+    resetLoadingHistory();
+    clearDemoModeUi();
+    operationalUiSnapshot = null;
+    state.countdown = REFRESH_INTERVAL_SECONDS;
+    updateCountdown();
+    void loadDocks(true);
+  }
+
+  function isEditableTarget(target) {
+    if (!(target instanceof Element)) return false;
+    return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]'));
+  }
+
+  function captureOperationalUi() {
+    return {
+      connectionClassName: elements.connectionPill?.className || '',
+      connectionText: elements.connectionText?.textContent || '',
+      dataSourceText: elements.dataSource?.textContent || ''
+    };
+  }
+
+  function restoreOperationalUi() {
+    if (!operationalUiSnapshot) return;
+
+    if (elements.connectionPill) {
+      elements.connectionPill.className = operationalUiSnapshot.connectionClassName;
+    }
+    if (elements.connectionText) {
+      elements.connectionText.textContent = operationalUiSnapshot.connectionText;
+    }
+    if (elements.dataSource) {
+      elements.dataSource.textContent = operationalUiSnapshot.dataSourceText;
+    }
+  }
+
+  function concealLegacyDemoEntryPoints() {
+    if (!elements.demoButton) return;
+    elements.demoButton.hidden = true;
+    elements.demoButton.tabIndex = -1;
+    elements.demoButton.setAttribute('aria-hidden', 'true');
+    elements.demoButton.style.display = 'none';
+  }
+
+  function concealDemoModeUi() {
+    clearDemoModeUi();
+    originalHideNotice();
+    restoreOperationalUi();
+    concealLegacyDemoEntryPoints();
+  }
+
+  function clearDemoModeUi() {
+    document.body.classList.remove('demo-mode-active');
+    elements.notice?.classList.remove('demo-mode-notice');
+
+    const badge = document.getElementById('demoModeBadge');
+    if (badge) badge.remove();
+
+    const control = document.getElementById('demoDockTestControl');
+    if (control) control.remove();
+
+    const styles = document.getElementById('spxDockFlowDemoStyles');
+    if (styles) styles.remove();
+
+    if (elements.noticeDetails) elements.noticeDetails.style.display = '';
+    concealLegacyDemoEntryPoints();
+  }
+
+  function sanitizeDemoData() {
+    state.docks = (state.docks || []).map((dock, index) => ({
+      ...dock,
+      occupied_driver_name: isDockOccupied(dock) ? createSyntheticDriverName(index) : '',
+      occupied_vehicle_number: isDockOccupied(dock) ? createSyntheticVehicle(index) : ''
+    }));
+
+    Object.values(state.dockQueues || {}).forEach((queue, queueIndex) => {
+      (queue?.items || []).forEach((item, itemIndex) => {
+        item.driver_name = createSyntheticDriverName(queueIndex + itemIndex + 5);
+      });
+    });
+  }
 
   function preserveCollectionDuringRefresh(propertyName) {
     let currentValue = state[propertyName];
@@ -220,233 +404,24 @@
     }
   }
 
-  function createDemoVehicle(index, fallback) {
-    if (index < DEMO_DOCK_DEFAULT && fallback) return fallback;
-    const suffix = String(index + 1).padStart(4, '0');
-    return `DEM${suffix.slice(0, 1)}A${suffix.slice(-3)}`;
+  function createSyntheticDriverName(index) {
+    return SYNTHETIC_DRIVER_NAMES[index % SYNTHETIC_DRIVER_NAMES.length];
+  }
+
+  function createSyntheticVehicle(index) {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const a = letters[(index * 5 + 2) % letters.length];
+    const b = letters[(index * 7 + 8) % letters.length];
+    const c = letters[(index * 11 + 13) % letters.length];
+    const d = letters[(index * 13 + 4) % letters.length];
+    const firstDigit = (index * 3 + 1) % 10;
+    const secondDigit = (index * 7 + 2) % 10;
+    const thirdDigit = (index * 9 + 3) % 10;
+    return `${a}${b}${c}${firstDigit}${d}${secondDigit}${thirdDigit}`;
   }
 
   function createDemoRoute(index) {
     const letter = String.fromCharCode(65 + (index % 20));
     return `${letter}-${String((index % 99) + 1).padStart(2, '0')}`;
-  }
-
-  function clampDemoDockCount(value) {
-    const number = Math.trunc(Number(value));
-    if (!Number.isFinite(number)) return demoDockCount;
-    return Math.min(DEMO_DOCK_MAX, Math.max(DEMO_DOCK_MIN, number));
-  }
-
-  function showDemoModeUi() {
-    document.body.classList.add('demo-mode-active');
-    elements.notice.classList.remove('hidden');
-    elements.notice.classList.add('demo-mode-notice');
-    elements.noticeTitle.textContent = 'MODO DEMONSTRAÇÃO · DADOS FICTÍCIOS';
-    elements.noticeMessage.textContent = 'Motoristas, rotas, tempos e docas abaixo são simulados e não representam a operação real.';
-    elements.noticeDetails.textContent = 'Use a quantidade de docas para testar densidade e paginação automática. Acima de 20, as páginas alternam a cada 10 segundos.';
-    elements.noticeDetails.style.display = 'block';
-    elements.dataSource.textContent = `Fonte: simulação local · ${state.docks.length} docas fictícias`;
-    setConnectionState('warning', 'DEMO · dados fictícios');
-
-    if (elements.demoButton) elements.demoButton.textContent = 'Recarregar demo';
-
-    ensureDemoBadge();
-    ensureDemoDockControl();
-  }
-
-  function clearDemoModeUi() {
-    document.body.classList.remove('demo-mode-active');
-    elements.notice?.classList.remove('demo-mode-notice');
-
-    const badge = document.getElementById('demoModeBadge');
-    if (badge) badge.remove();
-
-    const control = document.getElementById('demoDockTestControl');
-    if (control) control.remove();
-
-    if (elements.demoButton) elements.demoButton.textContent = 'Demonstração';
-    if (elements.noticeDetails) elements.noticeDetails.style.display = '';
-  }
-
-  function ensureDemoBadge() {
-    let badge = document.getElementById('demoModeBadge');
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'demoModeBadge';
-      badge.className = 'demo-mode-badge';
-      document.body.appendChild(badge);
-    }
-    badge.textContent = 'DEMONSTRAÇÃO · DADOS FICTÍCIOS';
-  }
-
-  function ensureDemoDockControl() {
-    let control = document.getElementById('demoDockTestControl');
-    if (control) {
-      const input = control.querySelector('input');
-      if (input) input.value = String(demoDockCount);
-      return;
-    }
-
-    control = document.createElement('label');
-    control.id = 'demoDockTestControl';
-    control.className = 'demo-dock-test-control';
-    control.innerHTML = `
-      <span>Docas no teste</span>
-      <input type="number" min="${DEMO_DOCK_MIN}" max="${DEMO_DOCK_MAX}" step="1" value="${demoDockCount}" inputmode="numeric" aria-label="Quantidade de docas fictícias">
-      <button type="button">Aplicar</button>
-    `;
-
-    const input = control.querySelector('input');
-    const button = control.querySelector('button');
-
-    const apply = () => {
-      demoDockCount = clampDemoDockCount(input?.value);
-      if (input) input.value = String(demoDockCount);
-      loadDemoData();
-    };
-
-    input?.addEventListener('keydown', event => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      apply();
-    });
-    input?.addEventListener('change', apply);
-    button?.addEventListener('click', event => {
-      event.preventDefault();
-      apply();
-    });
-
-    elements.notice.insertBefore(control, elements.demoButton || null);
-  }
-
-  function installDemoStyles() {
-    if (document.getElementById('spxDockFlowDemoStyles')) return;
-
-    const style = document.createElement('style');
-    style.id = 'spxDockFlowDemoStyles';
-    style.textContent = `
-      .demo-mode-badge {
-        position: fixed;
-        top: 8px;
-        left: 50%;
-        z-index: 9999;
-        transform: translateX(-50%);
-        padding: 6px 14px;
-        border: 2px solid rgba(255, 255, 255, 0.78);
-        border-radius: 999px;
-        color: #fff;
-        background: #c62828;
-        box-shadow: 0 6px 22px rgba(198, 40, 40, 0.42);
-        font-size: 11px;
-        font-weight: 950;
-        letter-spacing: 0.08em;
-        line-height: 1;
-        pointer-events: none;
-      }
-
-      .notice.demo-mode-notice {
-        min-height: 62px;
-        border: 2px solid #d32f2f;
-        background: linear-gradient(110deg, rgba(211, 47, 47, 0.16), rgba(255, 152, 0, 0.11));
-        box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.08), 0 8px 24px rgba(211, 47, 47, 0.12);
-      }
-
-      .demo-mode-notice .notice-icon {
-        background: #c62828;
-        animation: demo-warning-pulse 1.2s ease-in-out infinite alternate;
-      }
-
-      .demo-mode-notice .notice-copy {
-        flex: 1 1 360px;
-      }
-
-      .demo-mode-notice .notice-copy strong {
-        color: #d32f2f;
-        font-size: 13px;
-        font-weight: 950;
-        letter-spacing: 0.04em;
-      }
-
-      html[data-theme="dark"] .demo-mode-notice .notice-copy strong {
-        color: #ff6b6b;
-      }
-
-      .demo-mode-notice .notice-copy p {
-        max-width: none;
-        overflow: visible;
-        text-overflow: clip;
-        white-space: normal;
-      }
-
-      .demo-mode-notice .notice-details {
-        display: block;
-        font-weight: 750;
-      }
-
-      .demo-dock-test-control {
-        display: flex;
-        flex: 0 0 auto;
-        align-items: center;
-        gap: 6px;
-        margin-left: auto;
-        padding: 5px 7px;
-        border: 1px solid rgba(211, 47, 47, 0.35);
-        border-radius: 10px;
-        background: var(--surface);
-        color: var(--ink);
-        font-size: 10px;
-        font-weight: 850;
-        white-space: nowrap;
-      }
-
-      .demo-dock-test-control input {
-        width: 66px;
-        min-height: 30px;
-        padding: 0 7px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        color: var(--ink);
-        background: var(--surface-soft);
-        font: inherit;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .demo-dock-test-control button {
-        min-height: 30px;
-        padding: 0 9px;
-        border: 0;
-        border-radius: 8px;
-        color: #fff;
-        background: #c62828;
-        font-size: 10px;
-        font-weight: 900;
-        cursor: pointer;
-      }
-
-      .demo-mode-notice .button.ghost {
-        margin-left: 0;
-      }
-
-      @keyframes demo-warning-pulse {
-        from { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0.12); }
-        to { box-shadow: 0 0 0 7px rgba(198, 40, 40, 0.18); }
-      }
-
-      @media (max-width: 900px) {
-        .notice.demo-mode-notice {
-          flex-wrap: wrap;
-        }
-
-        .demo-dock-test-control {
-          margin-left: 40px;
-        }
-
-        .demo-mode-badge {
-          top: 4px;
-          font-size: 9px;
-        }
-      }
-    `;
-    document.head.appendChild(style);
   }
 })();

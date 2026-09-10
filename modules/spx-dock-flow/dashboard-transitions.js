@@ -1,6 +1,6 @@
 (() => {
   const routeCache = new Map();
-  const DEMO_DOCK_DEFAULT = 9;
+  const DEMO_DOCK_DEFAULT = 30;
   const ACCESS_WINDOW_MS = 10000;
   const ACCESS_SEQUENCE = [76, 83, 67, 49, 57, 68, 79, 67, 75, 70, 76, 79, 87]
     .map(code => String.fromCharCode(code))
@@ -184,20 +184,25 @@
         ok: true,
         found: true,
         route: createDemoRoute(index),
+        assignmentTaskId: createDemoAssignmentTaskId(index),
         driverAssignedTime: Math.floor(Date.now() / 1000) - numberOrZero(dock.occupation_time)
       };
     });
 
+    let queueRouteIndex = state.docks.length;
+
     Object.values(state.dockQueues || {}).forEach(queue => {
-      (queue?.items || []).forEach((item, index) => {
+      (queue?.items || []).forEach(item => {
         const driverId = numberOrZero(item.driver_id);
         if (!driverId) return;
         routes[driverId] = {
           ok: true,
           found: true,
-          route: String(item.corridor_cage || createDemoRoute(index)),
+          route: String(item.corridor_cage || createDemoRoute(queueRouteIndex)),
+          assignmentTaskId: createDemoAssignmentTaskId(queueRouteIndex),
           driverAssignedTime: Math.floor(Date.now() / 1000) - numberOrZero(item.waiting_time)
         };
+        queueRouteIndex += 1;
       });
     });
 
@@ -210,6 +215,7 @@
     if (!operationalUiSnapshot) operationalUiSnapshot = captureOperationalUi();
     originalLoadDemoData();
     sanitizeDemoData();
+    populateDemoAssignmentStats();
     concealDemoModeUi();
     renderAll();
     return true;
@@ -400,6 +406,26 @@
     });
   }
 
+  function populateDemoAssignmentStats() {
+    const assignmentTaskIds = [...new Set(Object.values(state.driverRoutes || {})
+      .map(route => normalizeAssignmentTaskId(route?.assignmentTaskId))
+      .filter(Boolean))];
+
+    assignmentTaskIds.forEach((assignmentTaskId, index) => {
+      const totalOrders = 240 + ((index * 73 + 41) % 430);
+      const bulkyOrders = 4 + ((index * 11 + 3) % 38);
+
+      state.assignmentStats[assignmentTaskId] = {
+        status: 'ready',
+        cached: true,
+        assignmentTaskId,
+        totalOrders,
+        bulkyOrders,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      };
+    });
+  }
+
   function preserveCollectionDuringRefresh(propertyName) {
     let currentValue = state[propertyName];
 
@@ -472,5 +498,9 @@
   function createDemoRoute(index) {
     const letter = String.fromCharCode(65 + (index % 20));
     return `${letter}-${String((index % 99) + 1).padStart(2, '0')}`;
+  }
+
+  function createDemoAssignmentTaskId(index) {
+    return `ATDF${String(index + 1).padStart(5, '0')}`;
   }
 })();

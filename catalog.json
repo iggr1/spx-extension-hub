@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-14T15:11:09.648Z",
+  "updatedAt": "2026-09-14T16:07:05.943Z",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260914-2"
   },
   "modules": [
     {

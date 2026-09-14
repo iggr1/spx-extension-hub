@@ -1,0 +1,176 @@
+%PDF-1.4
+%ASCII ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (SPX Extension Hub) /CreationDate (D:20260806110348+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20260806110348+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (unspecified) /Title (Assistente de devolucoes - Descricao do modulo) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 3748
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.062745 .094118 .152941 rg
+n 0 0 595.2756 841.8898 re f*
+.933333 .301961 .176471 rg
+n 0 723.8898 595.2756 118 re f*
+1 1 1 rg
+BT /F2 26 Tf 31.2 TL ET
+BT 1 0 0 1 42 786.8898 Tm (Assistente de devolu\347\365es) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 43 762.8898 Tm (M\363dulo user script do SPX Extension Loader) Tj T* ET
+1 1 1 rg
+BT /F2 16 Tf 19.2 TL ET
+BT 1 0 0 1 42 689.8898 Tm (Objetivo) Tj T* ET
+.862745 .890196 .933333 rg
+BT /F1 10.7 Tf 12.84 TL ET
+BT 1 0 0 1 42 665.8898 Tm (Apoiar o recebimento individual de pedidos no SPX, exibindo o hist\363rico de tentativas de entrega e as) Tj T* ET
+BT 1 0 0 1 42 649.8898 Tm (tratativas relacionadas ao pedido lido, sem abrir uma tela separada.) Tj T* ET
+1 1 1 rg
+BT /F2 16 Tf 19.2 TL ET
+BT 1 0 0 1 42 619.8898 Tm (Recursos principais) Tj T* ET
+1 .419608 .262745 rg
+n
+52 598.8898 m
+52 600.5466 50.65685 601.8898 49 601.8898 c
+47.34315 601.8898 46 600.5466 46 598.8898 c
+46 597.2329 47.34315 595.8898 49 595.8898 c
+50.65685 595.8898 52 597.2329 52 598.8898 c
+f*
+.862745 .890196 .933333 rg
+BT /F1 10.2 Tf 12.24 TL ET
+BT 1 0 0 1 64 595.8898 Tm (Modal com hist\363rico de tentativas On Hold, incluindo motivo, motorista, data e evid\352ncias dispon\355veis.) Tj T* ET
+1 .419608 .262745 rg
+n
+52 577.8898 m
+52 579.5466 50.65685 580.8898 49 580.8898 c
+47.34315 580.8898 46 579.5466 46 577.8898 c
+46 576.2329 47.34315 574.8898 49 574.8898 c
+50.65685 574.8898 52 576.2329 52 577.8898 c
+f*
+.862745 .890196 .933333 rg
+BT /F1 10.2 Tf 12.24 TL ET
+BT 1 0 0 1 64 574.8898 Tm (Identifica\347\343o de AutoAdd no mesmo toast da opera\347\343o, informando a rota de destino ou o pr\363ximo ciclo.) Tj T* ET
+1 .419608 .262745 rg
+n
+52 556.8898 m
+52 558.5466 50.65685 559.8898 49 559.8898 c
+47.34315 559.8898 46 558.5466 46 556.8898 c
+46 555.2329 47.34315 553.8898 49 553.8898 c
+50.65685 553.8898 52 555.2329 52 556.8898 c
+f*
+.862745 .890196 .933333 rg
+BT /F1 10.2 Tf 12.24 TL ET
+BT 1 0 0 1 64 553.8898 Tm (Confirma\347\343o ou cancelamento de Endere\347o n\343o encontrado diretamente no modal.) Tj T* ET
+1 .419608 .262745 rg
+n
+52 535.8898 m
+52 537.5466 50.65685 538.8898 49 538.8898 c
+47.34315 538.8898 46 537.5466 46 535.8898 c
+46 534.2329 47.34315 532.8898 49 532.8898 c
+50.65685 532.8898 52 534.2329 52 535.8898 c
+f*
+.862745 .890196 .933333 rg
+BT /F1 10.2 Tf 12.24 TL ET
+BT 1 0 0 1 64 532.8898 Tm (Recomenda\347\343o operacional conforme a tentativa mais recente: processar, aguardar tratativa, realocar ou) Tj T* ET
+BT 1 0 0 1 64 517.8898 Tm (retornar ao SOC.) Tj T* ET
+1 .419608 .262745 rg
+n
+52 499.8898 m
+52 501.5466 50.65685 502.8898 49 502.8898 c
+47.34315 502.8898 46 501.5466 46 499.8898 c
+46 498.2329 47.34315 496.8898 49 496.8898 c
+50.65685 496.8898 52 498.2329 52 499.8898 c
+f*
+.862745 .890196 .933333 rg
+BT /F1 10.2 Tf 12.24 TL ET
+BT 1 0 0 1 64 496.8898 Tm (Retorno autom\341tico do foco para o campo de leitura ap\363s fechar ou concluir uma a\347\343o.) Tj T* ET
+.956863 .964706 .976471 rg
+n
+54 160 m
+541.2756 160 l
+547.9092 160 553.2756 165.3664 553.2756 172 c
+553.2756 260 l
+553.2756 266.6336 547.9092 272 541.2756 272 c
+54 272 l
+47.3664 272 42 266.6336 42 260 c
+42 172 l
+42 165.3664 47.3664 160 54 160 c
+h
+f*
+.090196 .12549 .2 rg
+BT /F2 12 Tf 14.4 TL ET
+BT 1 0 0 1 60 244 Tm (P\341gina compat\355vel) Tj T* ET
+BT /F1 9.4 Tf 11.28 TL ET
+BT 1 0 0 1 60 220 Tm (https://spx.shopee.com.br/#/generalReceiveTaskOps/singleReceiveNew/*) Tj T* ET
+.309804 .352941 .427451 rg
+BT /F1 9.3 Tf 11.16 TL ET
+BT 1 0 0 1 60 194 Tm (Ative ou desative o m\363dulo pelo switch no cat\341logo do loader.) Tj T* ET
+.666667 .705882 .772549 rg
+BT /F1 8.5 Tf 10.2 TL ET
+BT 1 0 0 1 42 56 Tm (Suporte: igor.camara@shopee.com) Tj T* ET
+BT 1 0 0 1 505.0806 56 Tm (Vers\343o 1.0.0) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000524 00000 n 
+0000000592 00000 n 
+0000000899 00000 n 
+0000000958 00000 n 
+trailer
+<<
+/ID 
+[<fa38939c1f153949ff7461eeb919c6f7><fa38939c1f153949ff7461eeb919c6f7>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+4757
+%%EOF

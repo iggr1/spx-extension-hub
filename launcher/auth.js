@@ -3,7 +3,10 @@
 
   const SESSION_KEY = 'spx-hub-auth-session-v1';
   const config = window.SPX_AUTH_CONFIG || {};
-  const apiUrl = String(config.apiUrl || '').trim();
+  const publicModuleIds = new Set(Array.isArray(config.publicModuleIds) ? config.publicModuleIds : []);
+  // Workspace deployment links also have a canonical public endpoint.
+  const apiUrl = String(config.apiUrl || '').trim()
+    .replace(/^https:\/\/script\.google\.com\/a\/macros\/[^/]+\/s\//, 'https://script.google.com/macros/s/');
   const configured = /^https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec$/.test(apiUrl);
   const state = { user: null, modules: [], checkedAt: 0, expiresAt: 0, error: '', configured };
   let token = readToken();
@@ -97,6 +100,7 @@
   }
 
   function access(moduleId) {
+    if (publicModuleIds.has(moduleId)) return { allowed: true, restricted: false, message: 'Acesso livre' };
     const module = state.modules.find(item => item.id === moduleId);
     if (!configured) return { allowed: false, restricted: true, message: 'Acesso restrito · login em configuração' };
     const fresh = state.checkedAt > 0 && Date.now() - state.checkedAt <= 75000;
@@ -148,6 +152,7 @@
   }
 
   async function authorize(moduleId) {
+    if (publicModuleIds.has(moduleId)) return true;
     const valid = await refresh(true);
     const permission = access(moduleId);
     if (!valid || !permission.allowed) {

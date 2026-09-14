@@ -5,7 +5,7 @@ const AUTH_TABLES = {
   SESSOES: ['token_hash', 'email', 'expira_em']
 };
 const AUTH_MODULES = [
-  ['spx-dock-flow', 'SPX Dock Flow', 'SIM'],
+  ['spx-dock-flow', 'SPX Dock Flow', 'NAO'],
   ['assistente-de-devolucoes', 'Assistente de devoluções', 'SIM']
 ];
 const CODE_SECONDS = 600;

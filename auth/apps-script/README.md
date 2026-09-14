@@ -45,11 +45,13 @@ window.SPX_AUTH_CONFIG = Object.freeze({
 });
 ```
 
+Links de implantação do Workspace no formato `/a/macros/DOMINIO/s/.../exec` também são aceitos; o cliente usa o endpoint canônico `/macros/s/.../exec`. Isso não muda as permissões da implantação, que precisa continuar acessível como descrito acima.
+
 A URL da implantação é pública. Não coloque chave interna, códigos, dados da planilha ou listas de usuários no GitHub.
 
 Depois do commit e da atualização do GitHub Pages, recarregue a central da extensão. Clique em **Entrar**, informe nome (opcional) e e-mail, solicite o código e confirme.
 
-Sem URL configurada, os módulos ficam bloqueados e o login informa que está em configuração.
+Sem URL configurada, o Dock Flow continua livre. Os demais módulos ficam bloqueados e o login informa que está em configuração.
 
 ## 4. Aprovar usuários
 
@@ -78,7 +80,9 @@ Em **MODULOS**, altere a coluna **restrito**:
 - **SIM**: exige login e aprovação individual.
 - **NAO**: fica livre para todos, inclusive sem login.
 
-Os dois módulos atuais começam como **SIM**:
+O Dock Flow começa como **NAO** e o Assistente de devoluções como **SIM**.
+
+O Dock Flow também está em `publicModuleIds`, no `launcher/auth-config.js`. Essa lista tem prioridade sobre a planilha e permite abrir mesmo sem configurar o Apps Script ou se ele estiver indisponível. Para tornar o Dock Flow restrito futuramente, remova seu ID dessa lista e defina SIM na planilha.
 
 | modulo_id | Módulo |
 | --- | --- |
@@ -114,11 +118,11 @@ Não altere **AUTH_SECRET** ou **SPREADSHEET_ID** manualmente. A chave é criada
 
 ## Testar na implantação real
 
-1. Antes de entrar, confira os dois cards bloqueados.
+1. Antes de entrar, confira o Dock Flow livre e o Assistente de devoluções bloqueado.
 2. Entre com um e-mail que você consiga acessar e valide o código recebido.
 3. Confira o cadastro em USUARIOS e as duas linhas PENDENTE em PERMISSOES.
-4. Aprovar somente Dock Flow deve liberar somente seu card.
-5. Mude Dock Flow para NEGADO e clique em Atualizar acesso.
+4. Aprovar o Assistente de devoluções deve liberar seu card.
+5. Mude o Assistente de devoluções para NEGADO e clique em Atualizar acesso.
 6. Defina Devoluções como NAO em MODULOS, saia e confira acesso livre a ele.
 7. Restaure SIM e confira o bloqueio.
 8. Teste abertura/ativação na central real da extensão.

@@ -106,7 +106,7 @@ Não altere **AUTH_SECRET** ou **SPREADSHEET_ID** manualmente. A chave é criada
 
 ## Funcionamento e limites
 
-- Código expira em 10 minutos, tem uso único e no máximo cinco tentativas.
+- Código expira em 3 horas, tem uso único e no máximo cinco tentativas.
 - Reenvio após 60 segundos, no máximo três códigos por hora/e-mail.
 - Limite global de 100 envios/dia e respeito à cota disponível do MailApp.
 - Códigos ficam com hash no cache do Apps Script; uma remoção antecipada do cache exige pedir novo código.

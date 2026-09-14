@@ -8,7 +8,7 @@ const AUTH_MODULES = [
   ['spx-dock-flow', 'SPX Dock Flow', 'NAO'],
   ['assistente-de-devolucoes', 'Assistente de devoluções', 'SIM']
 ];
-const CODE_SECONDS = 600;
+const CODE_SECONDS = 10800;
 const SESSION_SECONDS = 28800;
 
 function instalarAutenticacao() {
@@ -135,7 +135,7 @@ function requestCode_(book, body, requestId) {
       to: email,
       subject: code + ' — seu código de acesso ao SPX Hub',
       body: 'Seu código de acesso ao SPX Extension Hub é: ' + code +
-        '\n\nEle expira em 10 minutos e só pode ser usado uma vez.' +
+        '\n\nEle expira em 3 horas e só pode ser usado uma vez.' +
         '\nNão compartilhe este código. Se você não solicitou o acesso, ignore este e-mail.',
       name: 'SPX Extension Hub'
     });

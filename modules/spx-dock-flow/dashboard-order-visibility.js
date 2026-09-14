@@ -32,6 +32,40 @@
         background: transparent;
         box-shadow: none;
       }
+
+      .dock-card.available {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .dock-card.available .route-block {
+        display: none;
+      }
+
+      .dock-card.available .dock-name-block,
+      .dock-card.available .status-badge,
+      .dock-card.available .driver-block,
+      .dock-card.available .times-grid {
+        opacity: 1;
+      }
+
+      .dock-card.available .driver-block {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        text-align: center;
+      }
+
+      .dock-card.available .driver-block strong {
+        color: var(--muted);
+        font-size: clamp(12px, min(1.15vw, 1.9vh), 18px);
+        font-weight: 850;
+        line-height: 1.15;
+      }
+
+      .dock-card.available .time-item {
+        opacity: 1;
+      }
     `;
 
     document.head.appendChild(style);

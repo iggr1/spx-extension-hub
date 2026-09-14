@@ -13,9 +13,28 @@
   initialize();
 
   function initialize() {
+    injectRouteLayoutStyle();
     injectSetting();
     syncInput();
     bindEvents();
+  }
+
+  function injectRouteLayoutStyle() {
+    if (document.getElementById('dockFlowRouteLayoutStyle')) return;
+
+    const style = document.createElement('style');
+    style.id = 'dockFlowRouteLayoutStyle';
+    style.textContent = `
+      .route-block.route-ready {
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+    `;
+
+    document.head.appendChild(style);
   }
 
   function injectSetting() {

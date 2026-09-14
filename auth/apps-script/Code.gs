@@ -57,11 +57,13 @@ function onEdit(event) {
 }
 
 function doGet() {
-  return json_({ ok: true, service: 'SPX Hub Authentication', version: '1.0.0' });
+  return json_({ ok: true, service: 'SPX Hub Authentication', version: '1.0.1' });
 }
 
 function doPost(event) {
   let lock;
+  const requestId = Utilities.getUuid();
+  let action = 'INVALID_REQUEST';
   try {
     const contents = event && event.postData && event.postData.contents || '';
     if (!contents || contents.length > 4096) fail_('INVALID_REQUEST', 'Solicitação inválida.');
@@ -70,19 +72,24 @@ function doPost(event) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) fail_('INVALID_REQUEST', 'Solicitação inválida.');
     const allowed = ['policy', 'request_code', 'verify_code', 'session', 'logout'];
     if (!allowed.includes(body.action)) fail_('INVALID_REQUEST', 'Operação inválida.');
+    action = body.action;
+    authLog_('REQUEST_RECEIVED', { requestId: requestId, action: action });
     lock = LockService.getScriptLock();
     if (!lock.tryLock(5000)) fail_('BUSY', 'Aguarde alguns segundos e tente novamente.');
     const book = book_();
     let result;
     if (body.action === 'policy') result = { modules: policies_(book) };
-    if (body.action === 'request_code') result = requestCode_(book, body);
+    if (body.action === 'request_code') result = requestCode_(book, body, requestId);
     if (body.action === 'verify_code') result = verifyCode_(book, body);
     if (body.action === 'session') result = session_(book, body.token);
     if (body.action === 'logout') result = logout_(book, body.token);
-    return json_(Object.assign({ ok: true }, result));
+    authLog_('REQUEST_COMPLETED', { requestId: requestId, action: action });
+    return json_(Object.assign({ ok: true, requestId: requestId }, result));
   } catch (error) {
+    authLog_('REQUEST_FAILED', { requestId: requestId, action: action, code: error.publicCode || 'SERVICE_ERROR', detail: diagnosticError_(error) });
     return json_({
       ok: false,
+      requestId: requestId,
       code: error.publicCode || 'SERVICE_ERROR',
       error: error.publicCode ? error.message : 'Serviço indisponível. Confira a configuração do Apps Script.'
     });
@@ -91,7 +98,7 @@ function doPost(event) {
   }
 }
 
-function requestCode_(book, body) {
+function requestCode_(book, body, requestId) {
   const email = email_(body.email);
   const domainSetting = PropertiesService.getScriptProperties().getProperty('ALLOWED_EMAIL_DOMAINS') || '';
   const domains = domainSetting.split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
@@ -108,7 +115,11 @@ function requestCode_(book, body) {
   const day = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
   const daily = JSON.parse(properties.getProperty('DAILY_EMAIL_COUNT') || '{}');
   const count = daily.day === day ? Number(daily.count || 0) : 0;
-  if (count >= 100 || MailApp.getRemainingDailyQuota() < 1) fail_('RATE_LIMIT', 'Envio de códigos indisponível no momento. Tente mais tarde.');
+  if (count >= 100) fail_('RATE_LIMIT', 'O limite diário de solicitações de e-mail foi atingido. Tente amanhã.');
+  authLog_('CHECKING_MAIL_QUOTA', { requestId: requestId });
+  const quota = MailApp.getRemainingDailyQuota();
+  authLog_('MAIL_QUOTA', { requestId: requestId, remaining: quota });
+  if (quota < 1) fail_('MAIL_QUOTA', 'A cota de envio da conta Google foi esgotada. Tente mais tarde.');
   const nonce = Utilities.getUuid();
   const hex = digest_('code-random:' + nonce + ':' + now);
   const code = String(parseInt(hex.slice(0, 8), 16) % 1000000).padStart(6, '0');
@@ -119,6 +130,7 @@ function requestCode_(book, body) {
   properties.setProperty('DAILY_EMAIL_COUNT', JSON.stringify({ day: day, count: count + 1 }));
   cache.put('otp:' + key, JSON.stringify(record), CODE_SECONDS);
   try {
+    authLog_('MAIL_SEND_STARTED', { requestId: requestId, recipient: maskEmail_(email) });
     MailApp.sendEmail({
       to: email,
       subject: code + ' — seu código de acesso ao SPX Hub',
@@ -127,11 +139,13 @@ function requestCode_(book, body) {
         '\nNão compartilhe este código. Se você não solicitou o acesso, ignore este e-mail.',
       name: 'SPX Extension Hub'
     });
-  } catch (_) {
+    authLog_('MAIL_SEND_ACCEPTED', { requestId: requestId, recipient: maskEmail_(email) });
+  } catch (error) {
     cache.remove('otp:' + key);
-    fail_('MAIL_FAILED', 'Não foi possível enviar o código. Aguarde um minuto e tente novamente.');
+    authLog_('MAIL_SEND_FAILED', { requestId: requestId, detail: diagnosticError_(error) });
+    fail_('MAIL_FAILED', 'O Google não confirmou o envio. Informe ao responsável a referência ' + requestId + '.');
   }
-  return { expiresIn: CODE_SECONDS, retryAfter: 60 };
+  return { expiresIn: CODE_SECONDS, retryAfter: 60, mailStatus: 'ACCEPTED' };
 }
 
 function verifyCode_(book, body) {
@@ -288,4 +302,66 @@ function fail_(code, message) {
 
 function json_(value) {
   return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+// Run from the Apps Script editor. Never exposed as a public doPost action.
+function diagnosticarAutenticacao() {
+  const properties = PropertiesService.getScriptProperties();
+  const report = {
+    version: '1.0.1',
+    spreadsheetConfigured: Boolean(properties.getProperty('SPREADSHEET_ID')),
+    secretConfigured: Boolean(properties.getProperty('AUTH_SECRET')),
+    effectiveUser: Session.getEffectiveUser().getEmail(),
+    allowedDomains: properties.getProperty('ALLOWED_EMAIL_DOMAINS') || '(todos)'
+  };
+  try {
+    const book = book_();
+    report.tables = Object.keys(AUTH_TABLES).map(name => ({ name: name, exists: Boolean(book.getSheetByName(name)) }));
+    report.mailQuota = MailApp.getRemainingDailyQuota();
+    authLog_('DIAGNOSTIC', report);
+    return report;
+  } catch (error) {
+    authLog_('DIAGNOSTIC_FAILED', { detail: diagnosticError_(error) });
+    throw error;
+  }
+}
+
+// Sends one real login code to EMAIL_TESTE, or to the account running the editor.
+function testarEnvioCodigo() {
+  const recipient = PropertiesService.getScriptProperties().getProperty('EMAIL_TESTE') || Session.getEffectiveUser().getEmail();
+  if (!recipient) throw new Error('Defina EMAIL_TESTE nas propriedades do script.');
+  diagnosticarAutenticacao();
+  const output = doPost({
+    postData: { contents: JSON.stringify({ action: 'request_code', email: recipient }) }
+  });
+  const response = JSON.parse(output.getContent());
+  authLog_('EDITOR_CODE_TEST', {
+    recipient: maskEmail_(recipient),
+    requestId: response.requestId,
+    ok: response.ok,
+    code: response.code || '',
+    message: response.error || 'MailApp aceitou o envio. Confira a caixa de entrada e o spam; isso não confirma a entrega.'
+  });
+  if (!response.ok) throw new Error(response.error);
+}
+
+function maskEmail_(value) {
+  const parts = String(value || '').split('@');
+  return parts.length === 2 ? parts[0].slice(0, 2) + '***@' + parts[1] : '(inválido)';
+}
+
+function diagnosticError_(error) {
+  // Never record request bodies, login codes, session tokens or internal secrets.
+  return String(error && error.message || error)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, match => maskEmail_(match))
+    .replace(/\b[a-f0-9]{64}\b/gi, '[token removido]')
+    .replace(/\b\d{6}\b/g, '[código removido]')
+    .slice(0, 800);
+}
+
+function authLog_(event, details) {
+  const entry = JSON.stringify(Object.assign({ event: event }, details || {}));
+  if (/FAILED$/.test(event)) console.error(entry);
+  else console.info(entry);
 }

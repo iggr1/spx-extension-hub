@@ -127,7 +127,7 @@ Não altere **AUTH_SECRET** ou **SPREADSHEET_ID** manualmente. A chave é criada
 7. Restaure SIM e confira o bloqueio.
 8. Teste abertura/ativação na central real da extensão.
 
-A verificação local cobre 44 cenários com serviços simulados. Entrega de e-mail, permissões Google, chamadas entre origens e funcionamento dentro do iframe real do loader dependem dessa implantação e ainda não foram testados.
+A verificação local cobre 50 cenários com serviços simulados. Entrega de e-mail, permissões Google, chamadas entre origens e funcionamento dentro do iframe real do loader dependem dessa implantação e ainda não foram testados.
 
 Para rodar as verificações: `node auth/apps-script/auth.test.cjs`.
 
@@ -138,3 +138,30 @@ Ao alterar o código do Apps Script posteriormente, use **Implantar > Gerenciar 
 - [Apps Script Web Apps](https://developers.google.com/apps-script/guides/web)
 - [Content Service e redirecionamentos](https://developers.google.com/apps-script/guides/content)
 - [MailApp](https://developers.google.com/apps-script/reference/mail/mail-app)
+
+## Diagnóstico de envio (versão 1.0.1)
+
+A execução do doPost sozinha não comprova uma solicitação de e-mail. policy e session também usam doPost.
+
+1. Atualize o Code.gs deste projeto no editor.
+2. Execute **diagnosticarAutenticacao**. Autorize o envio se o Google solicitar.
+3. Execute **testarEnvioCodigo**. Ele envia um código real para a conta que está executando o editor. Para testar outro destinatário, defina a propriedade **EMAIL_TESTE** antes.
+4. Veja o registro da execução no editor. Nenhum código ou token é registrado.
+5. Atualize a implantação existente em **Implantar > Gerenciar implantações > Editar > Nova versão > Implantar**. Salvar o código não atualiza automaticamente a versão do /exec.
+6. Teste **Enviar código** na central. Em **Execuções**, abra o doPost correspondente.
+
+| Evento no registro | Significado |
+| --- | --- |
+| REQUEST_RECEIVED com action=policy/session | Consulta de módulos/sessão; não envia e-mail |
+| REQUEST_RECEIVED com action=request_code | Solicitação de envio recebida |
+| REQUEST_FAILED | Falha antes de concluir; veja code e detail |
+| CHECKING_MAIL_QUOTA sem MAIL_QUOTA | A leitura de cota falhou; veja REQUEST_FAILED |
+| MAIL_SEND_STARTED | O envio vai chamar o MailApp |
+| MAIL_SEND_FAILED | MailApp lançou uma exceção; detail preserva o motivo |
+| MAIL_SEND_ACCEPTED | MailApp retornou sem erro; não é confirmação de entrega ao destinatário |
+
+Se o teste do editor funciona e o webapp não, confira a versão implantada e **Executar como: Eu**. Se MAIL_SEND_ACCEPTED aparece, confira endereço, spam e eventual quarentena do e-mail corporativo. O responsável pelo Workspace pode investigar a entrega.
+
+O teste usa os mesmos limites do login: não fica reenviando automaticamente. Se houver RATE_LIMIT, respeite o prazo indicado.
+
+Referências: [MailApp](https://developers.google.com/apps-script/reference/mail/mail-app), [registros de execução](https://developers.google.com/apps-script/guides/logging).

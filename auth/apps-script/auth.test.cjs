@@ -43,7 +43,9 @@ function backendTests(source){
  const SpreadsheetApp={openById:()=>book};
  const ContentService={MimeType:{JSON:'json'},createTextOutput:text=>({setMimeType:()=>JSON.parse(text)})};
  const LockService={getScriptLock:()=>({tryLock:()=>true,hasLock:()=>true,releaseLock(){}})};
- const api=new Function('Utilities','PropertiesService','CacheService','MailApp','SpreadsheetApp','ContentService','LockService',source+'\nreturn {doPost,access_,digest_};')(Utilities,PropertiesService,CacheService,MailApp,SpreadsheetApp,ContentService,LockService);
+ const diagnosticLogs=[];
+ const testConsole={info:value=>diagnosticLogs.push(JSON.parse(value)),error:value=>diagnosticLogs.push(JSON.parse(value))};
+ const api=new Function('Utilities','PropertiesService','CacheService','MailApp','SpreadsheetApp','ContentService','LockService','console',source+'\nreturn {doPost,access_,digest_};')(Utilities,PropertiesService,CacheService,MailApp,SpreadsheetApp,ContentService,LockService,testConsole);
  const call=body=>api.doPost({postData:{contents:JSON.stringify(body)}});
  assert(call({action:'policy'}).modules.every(m=>m.restricted),'Both modules restricted by default');
  assert(!call({action:'session',token:'bad'}).ok,'Invalid session rejected');
@@ -90,6 +92,16 @@ function backendTests(source){
  assert(call({action:'approve',email:'other@example.com',status:'APROVADO'}).code==='INVALID_REQUEST','Public API has no administrative approval operation');
  const policy=call({action:'policy'});
  assert(!JSON.stringify(policy).includes('user@example.com'),'Anonymous policy does not disclose users');
+ assert(diagnosticLogs.some(log=>log.event==='REQUEST_RECEIVED'&&log.action==='policy'),'Logs distinguish policy from mail requests');
+ assert(diagnosticLogs.some(log=>log.event==='MAIL_SEND_ACCEPTED'),'Successful MailApp return is recorded');
+ assert(!JSON.stringify(diagnosticLogs).includes(login.token),'Session tokens absent from diagnostics');
+ const deliveredBefore=mails.length;
+ MailApp.sendEmail=()=>{throw Error('Permission denied for MailApp.sendEmail; code 123456');};
+ const failed=call({action:'request_code',email:'failure@example.com'});
+ assert(!failed.ok&&failed.code==='MAIL_FAILED'&&failed.requestId,'Mail failure returns correlation reference');
+ assert(mails.length===deliveredBefore,'Mail error is not reported as sent');
+ const failureLog=diagnosticLogs.find(log=>log.event==='MAIL_SEND_FAILED');
+ assert(failureLog&&failureLog.detail.includes('Permission denied')&&!failureLog.detail.includes('123456'),'Mail error preserves cause without code');
  return passed;
 }
 

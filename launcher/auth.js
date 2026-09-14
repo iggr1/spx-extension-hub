@@ -30,15 +30,35 @@
   const account = document.getElementById('authAccount');
 
   function readToken() {
-    try { return sessionStorage.getItem(SESSION_KEY) || ''; } catch (_) { return ''; }
+    try {
+      const saved = localStorage.getItem(SESSION_KEY);
+      if (saved) return saved;
+    } catch (_) { /* Fall back to tab storage when persistent storage is blocked. */ }
+    try {
+      const previous = sessionStorage.getItem(SESSION_KEY) || '';
+      if (previous) {
+        try {
+          localStorage.setItem(SESSION_KEY, previous);
+          sessionStorage.removeItem(SESSION_KEY);
+        } catch (_) { /* Keep the existing tab session if migration is unavailable. */ }
+      }
+      return previous;
+    } catch (_) { return ''; }
   }
 
   function saveToken(value) {
     token = value;
+    if (!value) {
+      try { localStorage.removeItem(SESSION_KEY); } catch (_) {}
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      return;
+    }
     try {
-      if (value) sessionStorage.setItem(SESSION_KEY, value);
-      else sessionStorage.removeItem(SESSION_KEY);
-    } catch (_) { /* In-memory sessions still work if storage is unavailable. */ }
+      localStorage.setItem(SESSION_KEY, value);
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    } catch (_) {
+      try { sessionStorage.setItem(SESSION_KEY, value); } catch (_) {}
+    }
   }
 
   async function api(action, payload = {}) {
@@ -294,6 +314,24 @@
       resend.textContent = remaining ? 'Reenviar em ' + remaining + 's' : 'Reenviar código';
     }
   }, 1000);
+
+  window.addEventListener('storage', event => {
+    if (event.key !== SESSION_KEY && event.key !== null) return;
+    const nextToken = event.key === null ? '' : event.newValue || '';
+    if (nextToken && !/^[a-f0-9]{64}$/.test(nextToken)) return;
+    if (nextToken === token) return;
+    epoch += 1;
+    loginAttempt += 1;
+    token = nextToken;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    state.user = null;
+    state.modules = [];
+    state.checkedAt = 0;
+    state.expiresAt = 0;
+    state.error = '';
+    emit();
+    void refresh(true);
+  });
 
   window.HubAuth = Object.freeze({ access, authorize, refresh, openLogin });
   renderAccount();

@@ -8,8 +8,8 @@ const AUTH_MODULES = [
   ['spx-dock-flow', 'SPX Dock Flow', 'NAO'],
   ['assistente-de-devolucoes', 'Assistente de devoluções', 'SIM']
 ];
-const CODE_SECONDS = 10800;
-const SESSION_SECONDS = 28800;
+const CODE_SECONDS = 600;
+const SESSION_SECONDS = 86400;
 
 function instalarAutenticacao() {
   const book = SpreadsheetApp.getActiveSpreadsheet();
@@ -110,7 +110,7 @@ function requestCode_(book, body, requestId) {
   const rate = JSON.parse(cache.get(rateKey) || '{"count":0,"last":0,"until":0}');
   if (rate.until < now) { rate.count = 0; rate.until = now + 3600000; }
   if (now - rate.last < 60000) fail_('RATE_LIMIT', 'Aguarde 60 segundos antes de pedir outro código.');
-  if (rate.count >= 3) fail_('RATE_LIMIT', 'Limite de três códigos por hora para este e-mail.');
+  if (rate.count >= 5) fail_('RATE_LIMIT', 'Limite de cinco códigos por hora para este e-mail.');
   const properties = PropertiesService.getScriptProperties();
   const day = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
   const daily = JSON.parse(properties.getProperty('DAILY_EMAIL_COUNT') || '{}');
@@ -135,7 +135,7 @@ function requestCode_(book, body, requestId) {
       to: email,
       subject: code + ' — seu código de acesso ao SPX Hub',
       body: 'Seu código de acesso ao SPX Extension Hub é: ' + code +
-        '\n\nEle expira em 3 horas e só pode ser usado uma vez.' +
+        '\n\nEle expira em 10 minutos e só pode ser usado uma vez.' +
         '\nNão compartilhe este código. Se você não solicitou o acesso, ignore este e-mail.',
       name: 'SPX Extension Hub'
     });

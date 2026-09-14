@@ -106,11 +106,11 @@ Não altere **AUTH_SECRET** ou **SPREADSHEET_ID** manualmente. A chave é criada
 
 ## Funcionamento e limites
 
-- Código expira em 3 horas, tem uso único e no máximo cinco tentativas.
-- Reenvio após 60 segundos, no máximo três códigos por hora/e-mail.
+- Código expira em 10 minutos, tem uso único e no máximo cinco tentativas.
+- Reenvio após 60 segundos, no máximo cinco códigos por hora/e-mail.
 - Limite global de 100 envios/dia e respeito à cota disponível do MailApp.
 - Códigos ficam com hash no cache do Apps Script; uma remoção antecipada do cache exige pedir novo código.
-- Sessão dura oito horas. O token fica no localStorage do navegador e é recuperado ao recarregar ou reabrir a central. Se esse armazenamento estiver bloqueado, usa sessionStorage e, por último, memória. Sessões antigas da aba são migradas automaticamente. Login e saída são sincronizados entre centrais do mesmo armazenamento do navegador. A planilha guarda somente seu hash.
+- Sessão dura 24 horas. O token fica no localStorage do navegador e é recuperado ao recarregar ou reabrir a central. Se esse armazenamento estiver bloqueado, usa sessionStorage e, por último, memória. Sessões antigas da aba são migradas automaticamente. Login e saída são sincronizados entre centrais do mesmo armazenamento do navegador. A planilha guarda somente seu hash.
 - Sair revoga a sessão no servidor. Se a rede estiver indisponível, encerra localmente e a sessão remota expira pelo prazo.
 - Não há operação pública para listar usuários ou aprovar acessos; a administração ocorre na planilha privada.
 - Falhas de rede, sessão expirada e resposta inválida deixam os restritos bloqueados.

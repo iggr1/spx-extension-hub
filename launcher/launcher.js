@@ -29,6 +29,7 @@ closeDescriptionButton.addEventListener('click', closeDescription);
 openPdfButton.addEventListener('click', () => {
   if (activePdfUrl) window.open(activePdfUrl, '_blank', 'noopener,noreferrer');
 });
+window.addEventListener('spx-auth-change', renderModules);
 loadModules(false);
 
 async function loadModules(forceRefresh) {
@@ -77,15 +78,22 @@ function renderModules() {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
     const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive);
-    const actions = module.type === 'user_script'
+    const permission = HubAuth.access(module.id);
+    const actions = !permission.allowed
+      ? `${descriptionAction}<button type="button" disabled title="${escapeHtml(permission.message)}">Bloqueado</button><button type="button" data-access-id="${escapeHtml(module.id)}">Verificar acesso</button>${module.type === 'user_script' && userScriptStates.get(module.id)?.enabled ? `<button type="button" data-disable-id="${escapeHtml(module.id)}">Desativar</button>` : ''}`
+      : module.type === 'user_script'
       ? `${descriptionAction}${renderUserScriptSwitch(module)}`
       : `${descriptionAction}<button class="open-button" type="button" data-module-id="${escapeHtml(module.id)}">Abrir</button>`;
 
     return `
-      <article class="module-card" data-module-card="${escapeHtml(module.id)}">
+      <article class="module-card${permission.allowed ? '' : ' is-restricted'}" data-module-card="${escapeHtml(module.id)}">
         <div class="module-icon">${escapeHtml(module.name.slice(0, 2).toUpperCase())}</div>
         <h2>${escapeHtml(module.name)}</h2>
         <p>${escapeHtml(module.description || 'Módulo operacional publicado no hub.')}</p>
+        <div class="module-access ${permission.allowed ? 'is-approved' : 'is-locked'}" role="status">
+          ${permission.allowed ? '' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
+          <span>${escapeHtml(permission.message)}</span>
+        </div>
         <div class="module-footer">
           <span class="module-version">v${escapeHtml(module.version)}</span>
           <div class="module-actions">${actions}</div>
@@ -97,7 +105,26 @@ function renderModules() {
   const modulesById = new Map(currentModules.map(module => [module.id, module]));
 
   for (const button of grid.querySelectorAll('[data-module-id]')) {
-    button.addEventListener('click', () => LoaderBridge.openModule(button.dataset.moduleId));
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        if (await HubAuth.authorize(button.dataset.moduleId)) LoaderBridge.openModule(button.dataset.moduleId);
+        else status.textContent = HubAuth.access(button.dataset.moduleId).message;
+      } finally { renderModules(); }
+    });
+  }
+
+  for (const button of grid.querySelectorAll('[data-access-id]')) {
+    button.addEventListener('click', async () => {
+      await HubAuth.authorize(button.dataset.accessId);
+      status.textContent = HubAuth.access(button.dataset.accessId).message;
+    });
+  }
+  for (const button of grid.querySelectorAll('[data-disable-id]')) {
+    button.addEventListener('click', () => {
+      const module = modulesById.get(button.dataset.disableId);
+      if (module) void toggleUserScript(module, false);
+    });
   }
 
   for (const button of grid.querySelectorAll('[data-description-id]')) {
@@ -201,6 +228,11 @@ async function loadUserScriptStates() {
 }
 
 async function toggleUserScript(module, enabled) {
+  if (enabled && !(await HubAuth.authorize(module.id))) {
+    status.textContent = HubAuth.access(module.id).message;
+    renderModules();
+    return;
+  }
   const previous = userScriptStates.get(module.id) || { enabled: !enabled };
   userScriptStates.set(module.id, {
     ...previous,

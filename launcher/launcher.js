@@ -88,12 +88,12 @@ function renderModules() {
       : `${descriptionAction}<button class="open-button" type="button" data-module-id="${escapeHtml(module.id)}">Abrir</button>`;
 
     return `
-      <article class="module-card${permission.allowed ? '' : ' is-restricted'}" data-module-card="${escapeHtml(module.id)}">
+      <article class="module-card${permission.allowed ? '' : ' is-restricted'}${permission.loading ? ' is-loading' : ''}" aria-busy="${Boolean(permission.loading)}" ${permission.loading ? 'inert' : ''} data-module-card="${escapeHtml(module.id)}">
         <div class="module-icon">${escapeHtml(module.name.slice(0, 2).toUpperCase())}</div>
         <h2>${escapeHtml(module.name)}</h2>
         <p>${escapeHtml(module.description || 'Módulo operacional publicado no hub.')}</p>
         <div class="module-access ${permission.allowed ? 'is-approved' : 'is-locked'}" role="status">
-          ${permission.allowed ? '' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
+          ${permission.loading ? '<span class="access-spinner" aria-hidden="true"></span>' : permission.allowed ? '' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
           <span>${escapeHtml(permission.message)}</span>
         </div>
         <div class="module-footer">

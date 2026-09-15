@@ -8,7 +8,7 @@
   const apiUrl = String(config.apiUrl || '').trim()
     .replace(/^https:\/\/script\.google\.com\/a\/macros\/[^/]+\/s\//, 'https://script.google.com/macros/s/');
   const configured = /^https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec$/.test(apiUrl);
-  const state = { user: null, modules: [], checkedAt: 0, expiresAt: 0, error: '', configured };
+  const state = { user: null, modules: [], checkedAt: 0, expiresAt: 0, error: '', configured, loading: true };
   let token = readToken();
   let epoch = 0;
   let requestSequence = 0;
@@ -122,6 +122,8 @@
   function access(moduleId) {
     if (publicModuleIds.has(moduleId)) return { allowed: true, restricted: false, message: 'Acesso livre' };
     const module = state.modules.find(item => item.id === moduleId);
+    if (module?.restricted === false) return { allowed: true, restricted: false, message: 'Acesso livre' };
+    if (state.loading) return { allowed: false, restricted: true, loading: true, message: 'Consultando acesso...' };
     if (!configured) return { allowed: false, restricted: true, message: 'Acesso restrito · login em configuração' };
     const fresh = state.checkedAt > 0 && Date.now() - state.checkedAt <= 75000;
     if (fresh && !module) return { allowed: false, restricted: true, message: 'Acesso restrito · aguarda configuração do responsável' };
@@ -145,6 +147,8 @@
     const currentEpoch = epoch;
     const sequence = ++requestSequence;
     const currentToken = token;
+    state.loading = true;
+    emit();
     const promise = (async () => {
       try {
         const result = await api(currentToken ? 'session' : 'policy', currentToken ? { token: currentToken } : {});
@@ -163,7 +167,10 @@
         }
         return false;
       } finally {
-        if (epoch === currentEpoch && sequence === requestSequence) emit();
+        if (epoch === currentEpoch && sequence === requestSequence) {
+          state.loading = false;
+          emit();
+        }
       }
     })();
     refreshPromise = promise;
@@ -172,7 +179,8 @@
   }
 
   async function authorize(moduleId) {
-    if (publicModuleIds.has(moduleId)) return true;
+    if (access(moduleId).restricted === false) return true;
+    if (state.loading) return false;
     const valid = await refresh(true);
     const permission = access(moduleId);
     if (!valid || !permission.allowed) {
@@ -184,16 +192,22 @@
 
   function renderAccount() {
     const label = document.getElementById('authIdentity');
-    label.textContent = state.user ? state.user.email : 'Entre para solicitar acesso aos módulos restritos';
+    const bar = document.querySelector('.auth-bar');
+    bar.classList.toggle('is-loading', state.loading);
+    bar.setAttribute('aria-busy', String(state.loading));
+    bar.inert = state.loading;
+    label.textContent = state.loading ? 'Consultando autenticação...' : state.user ? state.user.email : 'Entre para solicitar acesso aos módulos restritos';
     account.textContent = state.user ? 'Sair' : 'Entrar';
-    account.disabled = !configured;
+    account.disabled = !configured || state.loading;
+    document.getElementById('authCheck').disabled = state.loading;
     document.getElementById('authCheck').hidden = !state.user;
     const message = document.getElementById('authMessage');
-    message.textContent = state.error || (state.user ? 'Suas permissões são atualizadas automaticamente.' : 'Os módulos restritos precisam de aprovação.');
+    message.textContent = state.loading ? 'Aguarde enquanto verificamos sua sessão e permissões.' : state.error || (state.user ? 'Suas permissões são atualizadas automaticamente.' : 'Os módulos restritos precisam de aprovação.');
     message.classList.toggle('has-error', Boolean(state.error));
   }
 
   function openLogin() {
+    if (state.loading) return;
     previousFocus = document.activeElement;
     loginAttempt += 1;
     codeEmail = '';
@@ -262,6 +276,7 @@
       if (attempt !== loginAttempt || currentEpoch !== epoch) return;
       if (!/^[a-f0-9]{64}$/.test(result.token || '')) throw new Error('Sessão inválida.');
       applyResult(result, true);
+      state.loading = false;
       epoch += 1;
       saveToken(result.token);
       closeLogin();

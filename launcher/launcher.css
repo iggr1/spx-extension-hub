@@ -244,3 +244,27 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   button, .module-toggle, .module-toggle-track, .module-toggle-track span { transition: none; }
 }
+
+/* Authentication checks block only the surfaces that depend on them. */
+.auth-bar.is-loading,
+.module-card.is-loading { cursor: wait; }
+.auth-bar.is-loading .auth-bar-actions,
+.module-card.is-loading .module-actions { opacity: .45; pointer-events: none; }
+.auth-bar.is-loading .auth-bar-copy { position: relative; padding-left: 30px; }
+.access-spinner,
+.auth-bar.is-loading .auth-bar-copy::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: auth-access-spin .8s linear infinite;
+}
+.auth-bar.is-loading .auth-bar-copy::before { position: absolute; left: 0; top: 4px; }
+@keyframes auth-access-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .access-spinner, .auth-bar.is-loading .auth-bar-copy::before { animation: none; }
+}

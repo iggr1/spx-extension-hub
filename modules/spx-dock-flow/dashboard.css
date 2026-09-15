@@ -2326,3 +2326,12 @@ body {
       var(--card-shadow);
   }
 }
+
+/* Ready routes retain only their content and quantity tiles. */
+.dock-grid .dock-card .route-block.route-ready {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}

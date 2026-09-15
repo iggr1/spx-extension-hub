@@ -78,7 +78,9 @@ function renderModules() {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
     const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive);
-    const permission = HubAuth.access(module.id);
+    const permission = module.type === 'user_script' && userScriptStates.get(module.id)?.enabled
+      ? { allowed: true, message: 'Ativado neste navegador · funciona sem login no Hub.' }
+      : HubAuth.access(module.id);
     const actions = !permission.allowed
       ? `${descriptionAction}<button type="button" disabled title="${escapeHtml(permission.message)}">Bloqueado</button><button type="button" data-access-id="${escapeHtml(module.id)}">Verificar acesso</button>${module.type === 'user_script' && userScriptStates.get(module.id)?.enabled ? `<button type="button" data-disable-id="${escapeHtml(module.id)}">Desativar</button>` : ''}`
       : module.type === 'user_script'
@@ -202,7 +204,12 @@ async function loadUserScriptStates() {
 
   await Promise.all(modules.map(async module => {
     try {
-      const response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
+      let response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
+      // An existing activation survives Hub logout and session expiry.
+      // Restore a missing registration only when the loader confirms it is enabled.
+      if (response?.ok && response.enabled === true && response.registered === false) {
+        response = await LoaderBridge.requestForModule(module.id, 'userscripts.setEnabled', { enabled: true });
+      }
       if (!response?.ok) {
         throw new Error(response?.error || 'Não foi possível consultar o estado do módulo.');
       }
@@ -228,7 +235,7 @@ async function loadUserScriptStates() {
 }
 
 async function toggleUserScript(module, enabled) {
-  if (enabled && !(await HubAuth.authorize(module.id))) {
+  if (enabled && userScriptStates.get(module.id)?.enabled !== true && !(await HubAuth.authorize(module.id))) {
     status.textContent = HubAuth.access(module.id).message;
     renderModules();
     return;

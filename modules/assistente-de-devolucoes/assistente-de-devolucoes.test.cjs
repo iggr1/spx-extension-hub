@@ -28,15 +28,23 @@ async function runChecks(source){
   };
  }
  const document={createElement:()=>element(),documentElement:element(),body:element(),addEventListener(){},removeEventListener(){},getElementById:id=>elements.get(id)||null,querySelectorAll:()=>[input],cookie:''};
- const location={origin:'https://spx.shopee.com.br',hash:'#/generalReceiveTaskOps/singleReceiveNew/test'};
+ const location={origin:'https://spx.shopee.com.br',hash:'#/generalReceiveTaskMgt/singleReceiveNew/test'};
  const window={addEventListener(){}};
  const testSource=source.replace('(function initializeReturnsAssistant()', 'return (function initializeReturnsAssistant()')
  .replace(/\n  window\.addEventListener\('hashchange'[\s\S]*$/,
- `\nreturn {recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, loadAutoAdd, handleAddress, loadTaskPages, setCollapsed,
+ `\nreturn {isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, loadAutoAdd, handleAddress, loadTaskPages, setCollapsed,
  state:()=>({version:requestVersion,lastShipmentId,historyBusy}),setVersion:value=>{requestVersion=value;}};
  })();`);
  const fakeTimeout=(callback,ms)=>{timers.set(++timerSequence,{callback,ms});return timerSequence;};
  const app=new Function('document','window','location','fetch','setTimeout','clearTimeout','setInterval','clearInterval','AbortController',testSource)(document,window,location,(...args)=>network(...args),fakeTimeout,id=>timers.delete(id),fakeTimeout,id=>timers.delete(id),class{signal={};abort(){}});
+ assert(app.isTargetRoute(),'Management receiving route supported');
+ location.hash='#/generalReceiveTaskMgt/singleReceiveNew/123?tab=receive';
+ assert(app.isTargetRoute(),'Management task identifiers supported');
+ location.hash='#/generalReceiveTaskOps/singleReceiveNew/test';
+ assert(app.isTargetRoute(),'Operations receiving route preserved');
+ location.hash='#/generalReceiveTaskMgt/other/test';
+ assert(!app.isTargetRoute(),'Unrelated routes ignored');
+ location.hash='#/generalReceiveTaskMgt/singleReceiveNew/test';
  const attempt=(reason,day)=>({ctime:Date.UTC(2026,8,day,15)/1000,on_hold_reason__desc:reason,driver_name:'Driver'});
  const oneDay=[attempt('recipient unavailable for parcel',1),attempt('office closed',1),attempt('recipient unavailable for parcel',1),attempt('insufficient time',2),attempt('insufficient time',3)];
  assert(app.recommendation(oneDay,'').text==='PROCESSAR PARA ENTREGA','Invalid reasons on other days do not trigger SOC');

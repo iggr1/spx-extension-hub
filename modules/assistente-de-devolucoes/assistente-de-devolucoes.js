@@ -1,6 +1,6 @@
 (function initializeReturnsAssistant() {
   const MARKER = 'spxReturnsAssistantV2';
-  const ROUTE_PREFIX = '#/generalReceiveTaskOps/singleReceiveNew/';
+  const ROUTE_PREFIXES = ['#/generalReceiveTaskMgt/singleReceiveNew/', '#/generalReceiveTaskOps/singleReceiveNew/'];
   const MODAL_ID = 'spx-returns-assistant-modal';
   const TOAST_ID = 'spx-returns-assistant-autoadd';
   const STYLE_ID = 'spx-returns-assistant-style';
@@ -58,7 +58,7 @@
   }
 
   function isTargetRoute() {
-    return location.origin === 'https://spx.shopee.com.br' && location.hash.startsWith(ROUTE_PREFIX);
+    return location.origin === 'https://spx.shopee.com.br' && ROUTE_PREFIXES.some(prefix => location.hash.startsWith(prefix));
   }
 
   function normalize(value) {

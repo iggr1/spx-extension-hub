@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-15T13:04:26.125Z",
+  "updatedAt": "2026-09-15T13:05:49.556Z",
   "launcher": {
     "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260915-1"
   },
@@ -87,7 +87,7 @@
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
       "description": "Histórico de tentativas, orientação do pedido, identificação de AutoAdd e tratativa de endereço no recebimento.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "enabled": true,
       "type": "user_script",
       "permissions": [

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPX | Catálogo de Etiquetas</title>
+  <link rel="stylesheet" href="labels.css?v=1.0.0">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">SPX EXTENSION HUB</p>
+        <h1>Catálogo de Etiquetas</h1>
+        <p class="subtitle">Etiquetas operacionais prontas para impressão.</p>
+      </div>
+      <button id="reloadLabels" class="secondary" type="button">Atualizar catálogo</button>
+    </header>
+    <section class="status-panel"><div><strong id="labelStatus">Carregando catálogo...</strong><span id="labelProgress">Selecione uma etiqueta para imprimir.</span></div><div class="progress"><span id="labelBarFill"></span></div></section>
+    <section id="labelList" class="label-grid" aria-live="polite"></section>
+  </main>
+  <div id="labelPrintModal" class="modal-overlay" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="labelModalTitle">
+      <button id="labelModalClose" class="modal-close" type="button" aria-label="Fechar">×</button>
+      <div class="modal-brand"><div class="brand-icon">SPX</div><div><span>Impressão operacional</span><strong>Etiquetas de apoio</strong></div></div>
+      <div class="modal-hero"><div class="modal-preview"><img id="labelModalImage" alt="Prévia da etiqueta"></div><div><h2 id="labelModalTitle">Imprimir etiqueta</h2><p>Selecione o formato da etiqueta e a quantidade.</p><div class="badges"><span>Rotação automática</span><span>Envio direto para impressora</span></div></div></div>
+      <div class="section-title">Tipo de etiqueta</div>
+      <div class="type-grid">
+        <button id="labelTypeSmall" class="type-option selected" type="button" data-type="small"><span class="type-icon">▭</span><strong>Pequena</strong><span>70 mm × 40 mm</span></button>
+        <button id="labelTypeLarge" class="type-option" type="button" data-type="large"><span class="type-icon">▯</span><strong>Grande</strong><span>100 mm × 150 mm</span></button>
+      </div>
+      <div class="qty-box"><strong>Quantidade</strong><div class="qty-controls"><button id="labelQtyMinus" type="button">−</button><input id="labelQtyInput" type="number" min="1" max="999" step="1" value="1"><button id="labelQtyPlus" type="button">+</button></div></div>
+      <div class="modal-actions"><button id="labelModalCancel" class="secondary" type="button">Cancelar</button><button id="labelModalPrint" class="primary" type="button">Imprimir etiqueta</button></div>
+    </section>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="labels.js?v=1.0.0"></script>
+</body>
+</html>

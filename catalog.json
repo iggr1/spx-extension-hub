@@ -1,69 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-16T15:10:00+00:00",
+  "updatedAt": "2026-09-16T15:20:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-4",
-    "permissions": [
-      "cookies",
-      "tabs",
-      "webRequest"
-    ],
-    "hostPermissions": [
-      "https://spx.shopee.com.br/*"
-    ],
-    "capabilities": [
-      "network.fetchBatch",
-      "tabs.open"
-    ],
-    "allowedOpenUrls": [
-      "https://spx.shopee.com.br/*"
-    ],
-    "authProfiles": [
-      {
-        "id": "spx",
-        "requestPatterns": [
-          "https://spx.shopee.com.br/*"
-        ],
-        "tabPatterns": [
-          "https://spx.shopee.com.br/*"
-        ],
-        "captureUrlPatterns": [
-          "https://spx.shopee.com.br/*"
-        ],
-        "captureHeaders": [
-          "x-sap-ri",
-          "x-sap-sec",
-          "x-csrftoken",
-          "device-id",
-          "app"
-        ],
-        "cookieMappings": [
-          {
-            "url": "https://spx.shopee.com.br/",
-            "cookieName": "csrftoken",
-            "headerName": "x-csrftoken"
-          },
-          {
-            "url": "https://spx.shopee.com.br/",
-            "cookieName": "spx-admin-device-id",
-            "headerName": "device-id"
-          }
-        ],
-        "defaultHeaders": {
-          "accept": "application/json, text/plain, */*",
-          "app": "FMS Portal"
-        },
-        "success": {
-          "field": "retcode",
-          "equals": 0
-        },
-        "retryWithoutHeaders": [
-          "x-sap-ri",
-          "x-sap-sec"
-        ]
-      }
-    ]
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-5"
   },
   "modules": [
     {

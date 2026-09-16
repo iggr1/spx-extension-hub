@@ -11,7 +11,7 @@ async function runChecks(source){
  const timers=new Map();let timerSequence=0;
  const input={get value(){return inputValue;},getBoundingClientRect:()=>({width:10,height:10}),focus(){},select(){}};
  function element(){
-  return {dataset:{},attributes:{},children:new Map(),hidden:false,_html:'',
+  return {dataset:{},attributes:{},children:new Map(),hidden:false,_html:'',style:{},
    setAttribute(key,value){this.attributes[key]=value;},
    appendChild(child){if(child.id)elements.set(child.id,child);},
    remove(){elements.delete(this.id);if(this.id==='spx-returns-assistant-modal')elements.delete('spx-returns-assistant-autoadd');},
@@ -32,7 +32,7 @@ async function runChecks(source){
  const window={addEventListener(){}};
  const testSource=source.replace('(function initializeReturnsAssistant()', 'return (function initializeReturnsAssistant()')
  .replace(/\n  window\.addEventListener\('hashchange'[\s\S]*$/,
- `\nreturn {isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, loadAutoAdd, handleAddress, loadTaskPages, setCollapsed,
+ `\nreturn {isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, handleAddress, loadTaskPages, setCollapsed,
  state:()=>({version:requestVersion,lastShipmentId,historyBusy}),setVersion:value=>{requestVersion=value;}};
  })();`);
  const fakeTimeout=(callback,ms)=>{timers.set(++timerSequence,{callback,ms});return timerSequence;};
@@ -88,10 +88,6 @@ async function runChecks(source){
  app.setCollapsed(true);
  await app.loadHistory(inputValue,active);
  assert(elements.get('spx-returns-assistant-modal').hidden,'Collapsed panel stays closed after response');
- let calls=0;
- network=async()=>{calls++;return {ok:true,status:200,json:async()=>({retcode:0,data:{list:[]}})};};
- await app.loadAutoAdd(inputValue,active-1,now);
- assert(calls===0,'Stale AutoAdd stops before network request');
  let pageCalls=0;
  network=async()=>{
   pageCalls++;

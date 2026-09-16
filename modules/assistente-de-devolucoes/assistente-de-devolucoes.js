@@ -2,12 +2,10 @@
   const MARKER = 'spxReturnsAssistantV2';
   const ROUTE_PREFIXES = ['#/generalReceiveTaskMgt/singleReceiveNew/', '#/generalReceiveTaskOps/singleReceiveNew/'];
   const MODAL_ID = 'spx-returns-assistant-modal';
-  const TOAST_ID = 'spx-returns-assistant-autoadd';
   const STYLE_ID = 'spx-returns-assistant-style';
   const ADDRESS_REASON_ID = 'ER40';
   const ADDRESS_REASON_DESC = 'Onhold with Delivery Address Issue';
   const AUTO_ADD_OPERATOR = 'Admin(Polygon Auto Add)';
-  const AUTO_ADD_DELAYS = [0, 1200, 1800, 2500, 3200];
 
   if (document.documentElement.dataset[MARKER] === 'active') return;
   document.documentElement.dataset[MARKER] = 'active';
@@ -89,7 +87,7 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      #${MODAL_ID},#${TOAST_ID}{position:fixed;z-index:999999;font-family:Arial,sans-serif;color:#f8fafc}
+      #${MODAL_ID}{position:fixed;z-index:999999;font-family:Arial,sans-serif;color:#f8fafc}
       #${MODAL_ID}{top:16px;right:16px;width:min(500px,calc(100vw - 32px));max-height:min(82vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #334155;border-radius:14px;background:#0f172a;box-shadow:0 22px 62px #0008}
       #${MODAL_ID} *{box-sizing:border-box}#${MODAL_ID} header{position:relative;padding:13px 44px 11px 14px;border-bottom:1px solid #334155;background:linear-gradient(135deg,#ff600033,#0f172a)}
       #${MODAL_ID} h2{margin:0;font-size:17px}#${MODAL_ID} header small{display:block;margin-top:3px;color:#cbd5e1}#${MODAL_ID} .close{position:absolute;top:7px;right:9px;border:0;background:transparent;color:#fff;font-size:25px;cursor:pointer}
@@ -100,7 +98,6 @@
       #${MODAL_ID} .driver{margin-top:5px;color:#dbeafe;font-size:11px}#${MODAL_ID} time{color:#94a3b8;font-size:10px;white-space:nowrap}#${MODAL_ID} img{width:52px;height:52px;margin-top:7px;border-radius:7px;object-fit:cover;cursor:zoom-in}
       #${MODAL_ID} .decision{margin-top:9px;padding:10px;border:1px solid #22c55e66;border-radius:10px;background:#16a34a22}#${MODAL_ID} .decision.warn{border-color:#fb923c88;background:#9a341e33}#${MODAL_ID} .decision.stop{border-color:#ef444488;background:#7f1d1d44}#${MODAL_ID} .decision.address{border-color:#c084fc88;background:#6b21a844}#${MODAL_ID} .decision strong{font-size:15px}
       #${MODAL_ID} .address-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}#${MODAL_ID} .address-actions button{border:0;border-radius:8px;padding:8px;color:#fff;font-weight:900;cursor:pointer}#${MODAL_ID} .confirm{background:#16a34a}#${MODAL_ID} .cancel{background:#dc2626}#${MODAL_ID} .action-status{grid-column:1/-1;min-height:13px;color:#cbd5e1;font-size:10px}
-      #${TOAST_ID}{top:16px;left:50%;transform:translateX(-50%);padding:10px 14px;border:1px solid #22c55e88;border-radius:11px;background:#052e20;box-shadow:0 12px 36px #0007;font-size:13px;font-weight:900}#${TOAST_ID}.next{border-color:#fb923c99;background:#431407}
       @media(max-width:680px){#${MODAL_ID}{top:8px;right:8px;width:calc(100vw - 16px);max-height:calc(100vh - 16px)}}
 
       #${MODAL_ID}[hidden]{display:none!important}
@@ -113,9 +110,8 @@
       #${MODAL_ID} .message strong{display:block}
       #${MODAL_ID} button:disabled{opacity:.5;cursor:wait}
       #${MODAL_ID} button:focus-visible,#${MODAL_ID} a:focus-visible,#${FAB_ID}:focus-visible{outline:2px solid #ff6000;outline-offset:3px}
-      #${TOAST_ID}.neutral{border-color:#475569;background:#1e293b}
+      @media(max-width:680px){#${MODAL_ID}{max-height:calc(100vh - 130px)}}
       #${FAB_ID}{position:fixed;right:16px;bottom:16px;z-index:999999;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#f8fafc;font:700 12px Arial,sans-serif;cursor:pointer}
-      @media(max-width:680px){#${TOAST_ID}{top:auto;bottom:60px;max-width:calc(100vw - 16px);width:max-content}#${MODAL_ID}{max-height:calc(100vh - 130px)}}
     `;
     document.documentElement.appendChild(style);
   }
@@ -172,24 +168,18 @@
  if(!modal){
   modal=document.createElement('section');modal.id=MODAL_ID;
   modal.setAttribute('aria-label','Assistente de devoluções');
-  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div id="${TOAST_ID}" class="neutral" role="status">Consultando AutoAdd...</div><div class="body"></div>`;
+  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
   modal.onclick=handleModalClick;document.body.appendChild(modal);
   const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
   toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
   toggle.onclick=()=>setCollapsed(!collapsed);document.body.appendChild(toggle);
  }
- if(modal.dataset.shipmentId!==shipmentId)showAutoAddToast({message:'Consultando AutoAdd...'});
  modal.dataset.shipmentId=shipmentId;
  modal.querySelector('.shipment strong').textContent=shipmentId;
  modal.querySelector('.body').innerHTML=html;
  modal.querySelector('[data-refresh]').disabled=historyBusy||pendingActions.has(shipmentId);
  setCollapsed(collapsed);
-}
-
-  function showAutoAddToast(result){
- const toast=document.getElementById(TOAST_ID);if(!toast)return;
- toast.className=result?.nextCycle?'next':result?.route?'':'neutral';
- toast.textContent=result?.message||(result?.nextCycle?'AutoAdd para o próximo ciclo':result?.route?`AutoAdd na rota ${result.route}`:'Nenhum AutoAdd recente identificado.');
+ positionToggle();
 }
 
   function formatDate(timestamp) {
@@ -304,34 +294,6 @@
     return { start, end: start + 86399 };
   }
 
-  async function loadAutoAdd(shipmentId,version,scanTime){
- try{
-  let targetId='';
-  for(const delay of AUTO_ADD_DELAYS){
-   if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
-   if(!isCurrent(version))return;
-   const tracking=await fetchJson(`https://spx.shopee.com.br/api/fleet_order/order/detail/tracking_info?shipment_id=${encodeURIComponent(shipmentId)}`);
-   if(!isCurrent(version))return;
-   if(!Array.isArray(tracking?.data?.tracking_list))throw new Error('Histórico de AutoAdd indisponível.');
-   targetId=autoAddTarget(tracking,scanTime);
-   if(targetId)break;
-  }
-  if(!isCurrent(version))return;
-  if(!targetId)return showAutoAddToast(null);
-  const tasks=await loadTaskPages(todayRange(),version);
-  if(!tasks||!isCurrent(version))return;
-  const task=currentTask(tasks);
-  if(!task)return showAutoAddToast({message:'AutoAdd identificado · nenhuma VT aberta hoje.'});
-  const targetData=await fetchJson(`https://spx.shopee.com.br/api/in-station/lmhub/audit/target/list?target_id=${encodeURIComponent(targetId)}&task_id=${encodeURIComponent(task.validation_task_id)}&page_no=1&count=100`);
-  if(!isCurrent(version))return;
-  const targets=targetData?.data?.list;
-  if(!Array.isArray(targets))throw new Error('Não foi possível conferir a AT na VT.');
-  const target=exactTarget(targets,targetId);
-  if(!target&&targets.length)return showAutoAddToast({message:'AutoAdd identificado · confirme a AT na VT.'});
-  showAutoAddToast(target?(target.binding_entity?{route:String(target.binding_entity)}:{message:'AutoAdd identificado · AT sem rota vinculada.'}):{nextCycle:true});
- }catch(error){if(isCurrent(version))showAutoAddToast({message:'AutoAdd não conferido. '+String(error.message||error)});}
-}
-
   async function handleAddress(button){
  const modal=button.closest('#'+MODAL_ID);
  const actions=button.closest('.address-actions');
@@ -399,7 +361,26 @@
  lastShipmentId='';observedInput='';collapsed=false;removeUi();
 }
 
+  function positionToggle() {
+ const toggle=document.getElementById(FAB_ID);
+ if(!toggle)return;
+ const margin=16,gap=12;
+ let bottom=margin;
+ const toast=document.getElementById('spx-autoadd-toast');
+ if(toast&&!toast.hidden){
+  const rect=toast.getBoundingClientRect();
+  const width=toggle.offsetWidth,height=toggle.offsetHeight;
+  const left=window.innerWidth-margin-width;
+  const top=window.innerHeight-margin-height;
+  if(rect.width>0&&rect.height>0&&rect.right>left-gap&&rect.left<window.innerWidth-margin+gap&&rect.bottom>top-gap&&rect.top<window.innerHeight){
+   bottom=Math.min(window.innerHeight-rect.top+gap,Math.max(margin,window.innerHeight-height-margin));
+  }
+ }
+ toggle.style.bottom=bottom+'px';
+}
+
   function checkRoute(){
+ positionToggle();
  if(!isTargetRoute()){if(monitorId||lastShipmentId)stop();return;}
  if(monitorId)return shipmentChanged();
  monitorId=setInterval(shipmentChanged,300);
@@ -453,17 +434,15 @@
  if(!shipmentId||!isTargetRoute())return;
  clearTimeout(debounceId);
  const version=++requestVersion;
- const scanTime=Math.floor(Date.now()/1000);
  lastShipmentId=shipmentId;historyBusy=true;
  showModal(shipmentId,'<div class="message" role="status"><span class="spinner" aria-hidden="true"></span><strong>Consultando pedido</strong>Buscando histórico de tentativas...</div>');
- showAutoAddToast({message:'Consultando AutoAdd...'});
  debounceId=setTimeout(()=>{
   if(!isCurrent(version))return;
   void loadHistory(shipmentId,version);
-  void loadAutoAdd(shipmentId,version,scanTime);
  },delay);
 }
 
+  window.addEventListener('resize', positionToggle);
   window.addEventListener('hashchange', checkRoute);
   window.addEventListener('popstate', checkRoute);
   window.addEventListener('focus', checkRoute);

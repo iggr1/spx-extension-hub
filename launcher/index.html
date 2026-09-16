@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20260916-5">
+  <link rel="stylesheet" href="launcher.css?v=20260916-6">
+  <style>
+    [data-module-card="assistente-de-devolucoes"] .module-access { display: none !important; }
+  </style>
 </head>
 <body>
   <main class="page-shell">
@@ -16,11 +19,6 @@
       </div>
       <button id="refreshButton" type="button">Atualizar lista</button>
     </header>
-
-    <section class="auth-bar" aria-label="Seu acesso" aria-busy="false">
-      <div class="auth-bar-copy"><strong id="authIdentity">Acesso validado dentro do SPX</strong><p id="authMessage" role="status">O catálogo não consulta a sessão. Cada módulo protegido valida a conta diretamente na página SPX.</p></div>
-      <div class="auth-bar-actions"><button id="authCheck" type="button" hidden>Verificar acesso</button><button id="authAccount" type="button">Abrir SPX</button></div>
-    </section>
 
     <div class="workspace" id="workspace">
       <section class="module-panel">
@@ -63,8 +61,8 @@
   </main>
 
   <script src="../shared/loader-bridge.js"></script>
-  <script src="../shared/spx-access.js?v=20260916-5"></script>
-  <script src="spx-auth.js?v=20260916-5"></script>
-  <script src="launcher.js?v=20260916-5"></script>
+  <script src="../shared/spx-access.js?v=20260916-6"></script>
+  <script src="spx-auth.js?v=20260916-6"></script>
+  <script src="launcher.js?v=20260916-6"></script>
 </body>
 </html>

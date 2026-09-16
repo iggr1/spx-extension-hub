@@ -2,51 +2,39 @@
   'use strict';
   const LOG_PREFIX = '[SPX Hub Auth]';
   const log = (message, data) => data === undefined ? console.log(`${LOG_PREFIX} ${message}`) : console.log(`${LOG_PREFIX} ${message}`, data);
-  const warn = (message, data) => data === undefined ? console.warn(`${LOG_PREFIX} ${message}`) : console.warn(`${LOG_PREFIX} ${message}`, data);
   const errorLog = (message, error) => console.error(`${LOG_PREFIX} ${message}`, error);
 
-  log('Inicializando validação do catálogo.');
+  log('Inicializando validação do catálogo.', { bridgeModuleId: LoaderBridge.moduleId });
 
-  // Discard obsolete Hub sessions. No credentials are persisted by this flow.
   try { localStorage.removeItem('spx-hub-auth-session-v1'); } catch (_) {}
   try { sessionStorage.removeItem('spx-hub-auth-session-v1'); } catch (_) {}
   const state = { allowed: false, loading: true, email: '', message: 'Verificando conta SPX...' };
-  const authModules = ['spx-dock-flow', 'assistente-de-devolucoes'];
   let pending = null;
 
-  async function requestWithSpxSession(operation, payload) {
-    let lastError = null;
-    for (const moduleId of authModules) {
-      try {
-        log('Bridge request iniciado.', {
-          moduleId,
-          operation,
-          profileId: payload?.profileId || null,
-          url: payload?.requests?.[0]?.url || payload?.url || null
-        });
-        const response = await LoaderBridge.requestForModule(moduleId, operation, payload);
-        log('Bridge response recebido.', {
-          moduleId,
-          operation,
-          ok: response?.ok,
-          error: response?.error || null,
-          message: response?.message || null,
-          resultOk: response?.results?.identity?.ok,
-          resultError: response?.results?.identity?.error || null
-        });
-        if (response?.ok === false) throw new Error(response.error || response.message || 'Solicitação recusada pelo loader.');
-        return response;
-      } catch (requestError) {
-        lastError = requestError;
-        errorLog(`Falha no bridge usando ${moduleId}.`, requestError);
-      }
-    }
-    throw lastError || new Error('Sessão SPX indisponível.');
+  async function requestAsLauncher(operation, payload) {
+    log('Bridge request iniciado.', {
+      moduleId: LoaderBridge.moduleId,
+      operation,
+      profileId: payload?.profileId || null,
+      url: payload?.requests?.[0]?.url || payload?.url || null
+    });
+    const response = await LoaderBridge.request(operation, payload);
+    log('Bridge response recebido.', {
+      moduleId: LoaderBridge.moduleId,
+      operation,
+      ok: response?.ok,
+      error: response?.error || null,
+      message: response?.message || null,
+      resultOk: response?.results?.identity?.ok,
+      resultError: response?.results?.identity?.error || null
+    });
+    if (response?.ok === false) throw new Error(response.error || response.message || 'Solicitação recusada pelo loader.');
+    return response;
   }
 
   const checker = createSpxAccessChecker(async url => {
     log('Consultando endpoint SPX.', { url });
-    const response = await requestWithSpxSession('network.fetchBatch', {
+    const response = await requestAsLauncher('network.fetchBatch', {
       profileId: 'spx', requests: [{ key: 'identity', url, method: 'GET' }]
     });
     const item = response?.results?.identity;
@@ -116,7 +104,7 @@
   document.getElementById('authAccount').addEventListener('click', async () => {
     try {
       log('Solicitando abertura do SPX.');
-      const response = await requestWithSpxSession('tabs.open', { url: 'https://spx.shopee.com.br/' });
+      const response = await requestAsLauncher('tabs.open', { url: 'https://spx.shopee.com.br/' });
       if (!response?.ok) throw new Error('Não foi possível abrir o SPX.');
     } catch (openError) {
       errorLog('Falha ao abrir o SPX.', openError);

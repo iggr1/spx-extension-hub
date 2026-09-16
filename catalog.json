@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-16T16:45:00+00:00",
+  "updatedAt": "2026-09-16T16:50:00+00:00",
   "launcher": {
     "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-9"
   },
@@ -192,7 +192,8 @@
       "permissions": [],
       "hostPermissions": [
         "https://printproxy.wms.shopeemobile.com:21317/*"
-      ]
+      ],
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/descricao.pdf"
     }
   ]
 }

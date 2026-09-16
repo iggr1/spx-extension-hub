@@ -57,7 +57,7 @@ async function runChecks(source){
  assert(app.photoUrl({photo_list:['javascript:alert(1)']})==='','Unsafe photo scheme rejected');
  const html=app.renderHistory([{...attempt('office closed',1),driver_name:'<img onerror=alert(1)>',photo_list:['https://example.com/a.jpg']}],{state:''});
  assert(!html.includes('<img onerror=')&&html.includes('&lt;img onerror='),'API text escaped in UI');
- assert(html.indexOf('ORIENTAÇÃO')<html.indexOf('HISTÓRICO'),'Orientation precedes timeline');
+ assert(html.indexOf('class="attempt"')<html.indexOf('class="decision '),'Classic layout shows orientation after attempts');
  assert(app.exactTarget([{target_id:'AT999',binding_entity:'wrong'}],'AT123')===null,'Unrelated AT never used as fallback');
  assert(app.currentTask([{validation_task_id:'closed',end_time:12}])===null,'Closed VT never used as fallback');
  assert(app.currentTask([{validation_task_id:'older',start_time:1},{validation_task_id:'newer',start_time:2}]).validation_task_id==='newer','Newest open VT selected');

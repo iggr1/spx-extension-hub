@@ -85,70 +85,40 @@
   }
 
   function ensureStyle() {
- if(document.getElementById(STYLE_ID))return;
- const style=document.createElement('style');style.id=STYLE_ID;
- style.textContent=`
- #${MODAL_ID},#${FAB_ID}{font:13px/1.5 Inter,Arial,sans-serif;color:#243044;box-sizing:border-box}
- #${MODAL_ID}{position:fixed;z-index:999990;top:20px;right:20px;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 96px);display:flex;flex-direction:column;border:1px solid #e6e8ec;border-radius:20px;background:white;box-shadow:0 16px 60px #19263c26;overflow:hidden;animation:spx-returns-in .2s ease-out}
- #${MODAL_ID}[hidden]{display:none!important}
- #${MODAL_ID} *{box-sizing:border-box}
- #${MODAL_ID} header{display:flex;align-items:center;gap:10px;padding:18px;border-bottom:1px solid #edf0f3;background:linear-gradient(115deg,#fff3eb,#fff)}
- #${MODAL_ID} .brand-icon{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;background:#ee4d2d;color:white;border-radius:12px}
- #${MODAL_ID} .heading{flex:1;min-width:0}#${MODAL_ID} .eyebrow{font-size:10px;font-weight:800;letter-spacing:1px;color:#b54323}
- #${MODAL_ID} h2{font-size:17px;line-height:1.4;margin:0;font-weight:750;color:#1d2939}
- #${MODAL_ID} .icon,#${FAB_ID} svg{width:18px;height:18px;vertical-align:middle;flex-shrink:0}
- #${MODAL_ID} button{font:inherit;cursor:pointer}
- #${MODAL_ID} .icon-button{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;border:1px solid #e4e7ec;background:white;color:#475467;border-radius:9px;padding:0}
- #${MODAL_ID} button:hover{filter:brightness(.96)}
- #${MODAL_ID} button:focus-visible,#${FAB_ID}:focus-visible,#${MODAL_ID} a:focus-visible{outline:3px solid #ff9f66;outline-offset:3px}
- #${MODAL_ID} button:disabled{opacity:.55;cursor:wait}
- #${MODAL_ID} .shipment{padding:10px 18px;display:flex;justify-content:space-between;gap:8px;align-items:center;background:#fafbfc;border-bottom:1px solid #edf0f3}
- #${MODAL_ID} .shipment span{font-size:11px;color:#667085}
- #${MODAL_ID} .shipment strong{font-size:12px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
- #${MODAL_ID} .body{overflow:auto;overscroll-behavior:contain;padding:16px}
- #${MODAL_ID} .message{text-align:center;padding:26px 12px;color:#667085}
- #${MODAL_ID} .message strong{display:block;color:#344054;margin:10px 0 5px}
- #${MODAL_ID} .error{color:#b42318}
- #${MODAL_ID} .spinner{display:inline-block;width:24px;height:24px;border:3px solid #ffe6d5;border-top-color:#ee4d2d;border-radius:50%;animation:spx-returns-spin .8s linear infinite}
- #${MODAL_ID} .decision{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid #abefc6;border-radius:13px;background:#ecfdf3;color:#067647;margin-bottom:14px}
- #${MODAL_ID} .decision.warn{background:#fffaeb;border-color:#fedf89;color:#93370d}
- #${MODAL_ID} .decision.stop{background:#fef3f2;border-color:#fecdca;color:#b42318}
- #${MODAL_ID} .decision.address{background:#f4f3ff;border-color:#d9d6fe;color:#6941c6}
- #${MODAL_ID} .decision small{display:block;font-size:10px;letter-spacing:.7px;margin-bottom:3px}
- #${MODAL_ID} .decision strong{font-size:13px}
- #${MODAL_ID} .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
- #${MODAL_ID} .stat{padding:10px;background:#f8fafc;border:1px solid #edf0f3;border-radius:11px}
- #${MODAL_ID} .stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.3;color:#1d2939}
- #${MODAL_ID} .stat span{font-size:10px;color:#667085}
- #${MODAL_ID} .section-label{display:flex;justify-content:space-between;color:#667085;font-size:10px;font-weight:700;letter-spacing:.7px;margin-bottom:10px}
- #${MODAL_ID} .attempt{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;padding:12px 0;border-bottom:1px solid #edf0f3}
- #${MODAL_ID} .attempt:last-child{border-bottom:0}
- #${MODAL_ID} .index{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#f2f4f7;color:#667085;font-size:11px;font-weight:700}
- #${MODAL_ID} .attempt:first-child .index{background:#fff0e7;color:#c63d1d}
- #${MODAL_ID} .reason{display:inline-block;padding:3px 8px;border-radius:6px;background:#eff4ff;color:#3538cd;font-size:11px;font-weight:650}
- #${MODAL_ID} .reason.valid{background:#ecfdf3;color:#067647}#${MODAL_ID} .reason.final{background:#fef3f2;color:#b42318}
- #${MODAL_ID} .driver{margin-top:7px;color:#475467;font-size:11px;overflow-wrap:anywhere}
- #${MODAL_ID} time{display:block;font-size:10px;color:#667085;margin-top:4px}
- #${MODAL_ID} .photo-link{display:inline-flex;align-items:center;gap:8px;font-size:11px;text-decoration:none;color:#b54323;margin-top:8px}
- #${MODAL_ID} img{width:42px;height:42px;border-radius:8px;object-fit:cover;background:#f2f4f7}
- #${MODAL_ID} .address-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
- #${MODAL_ID} .address-actions button{border:1px solid #d0d5dd;border-radius:9px;padding:9px;font-size:11px;font-weight:700}
- #${MODAL_ID} .confirm{background:#ee4d2d!important;color:#fff;border-color:#ee4d2d!important}
- #${MODAL_ID} .cancel{background:#fff;color:#b42318}
- #${MODAL_ID} .action-status{grid-column:1/-1;font-size:11px;overflow-wrap:anywhere}
- #${MODAL_ID} footer{padding:11px 18px;border-top:1px solid #edf0f3;color:#667085;font-size:10px}
- #${MODAL_ID} footer a{color:inherit;text-decoration:none}
- #${TOAST_ID}{margin:10px 16px 0;border:1px solid #abefc6;background:#ecfdf3;color:#067647;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:650}
- #${TOAST_ID}.next{background:#fffaeb;color:#93370d;border-color:#fedf89}
- #${TOAST_ID}.neutral{background:#f8fafc;color:#667085;border-color:#e4e7ec;font-weight:400}
- #${FAB_ID}{position:fixed;right:20px;bottom:20px;z-index:999991;display:flex;align-items:center;gap:8px;padding:11px 16px;border:1px solid #edcab9;border-radius:999px;background:#fff;color:#b54323;box-shadow:0 5px 20px #19263c20;font-weight:700;cursor:pointer}
- @keyframes spx-returns-spin{to{transform:rotate(360deg)}}
- @keyframes spx-returns-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
- @media(max-width:600px){#${MODAL_ID}{right:8px;top:8px;width:calc(100vw - 16px);max-height:calc(100dvh - 78px);border-radius:15px}#${FAB_ID}{right:10px;bottom:12px}}
- @media(prefers-reduced-motion:reduce){#${MODAL_ID},#${MODAL_ID} .spinner{animation:none}}
- `;
- document.documentElement.appendChild(style);
-}
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+      #${MODAL_ID},#${TOAST_ID}{position:fixed;z-index:999999;font-family:Arial,sans-serif;color:#f8fafc}
+      #${MODAL_ID}{top:16px;right:16px;width:min(500px,calc(100vw - 32px));max-height:min(82vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #334155;border-radius:14px;background:#0f172a;box-shadow:0 22px 62px #0008}
+      #${MODAL_ID} *{box-sizing:border-box}#${MODAL_ID} header{position:relative;padding:13px 44px 11px 14px;border-bottom:1px solid #334155;background:linear-gradient(135deg,#ff600033,#0f172a)}
+      #${MODAL_ID} h2{margin:0;font-size:17px}#${MODAL_ID} header small{display:block;margin-top:3px;color:#cbd5e1}#${MODAL_ID} .close{position:absolute;top:7px;right:9px;border:0;background:transparent;color:#fff;font-size:25px;cursor:pointer}
+      #${MODAL_ID} .body{overflow:auto;padding:10px}#${MODAL_ID} .message{padding:22px;text-align:center;color:#cbd5e1}#${MODAL_ID} .error{color:#fca5a5}
+      #${MODAL_ID} .attempt{display:grid;grid-template-columns:27px minmax(0,1fr) auto;gap:9px;margin-bottom:7px;padding:9px;border:1px solid #334155;border-radius:10px;background:#ffffff08}
+      #${MODAL_ID} .index{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#334155;font-size:11px;font-weight:900}
+      #${MODAL_ID} .reason{display:inline-block;padding:3px 7px;border-radius:999px;background:#2563eb33;color:#bfdbfe;font-size:11px;font-weight:800}#${MODAL_ID} .reason.valid{background:#16a34a33;color:#bbf7d0}#${MODAL_ID} .reason.final{background:#dc262633;color:#fecaca}
+      #${MODAL_ID} .driver{margin-top:5px;color:#dbeafe;font-size:11px}#${MODAL_ID} time{color:#94a3b8;font-size:10px;white-space:nowrap}#${MODAL_ID} img{width:52px;height:52px;margin-top:7px;border-radius:7px;object-fit:cover;cursor:zoom-in}
+      #${MODAL_ID} .decision{margin-top:9px;padding:10px;border:1px solid #22c55e66;border-radius:10px;background:#16a34a22}#${MODAL_ID} .decision.warn{border-color:#fb923c88;background:#9a341e33}#${MODAL_ID} .decision.stop{border-color:#ef444488;background:#7f1d1d44}#${MODAL_ID} .decision.address{border-color:#c084fc88;background:#6b21a844}#${MODAL_ID} .decision strong{font-size:15px}
+      #${MODAL_ID} .address-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}#${MODAL_ID} .address-actions button{border:0;border-radius:8px;padding:8px;color:#fff;font-weight:900;cursor:pointer}#${MODAL_ID} .confirm{background:#16a34a}#${MODAL_ID} .cancel{background:#dc2626}#${MODAL_ID} .action-status{grid-column:1/-1;min-height:13px;color:#cbd5e1;font-size:10px}
+      #${TOAST_ID}{top:16px;left:50%;transform:translateX(-50%);padding:10px 14px;border:1px solid #22c55e88;border-radius:11px;background:#052e20;box-shadow:0 12px 36px #0007;font-size:13px;font-weight:900}#${TOAST_ID}.next{border-color:#fb923c99;background:#431407}
+      @media(max-width:680px){#${MODAL_ID}{top:8px;right:8px;width:calc(100vw - 16px);max-height:calc(100vh - 16px)}}
+
+      #${MODAL_ID}[hidden]{display:none!important}
+      #${MODAL_ID} header{padding-right:80px}
+      #${MODAL_ID} .header-actions{position:absolute;right:9px;top:9px;display:flex;gap:6px}
+      #${MODAL_ID} .icon-button{display:grid;place-items:center;width:28px;height:28px;padding:4px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#fff;cursor:pointer}
+      #${MODAL_ID} .icon,#${FAB_ID} svg{width:18px;height:18px}
+      #${MODAL_ID} .shipment{margin-top:3px;color:#cbd5e1;font-size:12px}
+      #${MODAL_ID} .photo-link{display:block;width:fit-content}
+      #${MODAL_ID} .message strong{display:block}
+      #${MODAL_ID} button:disabled{opacity:.5;cursor:wait}
+      #${MODAL_ID} button:focus-visible,#${MODAL_ID} a:focus-visible,#${FAB_ID}:focus-visible{outline:2px solid #ff6000;outline-offset:3px}
+      #${TOAST_ID}.neutral{border-color:#475569;background:#1e293b}
+      #${FAB_ID}{position:fixed;right:16px;bottom:16px;z-index:999999;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#f8fafc;font:700 12px Arial,sans-serif;cursor:pointer}
+      @media(max-width:680px){#${TOAST_ID}{top:auto;bottom:60px;max-width:calc(100vw - 16px);width:max-content}#${MODAL_ID}{max-height:calc(100vh - 130px)}}
+    `;
+    document.documentElement.appendChild(style);
+  }
 
   async function fetchJson(url,options={}){
  const controller=new AbortController();
@@ -202,7 +172,7 @@
  if(!modal){
   modal=document.createElement('section');modal.id=MODAL_ID;
   modal.setAttribute('aria-label','Assistente de devoluções');
-  modal.innerHTML=`<header><span class="brand-icon">${icon('package')}</span><div class="heading"><span class="eyebrow">SPX · RECEBIMENTO</span><h2>Assistente de devoluções</h2></div><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></header><div class="shipment"><span>Pedido</span><strong></strong></div><div id="${TOAST_ID}" class="neutral" role="status">Consultando AutoAdd...</div><div class="body"></div><footer><a href="mailto:igor.camara@shopee.com">developed by igor.camara</a></footer>`;
+  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div id="${TOAST_ID}" class="neutral" role="status">Consultando AutoAdd...</div><div class="body"></div>`;
   modal.onclick=handleModalClick;document.body.appendChild(modal);
   const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
   toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
@@ -270,21 +240,20 @@
     return { state: '' };
   }
 
-  function renderHistory(attempts,address){
- if(!attempts.length)return '<div class="message">'+icon('package')+'<strong>Nenhuma tentativa encontrada</strong>O pedido não possui histórico de tentativas On Hold.</div>';
- const ordered=attempts.slice().sort((a,b)=>Number(a.ctime)-Number(b.ctime));
- const valid=ordered.filter(item=>validReasons.has(normalize(translateReason(item.on_hold_reason__desc)))).length;
- const decision=recommendation(ordered,address?.state);
- const cards=ordered.map((attempt,index)=>{
-  const reason=translateReason(attempt.on_hold_reason__desc);
-  const normalized=normalize(reason);
-  const className=finalReasons.has(normalized)?'final':validReasons.has(normalized)?'valid':'';
-  const photo=photoUrl(attempt);
-  const showAddressActions=index===ordered.length-1&&normalized==='endereco nao encontrado'&&address?.state==='pending';
-  return `<article class="attempt"><span class="index">${index+1}</span><div><span class="reason ${className}">${escapeHtml(reason)}</span><div class="driver">${escapeHtml(attempt.driver_name||'Motorista não informado')}</div><time>${escapeHtml(formatDate(attempt.ctime))}</time>${photo?`<a class="photo-link" href="${escapeHtml(photo)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(photo)}" loading="lazy" referrerpolicy="no-referrer" alt="Foto da tentativa">Ver foto</a>`:''}${showAddressActions?`<div class="address-actions" data-reason-id="${escapeHtml(address.reasonId)}" data-local-lang="${escapeHtml(address.localLang)}"><button type="button" class="confirm" data-address-action="confirm">Confirmar motivo</button><button type="button" class="cancel" data-address-action="cancel">Cancelar motivo</button><div class="action-status" role="status"></div></div>`:''}</div></article>`;
- }).reverse().join('');
- return `<div class="decision ${decision.className}" role="status">${icon(decision.className?'alert':'check')}<div><small>ORIENTAÇÃO DO PEDIDO</small><strong>${escapeHtml(decision.text)}</strong></div></div><div class="stats"><div class="stat"><b>${ordered.length}</b><span>Tentativas</span></div><div class="stat"><b>${valid}</b><span>Válidas</span></div><div class="stat"><b>${validAttemptDays(ordered)}</b><span>Dias válidos</span></div></div><div class="section-label"><span>HISTÓRICO DE TENTATIVAS</span><span>MAIS RECENTES</span></div>${cards}`;
-}
+  function renderHistory(attempts, address) {
+    if (!attempts.length) return '<div class="message">Nenhuma tentativa On Hold encontrada.</div>';
+    const ordered = attempts.slice().sort((a, b) => Number(a.ctime) - Number(b.ctime));
+    const cards = ordered.map((attempt, index) => {
+      const reason = translateReason(attempt.on_hold_reason__desc);
+      const normalized = normalize(reason);
+      const className = finalReasons.has(normalized) ? 'final' : validReasons.has(normalized) ? 'valid' : '';
+      const photo = photoUrl(attempt);
+      const showAddressActions = index === ordered.length - 1 && normalized === 'endereco nao encontrado' && address?.state === 'pending';
+      return `<article class="attempt"><span class="index">${index + 1}</span><div><span class="reason ${className}">${escapeHtml(reason)}</span><div class="driver"><b>Motorista:</b> ${escapeHtml(attempt.driver_name || '-')}</div>${photo ? `<a class="photo-link" href="${escapeHtml(photo)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(photo)}" loading="lazy" referrerpolicy="no-referrer" alt="Foto da tentativa"></a>` : ''}${showAddressActions ? `<div class="address-actions" data-reason-id="${escapeHtml(address.reasonId)}" data-local-lang="${escapeHtml(address.localLang)}"><button class="confirm" data-address-action="confirm">Confirmar</button><button class="cancel" data-address-action="cancel">Cancelar</button><div class="action-status"></div></div>` : ''}</div><time>${escapeHtml(formatDate(attempt.ctime))}</time></article>`;
+    }).join('');
+    const decision = recommendation(ordered, address?.state);
+    return `${cards}<div class="decision ${decision.className}"><strong>${escapeHtml(decision.text)}</strong></div>`;
+  }
 
   async function loadHistory(shipmentId,version){
  try{

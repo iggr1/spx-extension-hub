@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-16T15:30:00+00:00",
+  "updatedAt": "2026-09-16T15:45:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-6"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-7"
   },
   "modules": [
     {
@@ -87,7 +87,7 @@
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
       "description": "Histórico de tentativas, orientação do pedido, identificação de AutoAdd e tratativa de endereço no recebimento.",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "enabled": true,
       "type": "user_script",
       "permissions": [
@@ -111,6 +111,17 @@
         {
           "id": "recebimento-historico",
           "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/assistente-de-devolucoes.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
+        },
+        {
+          "id": "recebimento-access-notice",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/access-notice.js",
           "matches": [
             "https://spx.shopee.com.br/*"
           ],

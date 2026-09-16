@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-16T12:49:26.037Z",
+  "updatedAt": "2026-09-16T14:29:43.702697+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260915-2"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-1"
   },
   "modules": [
     {
@@ -87,20 +87,25 @@
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
       "description": "Histórico de tentativas, orientação do pedido, identificação de AutoAdd e tratativa de endereço no recebimento.",
-      "version": "2.0.4",
+      "version": "3.0.0",
       "enabled": true,
       "type": "user_script",
       "permissions": [
         "storage",
         "tabs",
-        "userScripts"
+        "userScripts",
+        "cookies",
+        "scripting",
+        "webRequest"
       ],
       "hostPermissions": [
         "https://spx.shopee.com.br/*"
       ],
       "capabilities": [
         "userscripts.status",
-        "userscripts.setEnabled"
+        "userscripts.setEnabled",
+        "network.fetchBatch",
+        "tabs.open"
       ],
       "userScripts": [
         {
@@ -115,7 +120,55 @@
           "allFrames": false
         }
       ],
-      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf"
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf",
+      "authProfiles": [
+        {
+          "id": "spx",
+          "requestPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "tabPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "captureUrlPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "captureHeaders": [
+            "x-sap-ri",
+            "x-sap-sec",
+            "x-csrftoken",
+            "device-id",
+            "app"
+          ],
+          "cookieMappings": [
+            {
+              "url": "https://spx.shopee.com.br/",
+              "cookieName": "csrftoken",
+              "headerName": "x-csrftoken"
+            },
+            {
+              "url": "https://spx.shopee.com.br/",
+              "cookieName": "spx-admin-device-id",
+              "headerName": "device-id"
+            }
+          ],
+          "defaultHeaders": {
+            "accept": "application/json, text/plain, */*",
+            "app": "FMS Portal"
+          },
+          "success": {
+            "field": "retcode",
+            "equals": 0
+          },
+          "retryWithoutHeaders": [
+            "x-sap-ri",
+            "x-sap-sec"
+          ]
+        }
+      ],
+      "allowedOpenUrls": [
+        "https://spx.shopee.com.br/*"
+      ]
     }
   ]
 }

@@ -79,3 +79,11 @@ Exemplo:
 ```
 
 Quando o campo não estiver presente, o botão **Descrição** ficará desabilitado. O PDF é aberto dentro do launcher, sem criar uma nova aba.
+
+## Acesso dos módulos
+
+O Assistente de devoluções usa a sessão existente do SPX e exige e-mail válido `@shopee.com` mais os aliases `RESOLVE_EO` e `CANCEL_EO_REASON`. A regra é verificada no catálogo e durante a execução na página SPX. O Dock Flow continua livre no catálogo.
+
+A autenticação anterior por código de e-mail/Sheets/Apps Script foi removida. O novo catálogo descarta as antigas sessões locais e não acessa mais o webapp. Implantações externas antigas podem ser desativadas pelo proprietário no Apps Script; removê-las do repositório não exclui a implantação nem a planilha.
+
+A política está em `shared/spx-access.js` e é incorporada ao user script independente. Ao editá-la, sincronize a cópia incorporada; o teste verifica a igualdade. O bridge e o código do loader não foram alterados.

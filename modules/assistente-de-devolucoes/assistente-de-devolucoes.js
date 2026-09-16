@@ -55,8 +55,102 @@
   const pendingActions = new Set();
   const FAB_ID = 'spx-returns-assistant-toggle';
 
+// Shared by the catalog and embedded in the standalone user script.
+function evaluateSpxAccess(basic, permissions) {
+  const denied = { allowed: false, email: '', message: 'Acesso restrito: use uma conta @shopee.com com permissão para resolver e cancelar ocorrências.' };
+  if (basic?.retcode !== 0 || permissions?.retcode !== 0) return denied;
+  const email = typeof basic.data?.email === 'string' ? basic.data.email.trim().toLowerCase() : '';
+  const local = email.split('@')[0];
+  if (!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@shopee\.com$/.test(email) || local.startsWith('.') || local.endsWith('.') || local.includes('..')) return denied;
+  if (!Number.isSafeInteger(basic.data?.id) || basic.data.id <= 0 || !Array.isArray(permissions.data?.perm_list)) return denied;
+  const aliases = new Set(permissions.data.perm_list.flatMap(item => Array.isArray(item?.perm_alias) ? item.perm_alias : []));
+  if (!aliases.has('RESOLVE_EO') || !aliases.has('CANCEL_EO_REASON')) return { ...denied, email };
+  return { allowed: true, email, message: 'Acesso autorizado pela conta SPX.' };
+}
+
+function createSpxAccessChecker(read, fingerprint = () => '') {
+  const root = 'https://spx.shopee.com.br/api/admin/basicserver/current_user/';
+  let pending = null;
+  let checkedAt = 0;
+  let identity = '';
+  let result = { allowed: false, email: '', message: 'Verificando conta SPX...' };
+  async function check(force = false) {
+    if (pending) return pending;
+    const currentIdentity = fingerprint();
+    if (!force && checkedAt && currentIdentity === identity && Date.now() - checkedAt < 30000) return result;
+    pending = (async () => {
+      try {
+        const basic = await read(root + 'basic_info');
+        const permissions = await read(root + 'user_permission_info');
+        const confirmation = await read(root + 'basic_info');
+        if (confirmation?.retcode !== 0 || basic?.data?.id !== confirmation?.data?.id || basic?.data?.email !== confirmation?.data?.email || currentIdentity !== fingerprint()) {
+          throw new Error('A conta SPX mudou. Verifique o acesso novamente.');
+        }
+        result = evaluateSpxAccess(basic, permissions);
+      } catch (_) {
+        result = { allowed: false, email: '', message: 'Não foi possível validar o acesso. Entre no SPX e tente novamente.' };
+      }
+      identity = currentIdentity;
+      checkedAt = Date.now();
+      return result;
+    })();
+    try { return await pending; } finally { pending = null; }
+  }
+  return { check };
+}
+
+
+  const ACCESS_NOTICE_ID = 'spx-returns-access-notice';
+  let runtimeAccess = { allowed: false };
+  let runtimeIdentity = '';
+  let runtimeCheckedAt = 0;
+  let runtimePending = null;
+  function sessionFingerprint() {
+    return ['spx_uid', 'fms_user_id', 'spx_uk', 'fms_user_skey'].map(cookie).join('|');
+  }
+  const accessChecker = createSpxAccessChecker(url => fetchJson(url), sessionFingerprint);
+  function hasRuntimeAccess() {
+    return runtimeAccess.allowed && runtimeIdentity === sessionFingerprint() && Date.now() - runtimeCheckedAt < 60000;
+  }
+  function showAccessNotice(message) {
+    let notice = document.getElementById(ACCESS_NOTICE_ID);
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = ACCESS_NOTICE_ID;
+      notice.setAttribute('role', 'status');
+      notice.style.cssText = 'position:fixed;right:16px;top:16px;z-index:999999;max-width:360px;padding:14px;border:1px solid #fb923c;border-radius:10px;background:#0f172a;color:#f8fafc;font:13px/1.5 Arial,sans-serif';
+      document.body.appendChild(notice);
+    }
+    notice.textContent = message;
+  }
+  function verifyRuntimeAccess(force = false) {
+    if (runtimePending) return runtimePending;
+    if (!force && hasRuntimeAccess()) return Promise.resolve(true);
+    const identity = sessionFingerprint();
+    // Invalidate pending operational responses before checking a different account.
+    if (identity !== runtimeIdentity || !runtimeAccess.allowed) {
+      runtimeAccess = { allowed: false };
+      stop();
+      if (isTargetRoute()) showAccessNotice('Verificando acesso do assistente pela conta SPX...');
+    }
+    runtimePending = accessChecker.check(force).then(result => {
+      runtimeAccess = result;
+      runtimeIdentity = identity;
+      runtimeCheckedAt = Date.now();
+      if (!isTargetRoute()) return false;
+      if (!hasRuntimeAccess()) {
+        stop();
+        showAccessNotice(result.message);
+        return false;
+      }
+      document.getElementById(ACCESS_NOTICE_ID)?.remove();
+      return true;
+    }).finally(() => { runtimePending = null; });
+    return runtimePending;
+  }
+
   function isCurrent(version) {
-    return version === requestVersion && isTargetRoute();
+    return version === requestVersion && isTargetRoute() && hasRuntimeAccess();
   }
 
   function isTargetRoute() {
@@ -521,6 +615,8 @@
   }
 
   async function handleAddress(button){
+ const accessVersion=requestVersion;
+ if(!(await verifyRuntimeAccess(true))||accessVersion!==requestVersion)return;
  const modal=button.closest('#'+MODAL_ID);
  const actions=button.closest('.address-actions');
  const status=actions?.querySelector('.action-status');
@@ -564,7 +660,7 @@
 }
 
   function shipmentChanged(event){
- if(!isTargetRoute())return;
+ if(!isTargetRoute()||!hasRuntimeAccess())return;
  const value=readShipmentId().toUpperCase();
  if(event?.type==='keydown'&&(event.key!=='Enter'||event.target!==findInput()))return;
  const repeatedScan=event?.type==='keydown'&&!historyBusy;
@@ -607,7 +703,12 @@
 
   function checkRoute(){
  positionToggle();
- if(!isTargetRoute()){if(monitorId||lastShipmentId)stop();return;}
+ if(!isTargetRoute()){if(monitorId||lastShipmentId)stop();document.getElementById(ACCESS_NOTICE_ID)?.remove();return;}
+ if(hasRuntimeAccess() && !runtimePending && Date.now()-runtimeCheckedAt>=30000)void verifyRuntimeAccess(true);
+ if(!hasRuntimeAccess()){
+  if(!runtimePending && (runtimeIdentity!==sessionFingerprint() || Date.now()-runtimeCheckedAt>=30000))void verifyRuntimeAccess();
+  return;
+ }
  if(monitorId)return shipmentChanged();
  monitorId=setInterval(shipmentChanged,300);
  document.addEventListener('input',shipmentChanged,true);
@@ -657,7 +758,7 @@
   function exactTarget(targets,targetId){return targets.find(item=>String(item?.target_id||'').toUpperCase()===targetId.toUpperCase())||null;}
 
   function startShipment(shipmentId,delay=1500){
- if(!shipmentId||!isTargetRoute())return;
+ if(!shipmentId||!isTargetRoute()||!hasRuntimeAccess())return;
  clearTimeout(debounceId);
  const version=++requestVersion;
  const scanUnix=Math.floor(Date.now()/1000);
@@ -674,8 +775,8 @@
   window.addEventListener('resize', positionToggle);
   window.addEventListener('hashchange', checkRoute);
   window.addEventListener('popstate', checkRoute);
-  window.addEventListener('focus', checkRoute);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkRoute(); });
+  window.addEventListener('focus', () => { if(isTargetRoute())void verifyRuntimeAccess(true).then(checkRoute); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && isTargetRoute()) void verifyRuntimeAccess(true).then(checkRoute); });
   setInterval(checkRoute, 700);
   checkRoute();
 })();

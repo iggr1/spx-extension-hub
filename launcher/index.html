@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20260915-2">
+  <link rel="stylesheet" href="launcher.css?v=20260916-1">
 </head>
 <body>
   <main class="page-shell">
@@ -19,7 +19,7 @@
 
     <section class="auth-bar is-loading" aria-label="Seu acesso" aria-busy="true" inert>
       <div class="auth-bar-copy"><strong id="authIdentity">Verificando acesso...</strong><p id="authMessage" role="status"></p></div>
-      <div class="auth-bar-actions"><button id="authCheck" type="button" hidden>Atualizar acesso</button><button id="authAccount" type="button">Entrar</button></div>
+      <div class="auth-bar-actions"><button id="authCheck" type="button">Verificar acesso</button><button id="authAccount" type="button">Abrir SPX</button></div>
     </section>
 
     <div class="workspace" id="workspace">
@@ -62,23 +62,9 @@
     </footer>
   </main>
 
-  <dialog id="authDialog" class="auth-dialog" aria-labelledby="authTitle" aria-describedby="authIntro">
-    <div class="auth-dialog-header"><div><span class="eyebrow">SPX EXTENSION HUB</span><h2 id="authTitle">Entrar com e-mail</h2></div><button id="authClose" class="auth-close" type="button" aria-label="Fechar">×</button></div>
-    <p id="authIntro">Receba um código para confirmar seu e-mail. Depois, o responsável poderá liberar os módulos para você.</p>
-    <form id="authForm">
-      <label for="authName">Nome <span>(opcional)</span></label>
-      <input id="authName" type="text" autocomplete="name" maxlength="100">
-      <label for="authEmail">E-mail</label>
-      <input id="authEmail" type="email" autocomplete="email" maxlength="254" required>
-      <div id="authCodeGroup" hidden><label for="authCode">Código recebido</label><input id="authCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6"></div>
-      <p id="authFeedback" role="status"></p>
-      <button id="authSubmit" type="submit">Enviar código</button>
-      <button id="authResend" class="auth-secondary" type="button" hidden>Reenviar código</button>
-    </form>
-  </dialog>
   <script src="../shared/loader-bridge.js"></script>
-  <script src="auth-config.js?v=20260914-2"></script>
-  <script src="auth.js?v=20260915-2"></script>
-  <script src="launcher.js?v=20260915-2"></script>
+  <script src="../shared/spx-access.js?v=20260916-1"></script>
+  <script src="spx-auth.js?v=20260916-1"></script>
+  <script src="launcher.js?v=20260916-1"></script>
 </body>
 </html>

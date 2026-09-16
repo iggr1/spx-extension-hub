@@ -7,6 +7,8 @@ async function runChecks(source){
  function assert(value,label){if(!value)throw new Error(label);results.push(label);}
  const elements=new Map();
  let inputValue='';
+ let accessEmail='person@shopee.com';
+ let accessAliases=['RESOLVE_EO','CANCEL_EO_REASON'];
  let network=async()=>({ok:true,status:200,json:async()=>({retcode:0,data:{}})});
  const timers=new Map();let timerSequence=0;
  const input={get value(){return inputValue;},getBoundingClientRect:()=>({width:10,height:10}),focus(){},select(){}};
@@ -32,11 +34,11 @@ async function runChecks(source){
  const window={addEventListener(){}};
  const testSource=source.replace('(function initializeReturnsAssistant()', 'return (function initializeReturnsAssistant()')
  .replace(/\n  window\.addEventListener\('hashchange'[\s\S]*$/,
- `\nreturn {findPolygonAutoAddTargetId, selectAuditTask, isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, handleAddress, loadTaskPages, setCollapsed,
+ `\nruntimeAccess={allowed:true};runtimeIdentity=sessionFingerprint();runtimeCheckedAt=Date.now();\nreturn {verifyRuntimeAccess, hasRuntimeAccess, findPolygonAutoAddTargetId, selectAuditTask, isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, handleAddress, loadTaskPages, setCollapsed,
  state:()=>({version:requestVersion,lastShipmentId,historyBusy}),setVersion:value=>{requestVersion=value;}};
  })();`);
  const fakeTimeout=(callback,ms)=>{timers.set(++timerSequence,{callback,ms});return timerSequence;};
- const app=new Function('document','window','location','fetch','setTimeout','clearTimeout','setInterval','clearInterval','AbortController',testSource)(document,window,location,(...args)=>network(...args),fakeTimeout,id=>timers.delete(id),fakeTimeout,id=>timers.delete(id),class{signal={};abort(){}});
+ const app=new Function('document','window','location','fetch','setTimeout','clearTimeout','setInterval','clearInterval','AbortController',testSource)(document,window,location,(...args)=>String(args[0]).includes('/current_user/') ? Promise.resolve({ok:true,status:200,json:async()=>String(args[0]).endsWith('basic_info')?{retcode:0,data:{id:123,email:accessEmail}}:{retcode:0,data:{perm_list:[{perm_alias:accessAliases}]}}}) : network(...args),fakeTimeout,id=>timers.delete(id),fakeTimeout,id=>timers.delete(id),class{signal={};abort(){}});
  assert(app.isTargetRoute(),'Management receiving route supported');
  location.hash='#/generalReceiveTaskMgt/singleReceiveNew/123?tab=receive';
  assert(app.isTargetRoute(),'Management task identifiers supported');
@@ -113,6 +115,13 @@ async function runChecks(source){
  inputValue='BR1234567890126';app.shipmentChanged();
  resolveWrite({ok:true,status:200,json:async()=>({retcode:0})});await write;
  assert(strong.textContent===undefined,'Old action completion cannot overwrite new shipment');
+ accessEmail='[Ops123]Operator';
+ assert(!(await app.verifyRuntimeAccess(true)),'Runtime denies an OPS account after activation');
+ assert(!app.hasRuntimeAccess()&&!elements.has('spx-returns-assistant-modal'),'Account denial removes the operational panel');
+ accessEmail='person@shopee.com';accessAliases=['RESOLVE_EO'];
+ assert(!(await app.verifyRuntimeAccess(true)),'Runtime requires both permission aliases');
+ accessAliases=['RESOLVE_EO','CANCEL_EO_REASON'];
+ assert(await app.verifyRuntimeAccess(true),'Runtime resumes for an eligible SPX account');
  new Function(source);
  return results;
 }

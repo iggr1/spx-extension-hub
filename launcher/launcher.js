@@ -61,7 +61,7 @@ async function loadModules(forceRefresh) {
       closeDescription();
     }
 
-    await loadUserScriptStates();
+    await Promise.all([loadUserScriptStates(), HubAuth.refresh()]);
   } catch (error) {
     status.textContent = error.message || String(error);
     grid.innerHTML = '<div class="empty">Não foi possível carregar a lista de módulos.</div>';
@@ -78,9 +78,7 @@ function renderModules() {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
     const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive);
-    const permission = module.type === 'user_script' && userScriptStates.get(module.id)?.enabled
-      ? { allowed: true, message: 'Ativado neste navegador · funciona sem login no Hub.' }
-      : HubAuth.access(module.id);
+    const permission = HubAuth.access(module.id);
     const actions = !permission.allowed
       ? `${descriptionAction}<button type="button" disabled title="${escapeHtml(permission.message)}">Bloqueado</button><button type="button" data-access-id="${escapeHtml(module.id)}">Verificar acesso</button>${module.type === 'user_script' && userScriptStates.get(module.id)?.enabled ? `<button type="button" data-disable-id="${escapeHtml(module.id)}">Desativar</button>` : ''}`
       : module.type === 'user_script'
@@ -92,6 +90,7 @@ function renderModules() {
         <div class="module-icon">${escapeHtml(module.name.slice(0, 2).toUpperCase())}</div>
         <h2>${escapeHtml(module.name)}</h2>
         <p>${escapeHtml(module.description || 'Módulo operacional publicado no hub.')}</p>
+        ${module.id === 'assistente-de-devolucoes' ? '<p class="module-requirement">Somente login SPX com e-mail @shopee.com e permissões para resolver e cancelar ocorrências.</p>' : ''}
         <div class="module-access ${permission.allowed ? 'is-approved' : 'is-locked'}" role="status">
           ${permission.loading ? '<span class="access-spinner" aria-hidden="true"></span>' : permission.allowed ? '' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
           <span>${escapeHtml(permission.message)}</span>
@@ -204,12 +203,7 @@ async function loadUserScriptStates() {
 
   await Promise.all(modules.map(async module => {
     try {
-      let response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
-      // An existing activation survives Hub logout and session expiry.
-      // Restore a missing registration only when the loader confirms it is enabled.
-      if (response?.ok && response.enabled === true && response.registered === false) {
-        response = await LoaderBridge.requestForModule(module.id, 'userscripts.setEnabled', { enabled: true });
-      }
+      const response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
       if (!response?.ok) {
         throw new Error(response?.error || 'Não foi possível consultar o estado do módulo.');
       }
@@ -235,12 +229,16 @@ async function loadUserScriptStates() {
 }
 
 async function toggleUserScript(module, enabled) {
-  if (enabled && userScriptStates.get(module.id)?.enabled !== true && !(await HubAuth.authorize(module.id))) {
+  if (userScriptStates.get(module.id)?.busy) return;
+  const original = userScriptStates.get(module.id) || { enabled: false };
+  userScriptStates.set(module.id, { ...original, busy: true });
+  if (enabled && !(await HubAuth.authorize(module.id))) {
+    userScriptStates.set(module.id, original);
     status.textContent = HubAuth.access(module.id).message;
     renderModules();
     return;
   }
-  const previous = userScriptStates.get(module.id) || { enabled: !enabled };
+  const previous = original;
   userScriptStates.set(module.id, {
     ...previous,
     enabled,

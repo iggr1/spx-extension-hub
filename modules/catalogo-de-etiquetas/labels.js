@@ -60,7 +60,11 @@ async function loadRow(row) {
       if (!response.ok) throw new Error(`Falha ao carregar a folha ${row}.`);
       return response.text();
     })
-    .then(base64 => loadImage(`data:image/jpeg;base64,${base64.replace(/\s+/g, '')}`));
+    .then(base64 => {
+      const clean = base64.replace(/\s+/g, '');
+      const mimeType = clean.startsWith('UklGR') ? 'image/webp' : 'image/jpeg';
+      return loadImage(`data:${mimeType};base64,${clean}`);
+    });
   ROW_CACHE.set(row, promise);
   return promise;
 }

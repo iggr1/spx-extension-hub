@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-16T16:15:00+00:00",
+  "updatedAt": "2026-09-16T16:45:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-8"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-9"
   },
   "modules": [
     {
@@ -179,6 +179,19 @@
       ],
       "allowedOpenUrls": [
         "https://spx.shopee.com.br/*"
+      ]
+    },
+    {
+      "id": "catalogo-de-etiquetas",
+      "name": "Catálogo de Etiquetas",
+      "description": "Catálogo com 16 etiquetas operacionais e impressão direta nos formatos 70×40 mm e 100×150 mm.",
+      "version": "1.0.0",
+      "enabled": true,
+      "type": "web_app",
+      "entry": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/",
+      "permissions": [],
+      "hostPermissions": [
+        "https://printproxy.wms.shopeemobile.com:21317/*"
       ]
     }
   ]

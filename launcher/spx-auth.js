@@ -5,7 +5,7 @@
   try { sessionStorage.removeItem('spx-hub-auth-session-v1'); } catch (_) {}
 
   function access(id) {
-    if (id === 'spx-dock-flow') {
+    if (id === 'spx-dock-flow' || id === 'catalogo-de-etiquetas') {
       return { allowed: true, restricted: false, loading: false, message: 'Acesso liberado.' };
     }
     if (id === 'assistente-de-devolucoes') {

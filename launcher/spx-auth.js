@@ -6,7 +6,7 @@
 
   function access(id) {
     if (id === 'spx-dock-flow') {
-      return { allowed: true, restricted: false, loading: false, message: '' };
+      return { allowed: true, restricted: false, loading: false, message: 'Acesso liberado.' };
     }
     if (id === 'assistente-de-devolucoes') {
       return { allowed: true, restricted: false, loading: false, message: '' };

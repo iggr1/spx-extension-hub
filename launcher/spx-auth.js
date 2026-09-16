@@ -4,9 +4,25 @@
   try { localStorage.removeItem('spx-hub-auth-session-v1'); } catch (_) {}
   try { sessionStorage.removeItem('spx-hub-auth-session-v1'); } catch (_) {}
   const state = { allowed: false, loading: true, email: '', message: 'Verificando conta SPX...' };
+  const authModules = ['spx-dock-flow', 'assistente-de-devolucoes'];
   let pending = null;
+
+  async function requestWithSpxSession(operation, payload) {
+    let lastError = null;
+    for (const moduleId of authModules) {
+      try {
+        const response = await LoaderBridge.requestForModule(moduleId, operation, payload);
+        if (response?.ok === false) throw new Error(response.error || response.message || 'Solicitação recusada pelo loader.');
+        return response;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Sessão SPX indisponível.');
+  }
+
   const checker = createSpxAccessChecker(async url => {
-    const response = await LoaderBridge.requestForModule('assistente-de-devolucoes', 'network.fetchBatch', {
+    const response = await requestWithSpxSession('network.fetchBatch', {
       profileId: 'spx', requests: [{ key: 'identity', url, method: 'GET' }]
     });
     const item = response?.results?.identity;
@@ -45,7 +61,7 @@
   document.getElementById('authCheck').addEventListener('click', refresh);
   document.getElementById('authAccount').addEventListener('click', async () => {
     try {
-      const response = await LoaderBridge.requestForModule('assistente-de-devolucoes', 'tabs.open', { url: 'https://spx.shopee.com.br/' });
+      const response = await requestWithSpxSession('tabs.open', { url: 'https://spx.shopee.com.br/' });
       if (!response?.ok) throw new Error('Não foi possível abrir o SPX.');
     } catch (_) { state.message = 'Abra https://spx.shopee.com.br/ e entre com sua conta corporativa.'; emit(); }
   });

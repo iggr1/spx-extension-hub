@@ -32,7 +32,7 @@ async function runChecks(source){
  const window={addEventListener(){}};
  const testSource=source.replace('(function initializeReturnsAssistant()', 'return (function initializeReturnsAssistant()')
  .replace(/\n  window\.addEventListener\('hashchange'[\s\S]*$/,
- `\nreturn {isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, handleAddress, loadTaskPages, setCollapsed,
+ `\nreturn {findPolygonAutoAddTargetId, selectAuditTask, isTargetRoute, recommendation, validAttemptDays, photoUrl, renderHistory, autoAddTarget, currentTask, exactTarget, startShipment, shipmentChanged, stop, loadHistory, handleAddress, loadTaskPages, setCollapsed,
  state:()=>({version:requestVersion,lastShipmentId,historyBusy}),setVersion:value=>{requestVersion=value;}};
  })();`);
  const fakeTimeout=(callback,ms)=>{timers.set(++timerSequence,{callback,ms});return timerSequence;};
@@ -65,6 +65,10 @@ async function runChecks(source){
  const tracking=(id,seconds,operator='Admin(Polygon Auto Add)')=>({message:`Assignment Task [${id}]`,timestamp:now-seconds,operator});
  assert(app.autoAddTarget({data:{tracking_list:[tracking('ATOLD',14000),tracking('ATNEW',70),tracking('ATMANUAL',1,'Other')]}},now)==='ATNEW','Newest AutoAdd in four-hour lookback selected');
  assert(app.autoAddTarget({data:{tracking_list:[tracking('ATOLD',14401),tracking('ATFUTURE',-300)]}},now)==='','Old and future tracking excluded');
+ assert(app.findPolygonAutoAddTargetId({data:{tracking_list:[tracking('ATOLD',31),tracking('ATNOW',5)]}},now)==='ATNOW','ZIP scan window selects recent AutoAdd');
+ assert(app.findPolygonAutoAddTargetId({data:{tracking_list:[tracking('ATOLD',31)]}},now)==='','ZIP excludes tracking older than 30 seconds before scan');
+ assert(app.findPolygonAutoAddTargetId({data:{tracking_list:[{...tracking('ATSTAFF',1,'Other'),biz_staff_name:'Admin(Polygon Auto Add)'}]}},now)==='ATSTAFF','ZIP operator fallback supported');
+ assert(app.selectAuditTask([{validation_task_id:'closed',end_time:1},{validation_task_id:'open',end_time:0}]).validation_task_id==='open','ZIP prefers an open VT');
  inputValue='BR1234567890123';
  app.shipmentChanged();
  const version=app.state().version;

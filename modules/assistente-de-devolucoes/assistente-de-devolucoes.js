@@ -2,6 +2,10 @@
   const MARKER = 'spxReturnsAssistantV2';
   const ROUTE_PREFIXES = ['#/generalReceiveTaskMgt/singleReceiveNew/', '#/generalReceiveTaskOps/singleReceiveNew/'];
   const MODAL_ID = 'spx-returns-assistant-modal';
+  const AUTOADD_TOAST_ID = 'spx-autoadd-toast';
+  const AUTOADD_RECENT_BEFORE_SCAN_SEC = 30;
+  const AUTOADD_RECENT_AFTER_SCAN_SEC = 14400;
+  const AUTOADD_TRACKING_RETRY_DELAYS_MS = [0, 1200, 1800, 2500, 3200];
   const STYLE_ID = 'spx-returns-assistant-style';
   const ADDRESS_REASON_ID = 'ER40';
   const ADDRESS_REASON_DESC = 'Onhold with Delivery Address Issue';
@@ -113,6 +117,56 @@
       @media(max-width:680px){#${MODAL_ID}{max-height:calc(100vh - 130px)}}
       #${FAB_ID}{position:fixed;right:16px;bottom:16px;z-index:999999;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#f8fafc;font:700 12px Arial,sans-serif;cursor:pointer}
     `;
+    style.textContent += `      #${AUTOADD_TOAST_ID} {
+        left: auto;
+        top: auto;
+        right: 20px;
+        bottom: 22px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        max-width: min(420px, calc(100vw - 32px));
+        padding: 11px 14px;
+        color: #dcfce7;
+        background: rgba(15,23,42,0.96);
+        border: 1px solid rgba(34,197,94,0.42);
+        border-left: 4px solid #22c55e;
+        font-size: 13px;
+        font-weight: 900;
+        position: fixed;
+        z-index: 999999;
+        border-radius: 11px;
+        font-family: Arial, sans-serif;
+
+        pointer-events: none;
+      }
+
+      #${AUTOADD_TOAST_ID}.spx-autoadd-next-cycle {
+        color: #fef3c7;
+        border-color: rgba(245,158,11,0.42);
+        border-left-color: #f59e0b;
+      }
+
+      #${AUTOADD_TOAST_ID} .spx-autoadd-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.1);
+        font-size: 13px;
+      }
+
+      #${AUTOADD_TOAST_ID} .spx-autoadd-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+`;
     document.documentElement.appendChild(style);
   }
 
@@ -269,6 +323,178 @@
  }
 }
 
+  function selectAuditTask(tasks) {
+    const list = Array.isArray(tasks) ? tasks : [];
+    return list.find((task) => Number(task?.end_time || 0) === 0) || list[0] || null;
+  }
+
+  function collectTrackingNodes(nodes, output) {
+    if (!Array.isArray(nodes)) return output;
+
+    nodes.forEach((node) => {
+      if (!node || typeof node !== "object") return;
+
+      output.push(node);
+      collectTrackingNodes(node.children, output);
+      collectTrackingNodes(node.event_children, output);
+    });
+
+    return output;
+  }
+
+  function extractAssignmentTaskId(message) {
+    const text = String(message || "");
+    if (!/Assignment Task/i.test(text)) return "";
+
+    const match = text.match(/\[(AT[^\]\s]+)\]/i);
+    return match ? String(match[1]).trim() : "";
+  }
+
+  function isPolygonAutoAddNode(node) {
+    const operator = String(node?.operator || "").trim();
+    const bizStaffName = String(node?.biz_staff_name || "").trim();
+    return operator === "Admin(Polygon Auto Add)" || bizStaffName === "Admin(Polygon Auto Add)";
+  }
+
+  function isRecentAutoAddNode(node, scanUnix) {
+    const timestamp = Number(node?.timestamp || 0);
+    const reference = Number(scanUnix || 0);
+    if (!timestamp || !reference) return false;
+
+    return timestamp >= reference - AUTOADD_RECENT_BEFORE_SCAN_SEC &&
+      timestamp <= reference + AUTOADD_RECENT_AFTER_SCAN_SEC;
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  function findPolygonAutoAddTargetId(trackingData, scanUnix) {
+    const nodes = collectTrackingNodes(trackingData?.data?.tracking_list, []);
+    const candidates = nodes
+      .map((node, index) => ({
+        node,
+        index,
+        targetId: extractAssignmentTaskId(node?.message)
+      }))
+      .filter((item) =>
+        item.targetId &&
+        isPolygonAutoAddNode(item.node) &&
+        isRecentAutoAddNode(item.node, scanUnix)
+      )
+      .sort((a, b) => {
+        const timestampDiff = Number(b.node?.timestamp || 0) - Number(a.node?.timestamp || 0);
+        if (timestampDiff !== 0) return timestampDiff;
+
+        const idDiff = Number(b.node?.id || 0) - Number(a.node?.id || 0);
+        if (idDiff !== 0) return idDiff;
+
+        return b.index - a.index;
+      });
+
+    return candidates[0]?.targetId || "";
+  }
+
+  async function fetchPolygonAutoAddTargetId(shipmentId, scanUnix) {
+    const trackingUrl = `https://spx.shopee.com.br/api/fleet_order/order/detail/tracking_info?shipment_id=${encodeURIComponent(shipmentId)}`;
+    const trackingData = await fetchJson(trackingUrl);
+    return findPolygonAutoAddTargetId(trackingData, scanUnix);
+  }
+
+  async function fetchRecentPolygonAutoAddTargetId(shipmentId, scanUnix, version) {
+    let lastError = null;
+
+    for (let i = 0; i < AUTOADD_TRACKING_RETRY_DELAYS_MS.length; i += 1) {
+      const delay = AUTOADD_TRACKING_RETRY_DELAYS_MS[i];
+      if (delay > 0) await sleep(delay);
+
+      if (!isCurrent(version)) return "";
+      try {
+        const targetId = await fetchPolygonAutoAddTargetId(shipmentId, scanUnix);
+        if (targetId) return targetId;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (lastError) throw lastError;
+    return "";
+  }
+
+  async function fetchAutoAddInfo(shipmentId, scanUnix, version) {
+    try {
+      const referenceUnix = Number(scanUnix || Math.floor(Date.now() / 1000));
+      const autoAddTargetId = await fetchRecentPolygonAutoAddTargetId(shipmentId, referenceUnix, version);
+      if (!autoAddTargetId || !isCurrent(version)) return null;
+
+      const range = todayRange();
+      const taskUrl = `https://spx.shopee.com.br/api/in-station/lmhub/audit/task/list?page_no=1&count=24&validation_start_time=${range.start}&validation_end_time=${range.end}`;
+      const taskData = await fetchJson(taskUrl);
+      if (!isCurrent(version)) return null;
+      const task = selectAuditTask(taskData?.data?.list);
+      const taskId = task?.validation_task_id;
+
+      if (!taskId) return null;
+
+      const targetUrl = `https://spx.shopee.com.br/api/in-station/lmhub/audit/target/list?target_id=${encodeURIComponent(autoAddTargetId)}&task_id=${encodeURIComponent(taskId)}&page_no=1&count=24`;
+      const targetData = await fetchJson(targetUrl);
+      if (!isCurrent(version)) return null;
+      const targets = Array.isArray(targetData?.data?.list) ? targetData.data.list : [];
+      const target = targets.find((item) => String(item?.target_id || "").toUpperCase() === String(autoAddTargetId).toUpperCase()) || targets[0];
+
+      if (!target) {
+        return {
+          nextCycle: true,
+          taskId: String(taskId),
+          targetId: String(autoAddTargetId)
+        };
+      }
+
+      if (!target.binding_entity) return null;
+
+      return {
+        route: String(target.binding_entity),
+        taskId: String(taskId),
+        targetId: String(autoAddTargetId)
+      };
+    } catch (err) {
+      console.warn("SPX Toolkit AutoADD:", err);
+      return null;
+    }
+  }
+
+  function getAutoAddMessage(autoAddInfo) {
+    if (autoAddInfo?.nextCycle) return "AutoAdd para o próximo ciclo";
+    if (autoAddInfo?.route) return `AutoADD na rota ${autoAddInfo.route}`;
+    return "";
+  }
+
+  function removeAutoAddToast() {
+    const toast = document.getElementById(AUTOADD_TOAST_ID);
+    if (toast) toast.remove();
+  }
+
+  function showAutoAddToast(autoAddInfo) {
+    const message = getAutoAddMessage(autoAddInfo);
+    removeAutoAddToast();
+    if (!message) return;
+
+    ensureStyle();
+
+    const toast = document.createElement("div");
+    toast.id = AUTOADD_TOAST_ID;
+    if (autoAddInfo?.nextCycle) {
+      toast.className = "spx-autoadd-next-cycle";
+    }
+    toast.innerHTML = `
+      <span class="spx-autoadd-icon">${autoAddInfo?.nextCycle ? "↻" : "✓"}</span>
+      <span class="spx-autoadd-text">${escapeHtml(message)}</span>
+    `;
+    document.body.appendChild(toast);
+    positionToggle();
+  }
+
+
   function flattenTracking(nodes, output = []) {
     if (!Array.isArray(nodes)) return output;
     for (const node of nodes) {
@@ -354,7 +580,7 @@
 
   function stop(){
  clearTimeout(debounceId);if(monitorId)clearInterval(monitorId);
- monitorId=null;requestVersion+=1;historyBusy=false;
+ monitorId=null;requestVersion+=1;historyBusy=false;removeAutoAddToast();
  document.removeEventListener('input',shipmentChanged,true);
  document.removeEventListener('change',shipmentChanged,true);
  document.removeEventListener('keydown',shipmentChanged,true);
@@ -434,11 +660,14 @@
  if(!shipmentId||!isTargetRoute())return;
  clearTimeout(debounceId);
  const version=++requestVersion;
+ const scanUnix=Math.floor(Date.now()/1000);
+ removeAutoAddToast();
  lastShipmentId=shipmentId;historyBusy=true;
  showModal(shipmentId,'<div class="message" role="status"><span class="spinner" aria-hidden="true"></span><strong>Consultando pedido</strong>Buscando histórico de tentativas...</div>');
  debounceId=setTimeout(()=>{
   if(!isCurrent(version))return;
   void loadHistory(shipmentId,version);
+  void fetchAutoAddInfo(shipmentId,scanUnix,version).then(result=>{if(isCurrent(version)){showAutoAddToast(result);positionToggle();}});
  },delay);
 }
 

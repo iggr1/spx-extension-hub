@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-17T18:45:00+00:00",
+  "updatedAt": "2026-09-17T19:00:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260917-1"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260917-2"
   },
   "modules": [
     {
@@ -40,10 +40,10 @@
       "id": "catalogo-de-etiquetas",
       "name": "Catálogo de Etiquetas",
       "description": "Catálogo com as 16 etiquetas operacionais do conjunto enviado e impressão pelo diálogo padrão do Windows nos formatos 70×40 mm e 100×150 mm.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "enabled": true,
       "type": "web_app",
-      "entry": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/?v=1.2.0",
+      "entry": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/?v=1.2.1",
       "permissions": [],
       "hostPermissions": [],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/descricao.pdf"

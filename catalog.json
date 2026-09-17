@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-16T19:06:00+00:00",
+  "updatedAt": "2026-09-17T18:45:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260916-10"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260917-1"
   },
   "modules": [
     {
@@ -14,73 +14,11 @@
       "enabled": true,
       "type": "web_app",
       "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/",
-      "permissions": [
-        "storage",
-        "cookies",
-        "scripting",
-        "tabs",
-        "webRequest"
-      ],
-      "hostPermissions": [
-        "https://spx.shopee.com.br/*"
-      ],
-      "capabilities": [
-        "tabs.open",
-        "storage.get",
-        "storage.set",
-        "storage.remove",
-        "network.fetchBatch",
-        "network.connectionStatus",
-        "network.clearAuth"
-      ],
-      "allowedOpenUrls": [
-        "https://spx.shopee.com.br/*"
-      ],
-      "authProfiles": [
-        {
-          "id": "spx",
-          "requestPatterns": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "tabPatterns": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "captureUrlPatterns": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "captureHeaders": [
-            "x-sap-ri",
-            "x-sap-sec",
-            "x-csrftoken",
-            "device-id",
-            "app"
-          ],
-          "cookieMappings": [
-            {
-              "url": "https://spx.shopee.com.br/",
-              "cookieName": "csrftoken",
-              "headerName": "x-csrftoken"
-            },
-            {
-              "url": "https://spx.shopee.com.br/",
-              "cookieName": "spx-admin-device-id",
-              "headerName": "device-id"
-            }
-          ],
-          "defaultHeaders": {
-            "accept": "application/json, text/plain, */*",
-            "app": "FMS Portal"
-          },
-          "success": {
-            "field": "retcode",
-            "equals": 0
-          },
-          "retryWithoutHeaders": [
-            "x-sap-ri",
-            "x-sap-sec"
-          ]
-        }
-      ],
+      "permissions": ["storage", "cookies", "scripting", "tabs", "webRequest"],
+      "hostPermissions": ["https://spx.shopee.com.br/*"],
+      "capabilities": ["tabs.open", "storage.get", "storage.set", "storage.remove", "network.fetchBatch", "network.connectionStatus", "network.clearAuth"],
+      "allowedOpenUrls": ["https://spx.shopee.com.br/*"],
+      "authProfiles": [{"id":"spx","requestPatterns":["https://spx.shopee.com.br/*"],"tabPatterns":["https://spx.shopee.com.br/*"],"captureUrlPatterns":["https://spx.shopee.com.br/*"],"captureHeaders":["x-sap-ri","x-sap-sec","x-csrftoken","device-id","app"],"cookieMappings":[{"url":"https://spx.shopee.com.br/","cookieName":"csrftoken","headerName":"x-csrftoken"},{"url":"https://spx.shopee.com.br/","cookieName":"spx-admin-device-id","headerName":"device-id"}],"defaultHeaders":{"accept":"application/json, text/plain, */*","app":"FMS Portal"},"success":{"field":"retcode","equals":0},"retryWithoutHeaders":["x-sap-ri","x-sap-sec"]}],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf"
     },
     {
@@ -90,105 +28,22 @@
       "version": "3.0.1",
       "enabled": true,
       "type": "user_script",
-      "permissions": [
-        "storage",
-        "tabs",
-        "userScripts",
-        "cookies",
-        "scripting",
-        "webRequest"
-      ],
-      "hostPermissions": [
-        "https://spx.shopee.com.br/*"
-      ],
-      "capabilities": [
-        "userscripts.status",
-        "userscripts.setEnabled",
-        "network.fetchBatch",
-        "tabs.open"
-      ],
-      "userScripts": [
-        {
-          "id": "recebimento-historico",
-          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/assistente-de-devolucoes.js",
-          "matches": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "excludeMatches": [],
-          "runAt": "document_idle",
-          "world": "MAIN",
-          "allFrames": false
-        },
-        {
-          "id": "recebimento-access-notice",
-          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/access-notice.js",
-          "matches": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "excludeMatches": [],
-          "runAt": "document_idle",
-          "world": "MAIN",
-          "allFrames": false
-        }
-      ],
+      "permissions": ["storage", "tabs", "userScripts", "cookies", "scripting", "webRequest"],
+      "hostPermissions": ["https://spx.shopee.com.br/*"],
+      "capabilities": ["userscripts.status", "userscripts.setEnabled", "network.fetchBatch", "tabs.open"],
+      "userScripts": [{"id":"recebimento-historico","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/assistente-de-devolucoes.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false},{"id":"recebimento-access-notice","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/access-notice.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false}],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf",
-      "authProfiles": [
-        {
-          "id": "spx",
-          "requestPatterns": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "tabPatterns": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "captureUrlPatterns": [
-            "https://spx.shopee.com.br/*"
-          ],
-          "captureHeaders": [
-            "x-sap-ri",
-            "x-sap-sec",
-            "x-csrftoken",
-            "device-id",
-            "app"
-          ],
-          "cookieMappings": [
-            {
-              "url": "https://spx.shopee.com.br/",
-              "cookieName": "csrftoken",
-              "headerName": "x-csrftoken"
-            },
-            {
-              "url": "https://spx.shopee.com.br/",
-              "cookieName": "spx-admin-device-id",
-              "headerName": "device-id"
-            }
-          ],
-          "defaultHeaders": {
-            "accept": "application/json, text/plain, */*",
-            "app": "FMS Portal"
-          },
-          "success": {
-            "field": "retcode",
-            "equals": 0
-          },
-          "retryWithoutHeaders": [
-            "x-sap-ri",
-            "x-sap-sec"
-          ]
-        }
-      ],
-      "allowedOpenUrls": [
-        "https://spx.shopee.com.br/*"
-      ]
+      "authProfiles": [{"id":"spx","requestPatterns":["https://spx.shopee.com.br/*"],"tabPatterns":["https://spx.shopee.com.br/*"],"captureUrlPatterns":["https://spx.shopee.com.br/*"],"captureHeaders":["x-sap-ri","x-sap-sec","x-csrftoken","device-id","app"],"cookieMappings":[{"url":"https://spx.shopee.com.br/","cookieName":"csrftoken","headerName":"x-csrftoken"},{"url":"https://spx.shopee.com.br/","cookieName":"spx-admin-device-id","headerName":"device-id"}],"defaultHeaders":{"accept":"application/json, text/plain, */*","app":"FMS Portal"},"success":{"field":"retcode","equals":0},"retryWithoutHeaders":["x-sap-ri","x-sap-sec"]}],
+      "allowedOpenUrls": ["https://spx.shopee.com.br/*"]
     },
     {
       "id": "catalogo-de-etiquetas",
       "name": "Catálogo de Etiquetas",
-      "description": "Catálogo com 16 etiquetas operacionais originais e impressão pelo diálogo padrão do Windows nos formatos 70×40 mm e 100×150 mm.",
-      "version": "1.1.0",
+      "description": "Catálogo com as 16 etiquetas operacionais do conjunto enviado e impressão pelo diálogo padrão do Windows nos formatos 70×40 mm e 100×150 mm.",
+      "version": "1.2.0",
       "enabled": true,
       "type": "web_app",
-      "entry": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/?v=1.1.0",
+      "entry": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/?v=1.2.0",
       "permissions": [],
       "hostPermissions": [],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/descricao.pdf"

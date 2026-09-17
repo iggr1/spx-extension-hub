@@ -22,6 +22,7 @@ const LABEL_TYPES = {
   large: { label: 'Grande', width: 100, height: 150 }
 };
 
+const ASSET_VERSION = '1.2.1';
 const ROW_CACHE = new Map();
 const ARTWORK_CACHE = new Map();
 const $ = id => document.getElementById(id);
@@ -53,20 +54,39 @@ function loadImage(src) {
   });
 }
 
+function getMimeType(base64) {
+  if (base64.startsWith('UklGR')) return 'image/webp';
+  if (base64.startsWith('iVBOR')) return 'image/png';
+  return 'image/jpeg';
+}
+
+async function fetchRowBase64(row, retry = false) {
+  const suffix = retry ? `${ASSET_VERSION}-${Date.now()}` : ASSET_VERSION;
+  const response = await fetch(`assets/labels-row-${row}.b64?v=${suffix}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Falha ao carregar a folha ${row}.`);
+  const base64 = (await response.text()).replace(/\s+/g, '');
+  if (!base64) throw new Error(`A folha ${row} está vazia.`);
+  return base64;
+}
+
 async function loadRow(row) {
   if (ROW_CACHE.has(row)) return ROW_CACHE.get(row);
-  const promise = fetch(`assets/labels-row-${row}.b64?v=1.2.0`, { cache: 'force-cache' })
-    .then(response => {
-      if (!response.ok) throw new Error(`Falha ao carregar a folha ${row}.`);
-      return response.text();
-    })
-    .then(base64 => {
-      const clean = base64.replace(/\s+/g, '');
-      const mime = clean.startsWith('UklGR') ? 'image/webp' : 'image/jpeg';
-      return loadImage(`data:${mime};base64,${clean}`);
-    });
+  const promise = (async () => {
+    try {
+      const base64 = await fetchRowBase64(row, false);
+      return await loadImage(`data:${getMimeType(base64)};base64,${base64}`);
+    } catch (firstError) {
+      const base64 = await fetchRowBase64(row, true);
+      return loadImage(`data:${getMimeType(base64)};base64,${base64}`);
+    }
+  })();
   ROW_CACHE.set(row, promise);
-  return promise;
+  try {
+    return await promise;
+  } catch (error) {
+    ROW_CACHE.delete(row);
+    throw error;
+  }
 }
 
 async function getArtworkCanvas(label) {
@@ -74,14 +94,30 @@ async function getArtworkCanvas(label) {
   const promise = (async () => {
     const row = await loadRow(label.row);
     const cellWidth = Math.floor(row.naturalWidth / 4);
+    if (!cellWidth || !row.naturalHeight) throw new Error(`Dimensões inválidas na folha ${label.row}.`);
     const canvas = document.createElement('canvas');
     canvas.width = cellWidth;
     canvas.height = row.naturalHeight;
-    canvas.getContext('2d').drawImage(row, label.column * cellWidth, 0, cellWidth, row.naturalHeight, 0, 0, cellWidth, row.naturalHeight);
+    canvas.getContext('2d').drawImage(
+      row,
+      label.column * cellWidth,
+      0,
+      cellWidth,
+      row.naturalHeight,
+      0,
+      0,
+      cellWidth,
+      row.naturalHeight
+    );
     return canvas;
   })();
   ARTWORK_CACHE.set(label.id, promise);
-  return promise;
+  try {
+    return await promise;
+  } catch (error) {
+    ARTWORK_CACHE.delete(label.id);
+    throw error;
+  }
 }
 
 async function artworkUrl(label) {
@@ -93,12 +129,14 @@ async function renderLabels() {
   list.replaceChildren();
   $('labelStatus').textContent = 'Carregando 16 etiquetas...';
   setProgress(8, 'Carregando as artes do catálogo...');
+
   for (const label of LABELS) {
     const card = document.createElement('article');
     card.className = 'label-card';
     card.innerHTML = `<div class="label-preview"><div class="label-loading">Carregando...</div><img alt="${label.name}" hidden></div><div class="label-body"><h2>${label.name}</h2><div class="label-meta">Etiqueta original</div><div class="label-actions"><button class="primary" type="button">Imprimir</button></div></div>`;
     card.querySelector('button').addEventListener('click', () => openModal(label));
     list.appendChild(card);
+
     artworkUrl(label).then(url => {
       const image = card.querySelector('img');
       image.src = url;
@@ -107,12 +145,14 @@ async function renderLabels() {
     }).catch(error => {
       const loading = card.querySelector('.label-loading');
       if (loading) loading.textContent = 'Falha ao carregar';
-      console.error(error);
+      console.error(`[Catálogo] ${label.name}:`, error);
     });
   }
-  await Promise.allSettled(LABELS.map(getArtworkCanvas));
-  $('labelStatus').textContent = `${LABELS.length} etiquetas carregadas`;
-  setProgress(0, 'Selecione uma etiqueta para imprimir.');
+
+  const results = await Promise.allSettled(LABELS.map(getArtworkCanvas));
+  const failed = results.filter(result => result.status === 'rejected').length;
+  $('labelStatus').textContent = failed ? `${LABELS.length - failed} de ${LABELS.length} etiquetas carregadas` : `${LABELS.length} etiquetas carregadas`;
+  setProgress(0, failed ? `${failed} etiqueta(s) não carregaram. Use Atualizar catálogo para tentar novamente.` : 'Selecione uma etiqueta para imprimir.');
 }
 
 async function openModal(label) {
@@ -123,8 +163,11 @@ async function openModal(label) {
   $('labelModalImage').removeAttribute('src');
   $('labelPrintModal').classList.add('show');
   $('labelPrintModal').setAttribute('aria-hidden', 'false');
-  try { $('labelModalImage').src = await artworkUrl(label); }
-  catch (error) { toast(error.message || 'Não foi possível carregar a etiqueta.'); }
+  try {
+    $('labelModalImage').src = await artworkUrl(label);
+  } catch (error) {
+    toast(error.message || 'Não foi possível carregar a etiqueta.');
+  }
 }
 
 function closeModal() {
@@ -165,8 +208,13 @@ function getDrawRect(imageWidth, imageHeight, pageWidth, pageHeight) {
   const pageRatio = pageWidth / pageHeight;
   let width;
   let height;
-  if (imageRatio > pageRatio) { width = pageWidth; height = width / imageRatio; }
-  else { height = pageHeight; width = height * imageRatio; }
+  if (imageRatio > pageRatio) {
+    width = pageWidth;
+    height = width / imageRatio;
+  } else {
+    height = pageHeight;
+    width = height * imageRatio;
+  }
   return { x: (pageWidth - width) / 2, y: (pageHeight - height) / 2, width, height };
 }
 
@@ -186,13 +234,17 @@ async function renderForPrint(label, settings) {
   const context = canvas.getContext('2d');
   context.fillStyle = '#fff';
   context.fillRect(0, 0, canvasWidth, canvasHeight);
+
   if (rotation) {
     context.save();
     context.translate(rect.x + rect.width / 2, rect.y + rect.height / 2);
     context.rotate(Math.PI / 2);
     context.drawImage(source, -rect.height / 2, -rect.width / 2, rect.height, rect.width);
     context.restore();
-  } else context.drawImage(source, rect.x, rect.y, rect.width, rect.height);
+  } else {
+    context.drawImage(source, rect.x, rect.y, rect.width, rect.height);
+  }
+
   return canvas.toDataURL('image/png');
 }
 
@@ -209,8 +261,13 @@ async function printActiveLabel() {
   const settings = LABEL_TYPES[activeLabelType] || LABEL_TYPES.small;
   const quantity = getQty();
   const printWindow = window.open('', '_blank', 'width=960,height=720');
-  if (!printWindow) { toast('Permita pop-ups para abrir a impressão do Windows.'); return; }
+  if (!printWindow) {
+    toast('Permita pop-ups para abrir a impressão do Windows.');
+    return;
+  }
+
   printWindow.document.write('<!doctype html><title>Preparando impressão...</title><body style="font-family:Segoe UI,Arial,sans-serif;padding:28px">Preparando etiqueta...</body>');
+
   try {
     setLoading(true);
     setProgress(20, `Preparando ${settings.label.toLowerCase()} ${settings.width}×${settings.height} mm...`);
@@ -230,7 +287,11 @@ async function printActiveLabel() {
   }
 }
 
-$('reloadLabels').addEventListener('click', () => { ARTWORK_CACHE.clear(); ROW_CACHE.clear(); renderLabels(); });
+$('reloadLabels').addEventListener('click', () => {
+  ARTWORK_CACHE.clear();
+  ROW_CACHE.clear();
+  renderLabels();
+});
 $('labelModalClose').addEventListener('click', closeModal);
 $('labelModalCancel').addEventListener('click', closeModal);
 $('labelTypeSmall').addEventListener('click', () => setType('small'));

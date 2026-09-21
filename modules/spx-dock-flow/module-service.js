@@ -189,6 +189,11 @@ async function fetchDriverRoutes(payload) {
       assignmentTaskId: extractAssignmentTaskId(latest),
       driverAssignedTime: numberOrZero(latest?.driver_assigned_time),
       driverName: latest?.driver_name || '',
+      details: latest ? Object.fromEntries([
+        'order_count', 'assigned_order_count', 'city', 'neighborhood', 'cluster',
+        'vehicle_name', 'vehicle_type', 'planned_vehicle_type', 'agency',
+        'station_name', 'stops_number', 'total_distance', 'ctime', 'driver_assigned_time'
+      ].map(key => [key, latest[key]])) : null,
       found: Boolean(latest),
       error: null
     };

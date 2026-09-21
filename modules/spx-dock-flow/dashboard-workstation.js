@@ -6,6 +6,10 @@
   let selectedDockWasPresent = false;
   let refreshTimer = 0;
   let audioContext = null;
+  let detailsDialog = null;
+  let detailsDockId = 0;
+  let detailsTimer = 0;
+  let detailsTrigger = null;
   const renderDockGroupsWithoutWorkstationState = renderDockGroups;
 
   installStyles();
@@ -37,7 +41,7 @@
     const card = event.target.closest('.dock-card[data-dock-id]');
     if (!card) return;
 
-    toggleDockCardSelection(card);
+    openDockDetails(card);
   }
 
   function handleDockKeydown(event) {
@@ -47,7 +51,96 @@
     if (!card) return;
 
     event.preventDefault();
-    toggleDockCardSelection(card);
+    openDockDetails(card);
+  }
+
+  function openDockDetails(card) {
+    detailsDockId = numberOrZero(card.dataset.dockId);
+    detailsTrigger = card;
+    if (!detailsDialog) {
+      detailsDialog = document.createElement('dialog');
+      detailsDialog.className = 'dock-details-dialog';
+      detailsDialog.setAttribute('aria-labelledby', 'dockDetailsTitle');
+      detailsDialog.innerHTML = `
+        <header><div><small>DETALHES DA ROTA</small><h2 id="dockDetailsTitle"></h2></div>
+          <button type="button" data-close aria-label="Fechar detalhes" autofocus>×</button></header>
+        <div class="dock-details-body"></div>
+        <footer><button type="button" data-mark></button><button type="button" data-close>Fechar</button></footer>`;
+      document.body.appendChild(detailsDialog);
+      detailsDialog.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => detailsDialog.close()));
+      detailsDialog.addEventListener('click', event => {
+        if (event.target !== detailsDialog) return;
+        const rect = detailsDialog.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) detailsDialog.close();
+      });
+      detailsDialog.querySelector('[data-mark]').addEventListener('click', () => {
+        toggleDockCardSelection({ dataset: { dockId: String(detailsDockId) } });
+        renderDockDetails();
+      });
+      detailsDialog.addEventListener('close', () => {
+        window.clearInterval(detailsTimer);
+        const currentCard = document.querySelector(`.dock-card[data-dock-id="${detailsDockId}"]`);
+        (currentCard || (detailsTrigger?.isConnected ? detailsTrigger : null))?.focus();
+      });
+    }
+    renderDockDetails();
+    if (!detailsDialog.open) detailsDialog.showModal();
+    window.clearInterval(detailsTimer);
+    detailsTimer = window.setInterval(renderDockDetails, 1000);
+  }
+
+  function renderDockDetails() {
+    const dock = state.docks.find(item => numberOrZero(item.dock_id) === detailsDockId);
+    const body = detailsDialog.querySelector('.dock-details-body');
+    const mark = detailsDialog.querySelector('[data-mark]');
+    mark.disabled = !dock;
+    if (!dock) {
+      detailsDialog.querySelector('h2').textContent = 'Mesa indisponível';
+      body.textContent = 'Esta mesa não está mais disponível nos dados atuais.';
+      return;
+    }
+    const occupied = isDockOccupied(dock);
+    const next = occupied ? null : getNextDriver(dock);
+    const driverId = numberOrZero(occupied ? dock.occupied_driver_id : next?.driver_id);
+    const routeState = state.driverRoutes[driverId];
+    const status = getDisplayStatus(dock, next);
+    const route = getRouteDisplay(dock, driverId, next, status);
+    const assignmentId = normalizeAssignmentTaskId(occupied ? dock.operation_task_id : next?.assignment_task_id)
+      || route.assignmentTaskId;
+    const details = (!assignmentId || assignmentId === routeState?.assignmentTaskId) ? routeState?.details || {} : {};
+    const stats = state.assignmentStats[assignmentId];
+    const selected = normalizeDockName(selectedDockName) === normalizeDockName(dock.dock_name);
+    mark.textContent = selected ? 'Desmarcar rota' : 'Marcar rota';
+    mark.setAttribute('aria-pressed', String(selected));
+    detailsDialog.querySelector('h2').textContent = `${dock.dock_name} · ${route.value}`;
+    const number = value => value == null || value === '' ? '—' : Number(value).toLocaleString('pt-BR');
+    const date = value => Number(value) > 0 ? new Date(Number(value) * 1000).toLocaleString('pt-BR') : '—';
+    const fields = [
+      ['Situação', route.kind === 'route-finished' ? 'Carregamento finalizado' : status.label],
+      ['AT', assignmentId],
+      ['Motorista', occupied ? dock.occupied_driver_name : next?.driver_name],
+      ['ID do motorista', driverId || '—'],
+      ['Placa', occupied ? dock.occupied_vehicle_number : next?.vehicle_number],
+      ['Senha', occupied ? dock.occupied_queue_number : next?.queue_number],
+      ['Região / cluster', details.cluster || next?.cluster],
+      ['Cidade', details.city], ['Bairro', details.neighborhood],
+      ['Pedidos da AT', number(details.order_count ?? (stats?.status === 'ready' ? stats.totalOrders : null))],
+      ['Volumosos', stats?.status === 'ready' ? number(stats.bulkyOrders) : stats?.status === 'error' ? 'Indisponível' : stats?.status === 'loading' ? 'Carregando…' : '—'],
+      ['Pedidos sem tamanho identificado', stats?.status === 'ready' ? number(stats.missingSizeOrders) : '—'],
+      ['Paradas', number(details.stops_number)],
+      ['Distância planejada', details.total_distance == null ? '—' : `${number(details.total_distance)} km`],
+      ['Veículo planejado', details.planned_vehicle_type || details.vehicle_name],
+      ['Tipo de veículo', details.vehicle_type || next?.vehicle_type_name],
+      ['Transportadora', details.agency], ['Estação', details.station_name],
+      ['AT criada em', date(details.ctime)], ['Motorista atribuído em', date(details.driver_assigned_time)],
+      [occupied ? 'Tempo na mesa' : 'Tempo ocioso da mesa', formatDuration(getLiveSeconds(numberOrZero(occupied ? dock.occupation_time : dock.idle_time)))],
+      ...(next ? [['Tempo de espera', formatDuration(getCurrentWaitingSeconds(numberOrZero(next.waiting_time), driverId))], ['Posição na fila', next.queue_sequence]] : []),
+      ['Grupo de docas', dock.dock_group_name]
+    ];
+    const html = `${state.routesLoading ? '<p>Atualizando informações da rota…</p>' : routeState?.ok === false ? '<p>Detalhes da AT indisponíveis nesta atualização.</p>' : ''}
+      <dl>${fields.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value == null || value === '' ? '—' : String(value))}</dd></div>`).join('')}</dl>
+      <p class="dock-details-note">A marcação acompanha esta mesa e mantém os alertas de mudança de situação.</p>`;
+    if (body.innerHTML !== html) body.innerHTML = html;
   }
 
   function toggleDockCardSelection(card) {
@@ -106,10 +199,11 @@
         && normalizeDockName(dock?.dock_name) === normalizedSelected;
 
       card.classList.toggle('workstation-dock', isSelected);
-      card.setAttribute('role', 'checkbox');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-haspopup', 'dialog');
       card.setAttribute('tabindex', '0');
-      card.setAttribute('aria-checked', String(isSelected));
-      card.setAttribute('aria-label', `${isSelected ? 'Desmarcar' : 'Selecionar'} ${String(dock?.dock_name || 'doca')}`);
+      card.removeAttribute('aria-checked');
+      card.setAttribute('aria-label', `Ver detalhes de ${String(dock?.dock_name || 'doca')}${isSelected ? ' · marcada' : ''}`);
 
       if (isSelected) card.setAttribute('aria-current', 'true');
       else card.removeAttribute('aria-current');
@@ -228,6 +322,30 @@
     const style = document.createElement('style');
     style.id = 'spxDockFlowWorkstationStyles';
     style.textContent = `
+      .dock-details-dialog {
+        width: min(780px, calc(100vw - 32px)); max-height: calc(100dvh - 40px);
+        padding: 0; margin: auto; border: 1px solid var(--line); border-radius: 18px;
+        background: var(--surface); color: var(--ink); box-shadow: 0 24px 90px #0005;
+      }
+      .dock-details-dialog::backdrop { background: #09122599; backdrop-filter: blur(4px); }
+      .dock-details-dialog header, .dock-details-dialog footer {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px;
+      }
+      .dock-details-dialog header { border-bottom: 1px solid var(--line); }
+      .dock-details-dialog h2 { font-size: 21px; margin: 6px 0 0; overflow-wrap: anywhere; }
+      .dock-details-dialog small, .dock-details-dialog dt, .dock-details-note { color: var(--muted); }
+      .dock-details-body { padding: 4px 24px; }
+      .dock-details-dialog dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .dock-details-dialog dl > div { background: var(--surface-soft); padding: 12px; border-radius: 10px; }
+      .dock-details-dialog dt { font-size: 12px; margin-bottom: 5px; }
+      .dock-details-dialog dd { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+      .dock-details-dialog button { cursor: pointer; border: 1px solid var(--line); border-radius: 9px; padding: 10px 16px; background: var(--surface-soft); color: var(--ink); font: inherit; }
+      .dock-details-dialog button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+      .dock-details-dialog [data-mark] { background: var(--orange); color: #fff; border-color: var(--orange); }
+      .dock-details-dialog footer { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
+      .dock-details-note { font-size: 12px; line-height: 1.5; }
+      @media (max-width: 520px) { .dock-details-dialog dl { grid-template-columns: 1fr; } }
+
       .dock-card[data-dock-id] {
         --selection-accent: var(--status-accent, var(--muted));
         cursor: pointer;

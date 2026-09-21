@@ -155,14 +155,24 @@
     const total = numberOrZero(stats.totalOrders);
     const missing = numberOrZero(stats.missingSizeOrders);
     const cards = sizes.map(([size, count]) => {
-      const label = size === 'empty' ? 'Sem tamanho informado' : size === '6' ? 'Volumosos · tamanho 6' : `Tamanho ${size}`;
-      return `<div class="dock-size-card${size === '6' ? ' bulky-size' : ''}"><span>${escapeHtml(label)}</span><strong>${numberOrZero(count).toLocaleString('pt-BR')}</strong></div>`;
+      const labels = {
+        '1': 'PP',
+        '2': 'P',
+        '3': 'M',
+        '4': 'G',
+        '5': 'QB (GG)',
+        '6': 'Bulky',
+        '7': 'PTL',
+        empty: 'Sem tamanho definido'
+      };
+      const label = Object.hasOwn(labels, size) ? labels[size] : `Tamanho ${size}`;
+      return `<div class="dock-size-card${size === '5' || size === '6' ? ' bulky-size' : ''}"><span>${escapeHtml(label)}</span><strong>${numberOrZero(count).toLocaleString('pt-BR')}</strong></div>`;
     });
     if (missing > 0) cards.push(`<div class="dock-size-card"><span>Sem retorno na busca</span><strong>${missing.toLocaleString('pt-BR')}</strong></div>`);
     return `<section class="dock-size-summary">${heading}
       <div class="dock-size-grid"><div class="dock-size-card size-total"><span>Total de pedidos</span><strong>${total.toLocaleString('pt-BR')}</strong></div>${cards.join('')}</div>
       ${total === 0 ? '<p>Nenhum pedido encontrado nesta AT.</p>' : ''}
-      <p>Separação conforme o código de tamanho retornado pelo SPX.</p></section>`;
+      <p>Volumosos: QB (GG) + Bulky.</p></section>`;
   }
 
   function toggleDockCardSelection(card) {

@@ -5,7 +5,7 @@ const ASSIGNMENT_ORDERS_API_URL = 'https://spx.shopee.com.br/spx_delivery/admin/
 const ORDER_TRACKING_API_URL = 'https://spx.shopee.com.br/api/fleet_order/order/tracking_list/search';
 const VALIDATION_TASK_API_URL = 'https://spx.shopee.com.br/api/in-station/lmhub/audit/task/list';
 const SPX_HOME = 'https://spx.shopee.com.br/';
-const ASSIGNMENT_STATS_CACHE_KEY = 'spxAssignmentStatsCacheV1';
+const ASSIGNMENT_STATS_CACHE_KEY = 'spxAssignmentStatsCacheV2';
 const ASSIGNMENT_STATS_CACHE_TTL_MS = 30 * 60 * 1000;
 const ASSIGNMENT_STATS_CACHE_RETENTION_MS = 24 * 60 * 60 * 1000;
 const ASSIGNMENT_STATS_MAX_PAGES = 100;
@@ -252,7 +252,7 @@ async function fetchAndCacheAssignmentStats(assignmentTaskId) {
   for (const item of sizeResult.items) {
     const sizeType = String(item?.size_type ?? '').trim();
     sizeCounts[sizeType || 'empty'] = (sizeCounts[sizeType || 'empty'] || 0) + 1;
-    if (sizeType === '6') bulkyOrders += 1;
+    if (sizeType === '5' || sizeType === '6') bulkyOrders += 1;
   }
 
   const fetchedAt = Date.now();

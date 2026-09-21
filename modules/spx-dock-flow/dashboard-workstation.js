@@ -125,8 +125,6 @@
       ['Região / cluster', details.cluster || next?.cluster],
       ['Cidade', details.city], ['Bairro', details.neighborhood],
       ['Pedidos da AT', number(details.order_count ?? (stats?.status === 'ready' ? stats.totalOrders : null))],
-      ['Volumosos', stats?.status === 'ready' ? number(stats.bulkyOrders) : stats?.status === 'error' ? 'Indisponível' : stats?.status === 'loading' ? 'Carregando…' : '—'],
-      ['Pedidos sem tamanho identificado', stats?.status === 'ready' ? number(stats.missingSizeOrders) : '—'],
       ['Paradas', number(details.stops_number)],
       ['Distância planejada', details.total_distance == null ? '—' : `${number(details.total_distance)} km`],
       ['Veículo planejado', details.planned_vehicle_type || details.vehicle_name],
@@ -137,10 +135,34 @@
       ...(next ? [['Tempo de espera', formatDuration(getCurrentWaitingSeconds(numberOrZero(next.waiting_time), driverId))], ['Posição na fila', next.queue_sequence]] : []),
       ['Grupo de docas', dock.dock_group_name]
     ];
-    const html = `${state.routesLoading ? '<p>Atualizando informações da rota…</p>' : routeState?.ok === false ? '<p>Detalhes da AT indisponíveis nesta atualização.</p>' : ''}
+    const html = `${renderSizeBreakdown(stats, assignmentId)}${state.routesLoading ? '<p>Atualizando informações da rota…</p>' : routeState?.ok === false ? '<p>Detalhes da AT indisponíveis nesta atualização.</p>' : ''}
       <dl>${fields.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value == null || value === '' ? '—' : String(value))}</dd></div>`).join('')}</dl>
       <p class="dock-details-note">A marcação acompanha esta mesa e mantém os alertas de mudança de situação.</p>`;
     if (body.innerHTML !== html) body.innerHTML = html;
+  }
+
+  function renderSizeBreakdown(stats, assignmentId) {
+    const heading = '<h3>Pedidos por tamanho</h3>';
+    if (stats?.status !== 'ready') {
+      const message = !assignmentId ? 'Nenhuma AT vinculada.'
+        : stats?.status === 'error' ? 'Não foi possível consultar os tamanhos dos pedidos.'
+        : 'Carregando a distribuição por tamanho…';
+      return `<section class="dock-size-summary">${heading}<p role="status">${message}</p></section>`;
+    }
+    const sizes = Object.entries(stats.sizeCounts || {})
+      .filter(([, count]) => numberOrZero(count) > 0)
+      .sort(([a], [b]) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+    const total = numberOrZero(stats.totalOrders);
+    const missing = numberOrZero(stats.missingSizeOrders);
+    const cards = sizes.map(([size, count]) => {
+      const label = size === 'empty' ? 'Sem tamanho informado' : size === '6' ? 'Volumosos · tamanho 6' : `Tamanho ${size}`;
+      return `<div class="dock-size-card${size === '6' ? ' bulky-size' : ''}"><span>${escapeHtml(label)}</span><strong>${numberOrZero(count).toLocaleString('pt-BR')}</strong></div>`;
+    });
+    if (missing > 0) cards.push(`<div class="dock-size-card"><span>Sem retorno na busca</span><strong>${missing.toLocaleString('pt-BR')}</strong></div>`);
+    return `<section class="dock-size-summary">${heading}
+      <div class="dock-size-grid"><div class="dock-size-card size-total"><span>Total de pedidos</span><strong>${total.toLocaleString('pt-BR')}</strong></div>${cards.join('')}</div>
+      ${total === 0 ? '<p>Nenhum pedido encontrado nesta AT.</p>' : ''}
+      <p>Separação conforme o código de tamanho retornado pelo SPX.</p></section>`;
   }
 
   function toggleDockCardSelection(card) {
@@ -343,6 +365,15 @@
       .dock-details-dialog button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
       .dock-details-dialog [data-mark] { background: var(--orange); color: #fff; border-color: var(--orange); }
       .dock-details-dialog footer { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
+      .dock-size-summary { margin: 20px 0; padding: 18px; border: 1px solid var(--orange); border-radius: 14px; background: var(--orange-soft); }
+      .dock-size-summary h3 { margin: 0 0 14px; font-size: 18px; }
+      .dock-size-summary p { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+      .dock-size-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+      .dock-size-card { padding: 16px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+      .dock-size-card span { display: block; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+      .dock-size-card strong { display: block; margin-top: 8px; font-size: 32px; font-weight: 800; line-height: 1; }
+      .dock-size-card.size-total { background: var(--orange); border-color: var(--orange); color: #fff; }
+      .dock-size-card.bulky-size { border-color: var(--orange); }
       .dock-details-note { font-size: 12px; line-height: 1.5; }
       @media (max-width: 520px) { .dock-details-dialog dl { grid-template-columns: 1fr; } }
 

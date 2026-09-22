@@ -35,18 +35,6 @@
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf",
       "authProfiles": [{"id":"spx","requestPatterns":["https://spx.shopee.com.br/*"],"tabPatterns":["https://spx.shopee.com.br/*"],"captureUrlPatterns":["https://spx.shopee.com.br/*"],"captureHeaders":["x-sap-ri","x-sap-sec","x-csrftoken","device-id","app"],"cookieMappings":[{"url":"https://spx.shopee.com.br/","cookieName":"csrftoken","headerName":"x-csrftoken"},{"url":"https://spx.shopee.com.br/","cookieName":"spx-admin-device-id","headerName":"device-id"}],"defaultHeaders":{"accept":"application/json, text/plain, */*","app":"FMS Portal"},"success":{"field":"retcode","equals":0},"retryWithoutHeaders":["x-sap-ri","x-sap-sec"]}],
       "allowedOpenUrls": ["https://spx.shopee.com.br/*"]
-    },
-    {
-      "id": "catalogo-de-etiquetas",
-      "name": "Catálogo de Etiquetas",
-      "description": "Catálogo com as 16 etiquetas operacionais do conjunto enviado e impressão pelo diálogo padrão do Windows nos formatos 70×40 mm e 100×150 mm.",
-      "version": "1.2.1",
-      "enabled": true,
-      "type": "web_app",
-      "entry": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/?v=1.2.1",
-      "permissions": [],
-      "hostPermissions": [],
-      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/catalogo-de-etiquetas/descricao.pdf"
     }
   ]
 }

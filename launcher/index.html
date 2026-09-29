@@ -65,5 +65,32 @@
   <script src="../shared/spx-access.js?v=20260916-8"></script>
   <script src="spx-auth.js?v=20260916-8"></script>
   <script src="launcher.js?v=20260916-8"></script>
+  <script>
+    (() => {
+      const MIGRATION_KEY = 'spxAutoAddAssistantMigrationV111';
+      const MODULE_ID = 'spx-dock-flow-autoadd';
+
+      async function migrate() {
+        if (localStorage.getItem(MIGRATION_KEY) === '1') return;
+        if (!window.LoaderBridge?.requestForModule) return;
+
+        try {
+          const current = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.status');
+          if (!current?.ok) return;
+
+          if (current.enabled) {
+            const disabled = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.setEnabled', { enabled: false });
+            if (!disabled?.ok) return;
+            const enabled = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.setEnabled', { enabled: true });
+            if (!enabled?.ok) return;
+          }
+
+          localStorage.setItem(MIGRATION_KEY, '1');
+        } catch {}
+      }
+
+      window.setTimeout(migrate, 800);
+    })();
+  </script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-29T13:50:00+00:00",
+  "updatedAt": "2026-09-29T14:10:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260929-3"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260929-4"
   },
   "modules": [
     {
@@ -25,13 +25,13 @@
       "id": "spx-dock-flow-autoadd",
       "name": "Assistênte de AutoAdd",
       "description": "Acompanha os pedidos AutoAdd na tela de conferência e mostra quais ainda estão pendentes de carregamento.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "enabled": true,
       "type": "user_script",
       "permissions": ["tabs", "userScripts", "cookies", "scripting", "webRequest"],
       "hostPermissions": ["https://spx.shopee.com.br/*"],
       "capabilities": ["userscripts.status", "userscripts.setEnabled"],
-      "userScripts": [{"id":"spx-dock-flow-autoadd-panel","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/spx-dock-flow/audit-autoadd-panel.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false}]
+      "userScripts": [{"id":"spx-dock-flow-autoadd-panel","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-autoadd/assistente-de-autoadd.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false}]
     },
     {
       "id": "assistente-de-devolucoes",

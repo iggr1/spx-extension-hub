@@ -153,163 +153,132 @@
 })();
 
 (() => {
-  const MODULE_ID = 'spx-dock-flow-autoadd';
-  const STORAGE_KEY = 'spxDockFlowAutoAddPanelEnabledV1';
-  const DEFAULT_ENABLED = true;
-  const FIELD_ID = 'settingDockFlowAutoAddPanel';
-  const STATUS_ID = 'settingDockFlowAutoAddPanelStatus';
-
-  let enabled = loadPreference();
-  let busy = false;
+  const STATION_URL = 'https://spx.shopee.com.br/api/admin/basicserver/current_user/station_list/?count=50&status_list=0';
+  const PLANNED_URL = 'https://spx.shopee.com.br/spx_delivery/admin/assignment/assignment_task/detail/planned_order/search';
+  const CACHE_TTL_MS = 60 * 1000;
+  const countCache = new Map();
+  let stationCache = { id: 0, expiresAt: 0 };
+  let frame = 0;
 
   initialize();
 
   function initialize() {
-    injectSetting();
-    syncInput();
-    bindEvents();
-    window.setTimeout(() => void reconcileScriptState(), 250);
+    const observer = new MutationObserver(scheduleSync);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
+    document.addEventListener('click', event => {
+      if (event.target.closest('.dock-card[data-dock-id]')) scheduleSync();
+    }, true);
+    scheduleSync();
   }
 
-  function injectSetting() {
-    if (document.getElementById(FIELD_ID)) return;
-
-    const form = document.querySelector('#settingsModal .settings-form');
-    const actions = form?.querySelector('.settings-actions');
-    if (!form || !actions) return;
-
-    const section = document.createElement('section');
-    section.className = 'settings-section';
-    section.dataset.dockflowAutoaddSettings = 'true';
-    section.innerHTML = `
-      <h3 class="settings-section-title">Tela de conferência</h3>
-      <div class="settings-grid">
-        <label class="settings-field full-width">
-          <span class="settings-switch-row">
-            <span>
-              <span class="settings-field-label">Painel AutoAdd na conferência</span>
-              <small id="${STATUS_ID}">Exibe o painel Dockflow de pedidos AutoAdd no canto inferior direito da tela de conferência.</small>
-            </span>
-            <span class="settings-switch">
-              <input id="${FIELD_ID}" type="checkbox">
-              <span aria-hidden="true"></span>
-            </span>
-          </span>
-        </label>
-      </div>
-    `;
-
-    form.insertBefore(section, actions);
-  }
-
-  function bindEvents() {
-    document.getElementById('settingsButton')?.addEventListener('click', () => {
-      syncInput();
-      void refreshStatus();
-    });
-
-    document.getElementById('settingsSaveButton')?.addEventListener('click', () => {
-      const input = document.getElementById(FIELD_ID);
-      enabled = input?.checked !== false;
-      savePreference(enabled);
-      void reconcileScriptState(true);
-    });
-
-    document.getElementById('settingsResetButton')?.addEventListener('click', () => {
-      enabled = DEFAULT_ENABLED;
-      savePreference(enabled);
-      syncInput();
-      void reconcileScriptState(true);
-    });
-
-    document.getElementById('settingsCancelButton')?.addEventListener('click', syncInput);
-    document.getElementById('settingsCloseButton')?.addEventListener('click', syncInput);
-
-    document.getElementById('settingsModal')?.addEventListener('click', event => {
-      if (event.target === event.currentTarget) syncInput();
-    });
-
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') syncInput();
+  function scheduleSync() {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      void syncAutoAddCount();
     });
   }
 
-  async function reconcileScriptState(showReloadCount = false) {
-    if (busy || !window.LoaderBridge?.requestForModule) return;
-    busy = true;
-    setBusy(true);
+  async function syncAutoAddCount() {
+    const dialog = document.querySelector('.dock-details-dialog[open]');
+    const list = dialog?.querySelector('.dock-details-body dl');
+    if (!list) return;
+
+    const assignmentTaskId = readAssignmentTaskId(list);
+    if (!assignmentTaskId) return;
+
+    const row = ensureRow(list);
+    const value = row.querySelector('dd');
+    const cached = countCache.get(assignmentTaskId);
+
+    if (cached?.status === 'ready' && cached.expiresAt > Date.now()) {
+      value.textContent = String(cached.count);
+      return;
+    }
+
+    if (cached?.status === 'loading') {
+      value.textContent = '...';
+      return;
+    }
+
+    if (cached?.status === 'error' && cached.expiresAt > Date.now()) {
+      value.textContent = '—';
+      return;
+    }
+
+    value.textContent = '...';
+    countCache.set(assignmentTaskId, { status: 'loading' });
 
     try {
-      const status = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.status');
-      if (!status?.ok) throw new Error(status?.error || 'Não foi possível consultar o painel AutoAdd.');
-
-      if (status.enabled !== enabled) {
-        const response = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.setEnabled', { enabled });
-        if (!response?.ok) throw new Error(response?.error || 'Não foi possível alterar o painel AutoAdd.');
-        renderStatus(response.enabled === true, showReloadCount ? Number(response.reloadedTabs || 0) : 0);
-      } else {
-        renderStatus(status.enabled === true, 0);
-      }
-    } catch (error) {
-      renderError(error);
-    } finally {
-      busy = false;
-      setBusy(false);
+      const count = await fetchAutoAddCount(assignmentTaskId);
+      countCache.set(assignmentTaskId, { status: 'ready', count, expiresAt: Date.now() + CACHE_TTL_MS });
+    } catch {
+      countCache.set(assignmentTaskId, { status: 'error', expiresAt: Date.now() + 15000 });
     }
+
+    scheduleSync();
   }
 
-  async function refreshStatus() {
-    if (busy || !window.LoaderBridge?.requestForModule) return;
-    busy = true;
-    setBusy(true);
-
-    try {
-      const status = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.status');
-      if (!status?.ok) throw new Error(status?.error || 'Não foi possível consultar o painel AutoAdd.');
-      renderStatus(status.enabled === true, 0);
-    } catch (error) {
-      renderError(error);
-    } finally {
-      busy = false;
-      setBusy(false);
+  function readAssignmentTaskId(list) {
+    for (const row of list.querySelectorAll(':scope > div')) {
+      if (row.querySelector('dt')?.textContent?.trim() !== 'AT') continue;
+      const value = row.querySelector('dd')?.textContent?.trim() || '';
+      return /^AT[A-Z0-9]+$/i.test(value) ? value.toUpperCase() : '';
     }
+    return '';
   }
 
-  function renderStatus(actualEnabled, reloadedTabs) {
-    const status = document.getElementById(STATUS_ID);
-    if (!status) return;
-    const reloadText = reloadedTabs > 0
-      ? ` ${reloadedTabs} aba${reloadedTabs === 1 ? '' : 's'} do SPX recarregada${reloadedTabs === 1 ? '' : 's'}.`
-      : '';
-    status.textContent = actualEnabled
-      ? `Ativo. O painel Dockflow aparece no canto inferior direito da tela de conferência.${reloadText}`
-      : `Desativado. O Dockflow não adiciona o painel AutoAdd à tela de conferência.${reloadText}`;
+  function ensureRow(list) {
+    let row = list.querySelector('[data-autoadd-count]');
+    if (row) return row;
+
+    row = document.createElement('div');
+    row.dataset.autoaddCount = 'true';
+    row.innerHTML = '<dt>AutoAdd</dt><dd>...</dd>';
+
+    const orderRow = [...list.querySelectorAll(':scope > div')].find(item => item.querySelector('dt')?.textContent?.trim() === 'Pedidos da AT');
+    if (orderRow?.nextSibling) list.insertBefore(row, orderRow.nextSibling);
+    else list.appendChild(row);
+    return row;
   }
 
-  function renderError(error) {
-    const status = document.getElementById(STATUS_ID);
-    if (!status) return;
-    const message = String(error?.message || error || 'Falha desconhecida.');
-    status.textContent = `Não foi possível aplicar esta opção: ${message}`;
+  async function fetchAutoAddCount(assignmentTaskId) {
+    const stationId = await getStationId();
+    const response = await LoaderBridge.request('network.fetchBatch', {
+      profileId: 'spx',
+      requests: [{
+        key: 'autoadd-count',
+        url: PLANNED_URL,
+        method: 'POST',
+        body: { assignment_task_id: assignmentTaskId, station_id: stationId }
+      }]
+    });
+    const result = response?.results?.['autoadd-count'];
+    if (!result?.ok) throw new Error(result?.error || 'Falha ao consultar AutoAdd.');
+
+    const list = Array.isArray(result.data?.data?.list) ? result.data.data.list : [];
+    const ids = new Set();
+    for (const item of list) {
+      if (Number(item?.order_at_linkage) !== 2) continue;
+      const shipmentId = String(item?.shipment_id || '').trim();
+      if (shipmentId) ids.add(shipmentId);
+    }
+    return ids.size;
   }
 
-  function setBusy(value) {
-    const input = document.getElementById(FIELD_ID);
-    if (input) input.disabled = value;
-  }
+  async function getStationId() {
+    if (stationCache.id > 0 && stationCache.expiresAt > Date.now()) return stationCache.id;
 
-  function syncInput() {
-    const input = document.getElementById(FIELD_ID);
-    if (input) input.checked = enabled;
-  }
+    const response = await LoaderBridge.request('network.fetchBatch', {
+      profileId: 'spx',
+      requests: [{ key: 'autoadd-station', url: STATION_URL, method: 'GET' }]
+    });
+    const result = response?.results?.['autoadd-station'];
+    if (!result?.ok) throw new Error(result?.error || 'Falha ao identificar a estação.');
 
-  function loadPreference() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === null) return DEFAULT_ENABLED;
-    return stored !== 'false';
-  }
-
-  function savePreference(value) {
-    localStorage.setItem(STORAGE_KEY, value ? 'true' : 'false');
+    const stationId = Number(result.data?.data?.current_station_id || 0);
+    if (!Number.isSafeInteger(stationId) || stationId <= 0) throw new Error('Estação inválida.');
+    stationCache = { id: stationId, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return stationId;
   }
 })();

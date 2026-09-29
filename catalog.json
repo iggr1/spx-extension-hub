@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-17T19:00:00+00:00",
+  "updatedAt": "2026-09-29T12:20:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260917-2"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260929-1"
   },
   "modules": [
     {
       "id": "spx-dock-flow",
       "name": "SPX Dock Flow",
       "description": "Dashboard em tempo real para mesas, motoristas, rotas, carregamento e volumetria por AT.",
-      "version": "1.8.16",
+      "version": "1.9.0",
       "enabled": true,
       "type": "web_app",
       "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/",
@@ -20,6 +20,19 @@
       "allowedOpenUrls": ["https://spx.shopee.com.br/*"],
       "authProfiles": [{"id":"spx","requestPatterns":["https://spx.shopee.com.br/*"],"tabPatterns":["https://spx.shopee.com.br/*"],"captureUrlPatterns":["https://spx.shopee.com.br/*"],"captureHeaders":["x-sap-ri","x-sap-sec","x-csrftoken","device-id","app"],"cookieMappings":[{"url":"https://spx.shopee.com.br/","cookieName":"csrftoken","headerName":"x-csrftoken"},{"url":"https://spx.shopee.com.br/","cookieName":"spx-admin-device-id","headerName":"device-id"}],"defaultHeaders":{"accept":"application/json, text/plain, */*","app":"FMS Portal"},"success":{"field":"retcode","equals":0},"retryWithoutHeaders":["x-sap-ri","x-sap-sec"]}],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf"
+    },
+    {
+      "id": "spx-dock-flow-autoadd",
+      "name": "Dock Flow · Painel AutoAdd",
+      "description": "Componente interno do Dock Flow para exibir pedidos AutoAdd na tela de conferência do SPX.",
+      "version": "1.0.0",
+      "enabled": true,
+      "internal": true,
+      "type": "user_script",
+      "permissions": ["tabs", "userScripts", "cookies", "scripting", "webRequest"],
+      "hostPermissions": ["https://spx.shopee.com.br/*"],
+      "capabilities": ["userscripts.status", "userscripts.setEnabled"],
+      "userScripts": [{"id":"spx-dock-flow-autoadd-panel","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/spx-dock-flow/audit-autoadd-panel.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false}]
     },
     {
       "id": "assistente-de-devolucoes",

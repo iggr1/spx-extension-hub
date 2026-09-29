@@ -184,15 +184,7 @@
     style.id = 'dockFlowAutoAddStyles';
     style.textContent = `
       .assignment-stats {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-      }
-
-      .assignment-stat.autoadd b {
-        color: var(--green, #22c55e);
-      }
-
-      .assignment-stat.autoadd.pending b {
-        color: var(--orange, #ee4d2d);
+        grid-template-columns: 1fr !important;
       }
 
       .dock-autoadd-highlight {

@@ -155,8 +155,8 @@
 (() => {
   const STATION_URL = 'https://spx.shopee.com.br/api/admin/basicserver/current_user/station_list/?count=50&status_list=0';
   const PLANNED_URL = 'https://spx.shopee.com.br/spx_delivery/admin/assignment/assignment_task/detail/planned_order/search';
-  const CACHE_TTL_MS = 60 * 1000;
-  const countCache = new Map();
+  const SCANNED_URL = 'https://spx.shopee.com.br/api/in-station/lmhub/audit/parcel/list';
+  const progressCache = new Map();
   let stationCache = { id: 0, expiresAt: 0 };
   let frame = 0;
 
@@ -165,9 +165,12 @@
   function initialize() {
     const observer = new MutationObserver(scheduleSync);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
+
     document.addEventListener('click', event => {
       if (event.target.closest('.dock-card[data-dock-id]')) scheduleSync();
     }, true);
+
+    window.setInterval(scheduleSync, 1000);
     scheduleSync();
   }
 
@@ -175,110 +178,51 @@
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      void syncAutoAddCount();
+      void syncAutoAddProgress();
     });
   }
 
-  async function syncAutoAddCount() {
-    const dialog = document.querySelector('.dock-details-dialog[open]');
-    const list = dialog?.querySelector('.dock-details-body dl');
-    if (!list) return;
+  async function syncAutoAddProgress() {
+    const dialog = document.querySelectoä	Àôÿ⁄ÀY]Z[ÀYX[Ÿ÷€‹[óI N¬à€€ú›\›HX[ŸœÀú]Y\ûTŸ[X›‹ä	Àôÿ⁄ÀY]Z[ÀXõŸH	 N¬àYà
+[\›
+Hô]\õé¬Çà€€ú›\‹⁄Y€õY[ù\⁄“YHôXY\‹⁄Y€õY[ù\⁄“Y
+\›
+N¬àYà
+X\‹⁄Y€õY[ù\⁄“Y
+Hô]\õé¬Çà€€ú›õ›»H[ú›\ôTõ› \›
+N¬à€€ú›ò[YHHõ›Àú]Y\ûTŸ[X›‹ä	Ÿ	 N¬à€€ú›ò[Y][€ï\⁄“YHôXYò[Y][€ï\⁄“Y
 
-    const assignmentTaskId = readAssignmentTaskId(list);
-    if (!assignmentTaskId) return;
+N¬ÇàYà
+]ò[Y][€ï\⁄“Y
+H¬àò[YKù^€€ù[ùH	¯†%	Œ¬àô]\õé¬àBÇà€€ú›ﬁX€P]Hù[Xô\ä›]OÀôô]⁄Y]
+N¬à€€ú›Ÿ^HH	›ò[Y][€ï\⁄“Y_	ÿ\‹⁄Y€õY[ù\⁄“YX¬à€€ú›ÿX⁄YHõŸ‹ô\‹–ÿX⁄KôŸ]
+Ÿ^JN¬ÇàYà
+ÿX⁄YÀú›]\»OOH	‹ôXYI»	âàÿX⁄YòﬁX€P]OOHﬁX€P]
+H¬àô[ô\îõŸ‹ô\‹ ò[YKÿX⁄Y
+N¬àô]\õé¬àBÇàYà
+ÿX⁄YÀú›]\»OOH	€ÿY[ô…»	âàÿX⁄YòﬁX€P]OOHﬁX€P]
+H¬àò[YKù^€€ù[ùH	–]X[^ò[ôÀããâŒ¬àô]\õé¬àBÇàò[YKù^€€ù[ùH	–]X[^ò[ôÀããâŒ¬àõŸ‹ô\‹–ÿX⁄KúŸ]
+Ÿ^K»›]\Œà	€ÿY[ô…ÀﬁX€P]JN¬ÇàûH¬à€€ú›õŸ‹ô\‹»H]ÿZ]ô]⁄]]–YõŸ‹ô\‹ \‹⁄Y€õY[ù\⁄“Yò[Y][€ï\⁄“Y
+N¬àõŸ‹ô\‹–ÿX⁄KúŸ]
+Ÿ^K»›]\Œà	‹ôXYIÀﬁX€P]ããúõŸ‹ô\‹»JN¬àHÿ]⁄¬àõŸ‹ô\‹–ÿX⁄KúŸ]
+Ÿ^K»›]\Œà	Ÿ\úõ‹âÀﬁX€P]JN¬àBÇàÿ⁄Y[Tﬁ[ò 
+N¬àBÇàù[ò›[€àôXY\‹⁄Y€õY[ù\⁄“Y
+\›
+H¬àõ‹à
+€€ú›õ›»Ÿà\›ú]Y\ûTŸ[X›‹ê[
+	Œúÿ€‹Hà]â JH¬àYà
+õ›Àú]Y\ûTŸ[X›‹ä	Ÿ	 OÀù^€€ù[ùÀùö[J
+HOOH	–U	 H€€ù[ùYN¬à€€ú›ò[YHHõ›Àú]Y\ûTŸ[X›‹ä	Ÿ	 OÀù^€€ù[ùÀùö[J
+H	…Œ¬àô]\õà◊êU–KVåNWJ…⁄Kù\›
+ò[YJH»ò[YKù’\\êÿ\ŸJ
+Hà	…Œ¬àBàô]\õà	…Œ¬àBÇàù[ò›[€àôXYò[Y][€ï\⁄“Y
 
-    const row = ensureRow(list);
-    const value = row.querySelector('dd');
-    const cached = countCache.get(assignmentTaskId);
-
-    if (cached?.status === 'ready' && cached.expiresAt > Date.now()) {
-      value.textContent = String(cached.count);
-      return;
-    }
-
-    if (cached?.status === 'loading') {
-      value.textContent = '...';
-      return;
-    }
-
-    if (cached?.status === 'error' && cached.expiresAt > Date.now()) {
-      value.textContent = '‚Äî';
-      return;
-    }
-
-    value.textContent = '...';
-    countCache.set(assignmentTaskId, { status: 'loading' });
-
-    try {
-      const count = await fetchAutoAddCount(assignmentTaskId);
-      countCache.set(assignmentTaskId, { status: 'ready', count, expiresAt: Date.now() + CACHE_TTL_MS });
-    } catch {
-      countCache.set(assignmentTaskId, { status: 'error', expiresAt: Date.now() + 15000 });
-    }
-
-    scheduleSync();
-  }
-
-  function readAssignmentTaskId(list) {
-    for (const row of list.querySelectorAll(':scope > div')) {
-      if (row.querySelector('dt')?.textContent?.trim() !== 'AT') continue;
-      const value = row.querySelector('dd')?.textContent?.trim() || '';
-      return /^AT[A-Z0-9]+$/i.test(value) ? value.toUpperCase() : '';
-    }
-    return '';
-  }
-
-  function ensureRow(list) {
-    let row = list.querySelector('[data-autoadd-count]');
-    if (row) return row;
-
-    row = document.createElement('div');
-    row.dataset.autoaddCount = 'true';
-    row.innerHTML = '<dt>AutoAdd</dt><dd>...</dd>';
-
-    const orderRow = [...list.querySelectorAll(':scope > div')].find(item => item.querySelector('dt')?.textContent?.trim() === 'Pedidos da AT');
-    if (orderRow?.nextSibling) list.insertBefore(row, orderRow.nextSibling);
-    else list.appendChild(row);
-    return row;
-  }
-
-  async function fetchAutoAddCount(assignmentTaskId) {
-    const stationId = await getStationId();
-    const response = await LoaderBridge.request('network.fetchBatch', {
-      profileId: 'spx',
-      requests: [{
-        key: 'autoadd-count',
-        url: PLANNED_URL,
-        method: 'POST',
-        body: { assignment_task_id: assignmentTaskId, station_id: stationId }
-      }]
-    });
-    const result = response?.results?.['autoadd-count'];
-    if (!result?.ok) throw new Error(result?.error || 'Falha ao consultar AutoAdd.');
-
-    const list = Array.isArray(result.data?.data?.list) ? result.data.data.list : [];
-    const ids = new Set();
-    for (const item of list) {
-      if (Number(item?.order_at_linkage) !== 2) continue;
-      const shipmentId = String(item?.shipment_id || '').trim();
-      if (shipmentId) ids.add(shipmentId);
-    }
-    return ids.size;
-  }
-
-  async function getStationId() {
-    if (stationCache.id > 0 && stationCache.expiresAt > Date.now()) return stationCache.id;
-
-    const response = await LoaderBridge.request('network.fetchBatch', {
-      profileId: 'spx',
-      requests: [{ key: 'autoadd-station', url: STATION_URL, method: 'GET' }]
-    });
-    const result = response?.results?.['autoadd-station'];
-    if (!result?.ok) throw new Error(result?.error || 'Falha ao identificar a esta√ß√£o.');
-
-    const stationId = Number(result.data?.data?.current_station_id || 0);
-    if (!Number.isSafeInteger(stationId) || stationId <= 0) throw new Error('Esta√ß√£o inv√°lida.');
-    stationCache = { id: stationId, expiresAt: Date.now() + 10 * 60 * 1000 };
-    return stationId;
-  }
-})();
+H¬à€€ú›ò[YHH›ö[ô ›]OÀùò[Y][€îõŸ‹ô\‹œÀù\⁄“Y	… Kùö[J
+N¬àô]\õà◊ïï–KVåNWJ…⁄Kù\›
+ò[YJH»ò[YKù’\\êÿ\ŸJ
+Hà	…Œ¬àBÇàù[ò›[€à[ú›\ôTõ› \›
+H¬à]õ›»H\›ú]Y\ûTŸ[X›‹ä	÷Ÿ]KX]]ÿY\õŸ‹ô\‹◊I N¬àYà
+õ› Hô]\õàõ›Œ¬Çàõ›»Hÿ›[Y[ùò‹ôX]Q[[Y[ù
+	Ÿ]â N¬àõ›Àô]\Ÿ]ò]]ÿYõŸ‹ô\‹»H	›ùYIŒ¬àõ›Àö[õô\íSH	œê]]–YŸèê]X[^ò[ôÀããèŸâŒ¬Çà€€ú›‹ô\îõ›»HÀããõ\›ú]Y\ûTŸ[X›‹ê[
+	Œúÿ€‹Hà]â WBàôö[ô
+][HOà][Kú]Y\ûTŸ[X›‚ÇvGBrìÚÁFWáD6ˆÁFVÁCÚÁG&ñ“Çí””“uVFñF˜2FBrì∞†¢ñbÜ˜&FW%&˜sÚÊÊWáE6ñ&∆ñÊrí∆ó7BÊñÁ6W'D&Vf˜&Rá&˜r¬˜&FW%&˜rÊÊWáE6ñ&∆ñÊrì∞¢V«6R∆ó7BÊVÊD6Üñ∆Bá&˜rì∞†¢&WGW&‚&˜s∞¢–†¢gVÊ7Fñˆ‚&VÊFW%&ˆw&W72áf«VR¬&ˆw&W72í∞¢ñbÇ&ˆw&W72ÁF˜F¬í∞¢f«VRÁFWáD6ˆÁFVÁB“u&˜F6V“WFÙFBs∞¢&WGW&„∞¢–†¢6ˆÁ7B∆ˆFVD∆&V¬“&ˆw&W72Ê∆ˆFVB””“Úv&óFÚr¢v&óF˜2s∞¢6ˆÁ7BVÊFñÊt∆&V¬“&ˆw&W72ÁVÊFñÊr””“Úvf«FÊFÚr¢vf«FÊFÚs∞¢f«VRÁFWáD6ˆÁFVÁB“G∑&ˆw&W72Ê∆ˆFVG“G∂∆ˆFVD∆&V«“+rG∑&ˆw&W72ÁVÊFñÊw“G∑VÊFñÊt∆&V«÷∞¢–†¢7ñÊ2gVÊ7Fñˆ‚fWF6ÑWFÙFE&ˆw&W72Ü76ñvÊ÷VÁEF6¥ñB¬f∆ñFFñˆÂF6¥ñBí∞¢6ˆÁ7B7FFñˆ‰ñB“vóBvWE7FFñˆ‰ñBÇì∞†¢6ˆÁ7B66ÊÊVE&◊2“ÊWrU$≈6V&6Ö&◊2á∞¢f∆ñFFñˆÂ˜F6µˆñC¢f∆ñFFñˆÂF6¥ñB¿¢F&vWEˆñC¢76ñvÊ÷VÁEF6¥ñB¿¢VFóE˜F&vWE˜GóS¢s"r¿¢vUˆÊÛ¢sr¿¢6˜VÁC¢sììír¿¢&6V≈˜66Â˜7FGW3¢s"r¿¢6Üó÷VÁEˆñC¢rp¢“ì∞†¢6ˆÁ7B&W7ˆÁ6R“vóB∆ˆFW$'&ñFvRÁ&WVW7BÇvÊWGv˜&≤ÊfWF6Ñ&F6Çr¬∞¢&ˆfñ∆TñC¢w7Çr¿¢&WVW7G3¢∞¢∞¢∂Wì¢vWFˆFB◊∆ÊÊVBr¿¢W&√¢ƒ‰‰TEıU$¬¿¢÷WFÜˆC¢uı5Br¿¢&ˆGì¢≤76ñvÊ÷VÁE˜F6µˆñC¢76ñvÊ÷VÁEF6¥ñB¬7FFñˆÂˆñC¢7FFñˆ‰ñB–¢“¿¢∞¢∂Wì¢vWFˆFB◊66ÊÊVBr¿¢W&√¢Gµ44‰‰TEıU$«”ÚG∑66ÊÊVE&◊2ÁFı7G&ñÊrÇó÷¿¢÷WFÜˆC¢ttUBp¢–¢–¢“ì∞†¢6ˆÁ7B∆ÊÊVE&W7V«B“&W7ˆÁ6SÚÁ&W7V«G3ÚÂ≤vWFˆFB◊∆ÊÊVBu”∞¢6ˆÁ7B66ÊÊVE&W7V«B“&W7ˆÁ6SÚÁ&W7V«G3ÚÂ≤vWFˆFB◊66ÊÊVBu”∞†¢ñbÇ∆ÊÊVE&W7V«CÚÊˆ≤«¬66ÊÊVE&W7V«CÚÊˆ≤í∞¢Fá&˜rÊWrW'&˜"ÇtÏ:6Úfˆí˜7<:◊fV¬GV∆ó¶"ÚWFÙFB‚rì∞¢–†¢6ˆÁ7B∆ÊÊVD∆ó7B“'&íÊó4'&íá∆ÊÊVE&W7V«BÊFFÚÊFFÚÊ∆ó7Bê¢Ú∆ÊÊVE&W7V«BÊFFÊFFÊ∆ó7@¢¢µ”∞¢6ˆÁ7B66ÊÊVD∆ó7B“'&íÊó4'&íá66ÊÊVE&W7V«BÊFFÚÊFFÚÊ∆ó7Bê¢Ú66ÊÊVE&W7V«BÊFFÊFFÊ∆ó7@¢¢µ”∞†¢6ˆÁ7B∆ÊÊVDñG2“ÊWr6WBÇì∞¢6ˆÁ7B66ÊÊVDñG2“ÊWr6WBÇì∞†¢f˜"Ü6ˆÁ7BóFV“ˆb∆ÊÊVD∆ó7Bí∞¢ñbÑÁV÷&W"ÜóFV”ÚÊ˜&FW%ˆEˆ∆ñÊ∂vRí”“"í6ˆÁFñÁVS∞¢6ˆÁ7B6Üó÷VÁDñB“7G&ñÊrÜóFV”ÚÁ6Üó÷VÁEˆñB«¬rríÁG&ñ“ÇíÁFıWW$66RÇì∞¢ñbá6Üó÷VÁDñBí∆ÊÊVDñG2ÊFBá6Üó÷VÁDñBì∞¢–†¢f˜"Ü6ˆÁ7BóFV“ˆb66ÊÊVD∆ó7Bí∞¢6ˆÁ7B6Üó÷VÁDñB“7G&ñÊrÜóFV”ÚÁ6Üó÷VÁEˆñB«¬rríÁG&ñ“ÇíÁFıWW$66RÇì∞¢ñbá6Üó÷VÁDñBí66ÊÊVDñG2ÊFBá6Üó÷VÁDñBì∞¢–†¢∆WB∆ˆFVB“∞¢f˜"Ü6ˆÁ7B6Üó÷VÁDñBˆb∆ÊÊVDñG2í∞¢ñbá66ÊÊVDñG2ÊÜ2á6Üó÷VÁDñBíí∆ˆFVB≥“∞¢–†¢&WGW&‚∞¢F˜F√¢∆ÊÊVDñG2Á6ó¶R¿¢∆ˆFVB¿¢VÊFñÊs¢÷FÇÊ÷ÇÉ¬∆ÊÊVDñG2Á6ó¶R“∆ˆFVBê¢”∞¢–†¢7ñÊ2gVÊ7Fñˆ‚vWE7FFñˆ‰ñBÇí∞¢ñbá7FFñˆ‰66ÜRÊñB‚bb7FFñˆ‰66ÜRÊWáó&W4B‚FFRÊÊ˜rÇíí&WGW&‚7FFñˆ‰66ÜRÊñC∞†¢6ˆÁ7B&W7ˆÁ6R“vóB∆ˆFW$'&ñFvRÁ&WVW7BÇvÊWGv˜&≤ÊfWF6Ñ&F6Çr¬∞¢&ˆfñ∆TñC¢w7Çr¿¢&WVW7G3¢∑≤∂Wì¢vWFˆFB◊7FFñˆ‚r¬W&√¢5DDîÙÂıU$¬¬÷WFÜˆC¢ttUBr’–¢“ì∞¢6ˆÁ7B&W7V«B“&W7ˆÁ6SÚÁ&W7V«G3ÚÂ≤vWFˆFB◊7FFñˆ‚u”∞†¢ñbÇ&W7V«CÚÊˆ≤íFá&˜rÊWrW'&˜"ÇtÏ:6Úfˆí˜7<:◊fV¬ñFVÁFñfñ6"W7F:|:6Ú‚rì∞†¢6ˆÁ7B7FFñˆ‰ñB“ÁV÷&W"á&W7V«BÊFFÚÊFFÚÊ7W'&VÁE˜7FFñˆÂˆñB«¬ì∞¢ñbÇÁV÷&W"Êó56fTñÁFVvW"á7FFñˆ‰ñBí«¬7FFñˆ‰ñB√“íFá&˜rÊWrW'&˜"ÇtW7F:|:6ÚñÁl:∆ñF‚rì∞†¢7FFñˆ‰66ÜR“≤ñC¢7FFñˆ‰ñB¬Wáó&W4C¢FFRÊÊ˜rÇí≤¢c¢”∞¢&WGW&‚7FFñˆ‰ñC∞¢–ß“íÇì∞†

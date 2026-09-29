@@ -1,37 +1,122 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-29T14:10:00+00:00",
+  "updatedAt": "2026-09-29T14:20:00+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260929-4"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260929-5"
   },
   "modules": [
     {
       "id": "spx-dock-flow",
       "name": "SPX Dock Flow",
       "description": "Dashboard em tempo real para mesas, motoristas, rotas, carregamento e volumetria por AT.",
-      "version": "1.9.2",
+      "version": "1.9.3",
       "enabled": true,
       "type": "web_app",
       "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/",
-      "permissions": ["storage", "cookies", "scripting", "tabs", "webRequest"],
-      "hostPermissions": ["https://spx.shopee.com.br/*"],
-      "capabilities": ["tabs.open", "storage.get", "storage.set", "storage.remove", "network.fetchBatch", "network.connectionStatus", "network.clearAuth"],
-      "allowedOpenUrls": ["https://spx.shopee.com.br/*"],
-      "authProfiles": [{"id":"spx","requestPatterns":["https://spx.shopee.com.br/*"],"tabPatterns":["https://spx.shopee.com.br/*"],"captureUrlPatterns":["https://spx.shopee.com.br/*"],"captureHeaders":["x-sap-ri","x-sap-sec","x-csrftoken","device-id","app"],"cookieMappings":[{"url":"https://spx.shopee.com.br/","cookieName":"csrftoken","headerName":"x-csrftoken"},{"url":"https://spx.shopee.com.br/","cookieName":"spx-admin-device-id","headerName":"device-id"}],"defaultHeaders":{"accept":"application/json, text/plain, */*","app":"FMS Portal"},"success":{"field":"retcode","equals":0},"retryWithoutHeaders":["x-sap-ri","x-sap-sec"]}],
+      "permissions": [
+        "storage",
+        "cookies",
+        "scripting",
+        "tabs",
+        "webRequest"
+      ],
+      "hostPermissions": [
+        "https://spx.shopee.com.br/*"
+      ],
+      "capabilities": [
+        "tabs.open",
+        "storage.get",
+        "storage.set",
+        "storage.remove",
+        "network.fetchBatch",
+        "network.connectionStatus",
+        "network.clearAuth"
+      ],
+      "allowedOpenUrls": [
+        "https://spx.shopee.com.br/*"
+      ],
+      "authProfiles": [
+        {
+          "id": "spx",
+          "requestPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "tabPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "captureUrlPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "captureHeaders": [
+            "x-sap-ri",
+            "x-sap-sec",
+            "x-csrftoken",
+            "device-id",
+            "app"
+          ],
+          "cookieMappings": [
+            {
+              "url": "https://spx.shopee.com.br/",
+              "cookieName": "csrftoken",
+              "headerName": "x-csrftoken"
+            },
+            {
+              "url": "https://spx.shopee.com.br/",
+              "cookieName": "spx-admin-device-id",
+              "headerName": "device-id"
+            }
+          ],
+          "defaultHeaders": {
+            "accept": "application/json, text/plain, */*",
+            "app": "FMS Portal"
+          },
+          "success": {
+            "field": "retcode",
+            "equals": 0
+          },
+          "retryWithoutHeaders": [
+            "x-sap-ri",
+            "x-sap-sec"
+          ]
+        }
+      ],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf"
     },
     {
       "id": "spx-dock-flow-autoadd",
       "name": "Assistênte de AutoAdd",
       "description": "Acompanha os pedidos AutoAdd na tela de conferência e mostra quais ainda estão pendentes de carregamento.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "enabled": true,
       "type": "user_script",
-      "permissions": ["tabs", "userScripts", "cookies", "scripting", "webRequest"],
-      "hostPermissions": ["https://spx.shopee.com.br/*"],
-      "capabilities": ["userscripts.status", "userscripts.setEnabled"],
-      "userScripts": [{"id":"spx-dock-flow-autoadd-panel","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-autoadd/assistente-de-autoadd.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false}]
+      "permissions": [
+        "tabs",
+        "userScripts",
+        "cookies",
+        "scripting",
+        "webRequest"
+      ],
+      "hostPermissions": [
+        "https://spx.shopee.com.br/*"
+      ],
+      "capabilities": [
+        "userscripts.status",
+        "userscripts.setEnabled"
+      ],
+      "userScripts": [
+        {
+          "id": "spx-dock-flow-autoadd-panel",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-autoadd/assistente-de-autoadd.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
+        }
+      ]
     },
     {
       "id": "assistente-de-devolucoes",
@@ -40,13 +125,96 @@
       "version": "3.0.1",
       "enabled": true,
       "type": "user_script",
-      "permissions": ["storage", "tabs", "userScripts", "cookies", "scripting", "webRequest"],
-      "hostPermissions": ["https://spx.shopee.com.br/*"],
-      "capabilities": ["userscripts.status", "userscripts.setEnabled", "network.fetchBatch", "tabs.open"],
-      "userScripts": [{"id":"recebimento-historico","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/assistente-de-devolucoes.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false},{"id":"recebimento-access-notice","url":"https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/access-notice.js","matches":["https://spx.shopee.com.br/*"],"excludeMatches":[],"runAt":"document_idle","world":"MAIN","allFrames":false}],
+      "permissions": [
+        "storage",
+        "tabs",
+        "userScripts",
+        "cookies",
+        "scripting",
+        "webRequest"
+      ],
+      "hostPermissions": [
+        "https://spx.shopee.com.br/*"
+      ],
+      "capabilities": [
+        "userscripts.status",
+        "userscripts.setEnabled",
+        "network.fetchBatch",
+        "tabs.open"
+      ],
+      "userScripts": [
+        {
+          "id": "recebimento-historico",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/assistente-de-devolucoes.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
+        },
+        {
+          "id": "recebimento-access-notice",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/access-notice.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
+        }
+      ],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf",
-      "authProfiles": [{"id":"spx","requestPatterns":["https://spx.shopee.com.br/*"],"tabPatterns":["https://spx.shopee.com.br/*"],"captureUrlPatterns":["https://spx.shopee.com.br/*"],"captureHeaders":["x-sap-ri","x-sap-sec","x-csrftoken","device-id","app"],"cookieMappings":[{"url":"https://spx.shopee.com.br/","cookieName":"csrftoken","headerName":"x-csrftoken"},{"url":"https://spx.shopee.com.br/","cookieName":"spx-admin-device-id","headerName":"device-id"}],"defaultHeaders":{"accept":"application/json, text/plain, */*","app":"FMS Portal"},"success":{"field":"retcode","equals":0},"retryWithoutHeaders":["x-sap-ri","x-sap-sec"]}],
-      "allowedOpenUrls": ["https://spx.shopee.com.br/*"]
+      "authProfiles": [
+        {
+          "id": "spx",
+          "requestPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "tabPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "captureUrlPatterns": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "captureHeaders": [
+            "x-sap-ri",
+            "x-sap-sec",
+            "x-csrftoken",
+            "device-id",
+            "app"
+          ],
+          "cookieMappings": [
+            {
+              "url": "https://spx.shopee.com.br/",
+              "cookieName": "csrftoken",
+              "headerName": "x-csrftoken"
+            },
+            {
+              "url": "https://spx.shopee.com.br/",
+              "cookieName": "spx-admin-device-id",
+              "headerName": "device-id"
+            }
+          ],
+          "defaultHeaders": {
+            "accept": "application/json, text/plain, */*",
+            "app": "FMS Portal"
+          },
+          "success": {
+            "field": "retcode",
+            "equals": 0
+          },
+          "retryWithoutHeaders": [
+            "x-sap-ri",
+            "x-sap-sec"
+          ]
+        }
+      ],
+      "allowedOpenUrls": [
+        "https://spx.shopee.com.br/*"
+      ]
     }
   ]
 }

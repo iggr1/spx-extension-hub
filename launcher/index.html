@@ -65,5 +65,38 @@
   <script src="../shared/spx-access.js?v=20260916-8"></script>
   <script src="spx-auth.js?v=20260916-8"></script>
   <script src="launcher.js?v=20260916-8"></script>
+  <script>
+    (() => {
+      const MODULE_ID = 'spx-dock-flow-autoadd';
+      const STORAGE_KEY = 'spxDockFlowAutoAddPanelEnabledV1';
+      const MAX_ATTEMPTS = 12;
+      let attempts = 0;
+
+      async function syncDockFlowAutoAddPanel() {
+        attempts += 1;
+
+        try {
+          if (!window.LoaderBridge?.requestForModule) throw new Error('LoaderBridge indisponível.');
+
+          const desiredEnabled = localStorage.getItem(STORAGE_KEY) !== 'false';
+          const current = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.status');
+          if (!current?.ok) throw new Error(current?.error || 'Estado do user script indisponível.');
+
+          if (current.enabled !== desiredEnabled || (desiredEnabled && current.registered !== true)) {
+            const changed = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.setEnabled', {
+              enabled: desiredEnabled
+            });
+            if (!changed?.ok) throw new Error(changed?.error || 'Não foi possível registrar o user script.');
+          }
+
+          return;
+        } catch {
+          if (attempts < MAX_ATTEMPTS) window.setTimeout(syncDockFlowAutoAddPanel, 500);
+        }
+      }
+
+      window.setTimeout(syncDockFlowAutoAddPanel, 500);
+    })();
+  </script>
 </body>
 </html>

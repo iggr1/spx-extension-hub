@@ -183,46 +183,175 @@
   }
 
   async function syncAutoAddProgress() {
-    const dialog = document.querySelectoŠ	Ë™ØÚËY]Z[ËYX[ÙÖÛÜ[—IÊNÂˆÛÛœİ\İHX[ÙÏËœ]Y\TÙ[XİÜŠ	Ë™ØÚËY]Z[ËX›ÙH	ÊNÂˆYˆ
-[\İ
-H™]\›Â‚ˆÛÛœİ\ÜÚYÛ›Y[\ÚÒYH™XY\ÜÚYÛ›Y[\ÚÒY
-\İ
-NÂˆYˆ
-X\ÜÚYÛ›Y[\ÚÒY
-H™]\›Â‚ˆÛÛœİ›İÈH[œİ\™T›İÊ\İ
-NÂˆÛÛœİ˜[YHH›İËœ]Y\TÙ[XİÜŠ	Ù	ÊNÂˆÛÛœİ˜[Y][Û•\ÚÒYH™XY˜[Y][Û•\ÚÒY
+    const dialog = document.querySelector('.dock-details-dialog[open]');
+    const list = dialog?.querySelector('.dock-details-body dl');
+    if (!list) return;
 
-NÂ‚ˆYˆ
-]˜[Y][Û•\ÚÒY
-HÂˆ˜[YK^ÛÛ[H	ø %	ÎÂˆ™]\›ÂˆB‚ˆÛÛœİŞXÛP]H[X™\Šİ]OË™™]ÚY]
-NÂˆÛÛœİÙ^HH	İ˜[Y][Û•\ÚÒY_	Ø\ÜÚYÛ›Y[\ÚÒYXÂˆÛÛœİØXÚYH›ÙÜ™\ÜĞØXÚK™Ù]
-Ù^JNÂ‚ˆYˆ
-ØXÚYËœİ]\ÈOOH	Ü™XYIÈ	‰ˆØXÚY˜ŞXÛP]OOHŞXÛP]
-HÂˆ™[™\”›ÙÜ™\ÜÊ˜[YKØXÚY
-NÂˆ™]\›ÂˆB‚ˆYˆ
-ØXÚYËœİ]\ÈOOH	ÛØY[™ÉÈ	‰ˆØXÚY˜ŞXÛP]OOHŞXÛP]
-HÂˆ˜[YK^ÛÛ[H	Ğ]X[^˜[™Ë‹‹‰ÎÂˆ™]\›ÂˆB‚ˆ˜[YK^ÛÛ[H	Ğ]X[^˜[™Ë‹‹‰ÎÂˆ›ÙÜ™\ÜĞØXÚKœÙ]
-Ù^KÈİ]\Îˆ	ÛØY[™ÉËŞXÛP]JNÂ‚ˆHÂˆÛÛœİ›ÙÜ™\ÜÈH]ØZ]™]Ú]]ĞY›ÙÜ™\ÜÊ\ÜÚYÛ›Y[\ÚÒY˜[Y][Û•\ÚÒY
-NÂˆ›ÙÜ™\ÜĞØXÚKœÙ]
-Ù^KÈİ]\Îˆ	Ü™XYIËŞXÛP]‹‹œ›ÙÜ™\ÜÈJNÂˆHØ]ÚÂˆ›ÙÜ™\ÜĞØXÚKœÙ]
-Ù^KÈİ]\Îˆ	Ù\œ›Ü‰ËŞXÛP]JNÂˆB‚ˆØÚY[TŞ[˜Ê
-NÂˆB‚ˆ[˜İ[Ûˆ™XY\ÜÚYÛ›Y[\ÚÒY
-\İ
-HÂˆ›Üˆ
-ÛÛœİ›İÈÙˆ\İœ]Y\TÙ[XİÜ[
-	ÎœØÛÜHˆ]‰ÊJHÂˆYˆ
-›İËœ]Y\TÙ[XİÜŠ	Ù	ÊOË^ÛÛ[Ëš[J
-HOOH	ĞU	ÊHÛÛ[YNÂˆÛÛœİ˜[YHH›İËœ]Y\TÙ[XİÜŠ	Ù	ÊOË^ÛÛ[Ëš[J
-H	ÉÎÂˆ™]\›ˆ×UĞKVŒNWJÉÚK\İ
-˜[YJHÈ˜[YKÕ\\Ø\ÙJ
-Hˆ	ÉÎÂˆBˆ™]\›ˆ	ÉÎÂˆB‚ˆ[˜İ[Ûˆ™XY˜[Y][Û•\ÚÒY
+    const assignmentTaskId = readAssignmentTaskId(list);
+    if (!assignmentTaskId) return;
 
-HÂˆÛÛœİ˜[YHHİš[™Êİ]OË˜[Y][Û”›ÙÜ™\ÜÏË\ÚÒY	ÉÊKš[J
-NÂˆ™]\›ˆ×••ĞKVŒNWJÉÚK\İ
-˜[YJHÈ˜[YKÕ\\Ø\ÙJ
-Hˆ	ÉÎÂˆB‚ˆ[˜İ[Ûˆ[œİ\™T›İÊ\İ
-HÂˆ]›İÈH\İœ]Y\TÙ[XİÜŠ	ÖÙ]KX]]ØY\›ÙÜ™\Ü×IÊNÂˆYˆ
-›İÊH™]\›ˆ›İÎÂ‚ˆ›İÈHØİ[Y[˜Ü™X]Q[[Y[
-	Ù]‰ÊNÂˆ›İË™]\Ù]˜]]ØY›ÙÜ™\ÜÈH	İYIÎÂˆ›İËš[›™\’SH	Ï]]ĞYÙ]X[^˜[™Ë‹‹Ù‰ÎÂ‚ˆÛÛœİÜ™\”›İÈHË‹‹›\İœ]Y\TÙ[XİÜ[
-	ÎœØÛÜHˆ]‰ÊWBˆ™š[™
-][HOˆ][Kœ]Y\TÙ[Xİâ‚vGBr“òçFW‡D6öçFVçCòçG&–Ò‚’ÓÓÒuVF–F÷2FBr“° ¢–b†÷&FW%&÷sòææW‡E6–&Æ–ær’Æ—7Bæ–ç6W'D&Vf÷&R‡&÷rÂ÷&FW%&÷rææW‡E6–&Æ–ær“°¢VÇ6RÆ—7BæVæD6†–ÆB‡&÷r“° ¢&WGW&â&÷s°¢Ğ ¢gVæ7F–öâ&VæFW%&öw&W72‡fÇVRÂ&öw&W72’°¢–b‚&öw&W72çF÷FÂ’°¢fÇVRçFW‡D6öçFVçBÒu&÷F6VÒWFôFBs°¢&WGW&ã°¢Ğ ¢6öç7BÆöFVDÆ&VÂÒ&öw&W72æÆöFVBÓÓÒòv&—Fòr¢v&—F÷2s°¢6öç7BVæF–ætÆ&VÂÒ&öw&W72çVæF–ærÓÓÒòvfÇFæFòr¢vfÇFæFòs°¢fÇVRçFW‡D6öçFVçBÒG·&öw&W72æÆöFVGÒG¶ÆöFVDÆ&VÇÒ+rG·&öw&W72çVæF–æwÒG·VæF–ætÆ&VÇÖ°¢Ğ ¢7–æ2gVæ7F–öâfWF6„WFôFE&öw&W72†76–væÖVçEF6´–BÂfÆ–FF–öåF6´–B’°¢6öç7B7FF–öä–BÒv—BvWE7FF–öä–B‚“° ¢6öç7B66ææVE&×2ÒæWrU$Å6V&6…&×2‡°¢fÆ–FF–öå÷F6µö–C¢fÆ–FF–öåF6´–BÀ¢F&vWEö–C¢76–væÖVçEF6´–BÀ¢VF—E÷F&vWE÷G—S¢s"rÀ¢vUöæó¢srÀ¢6÷VçC¢s““’rÀ¢&6VÅ÷66å÷7FGW3¢s"rÀ¢6†—ÖVçEö–C¢rp¢Ò“° ¢6öç7B&W7öç6RÒv—BÆöFW$'&–FvRç&WVW7B‚væWGv÷&²æfWF6„&F6‚rÂ°¢&öf–ÆT–C¢w7‚rÀ¢&WVW7G3¢°¢°¢¶W“¢vWFöFB×ÆææVBrÀ¢W&Ã¢ÄääTEõU$ÂÀ¢ÖWF†öC¢uõ5BrÀ¢&öG“¢²76–væÖVçE÷F6µö–C¢76–væÖVçEF6´–BÂ7FF–öåö–C¢7FF–öä–BĞ¢ÒÀ¢°¢¶W“¢vWFöFB×66ææVBrÀ¢W&Ã¢Gµ44ääTEõU$ÇÓòG·66ææVE&×2çFõ7G&–ær‚—ÖÀ¢ÖWF†öC¢ttUBp¢Ğ¢Ğ¢Ò“° ¢6öç7BÆææVE&W7VÇBÒ&W7öç6Sòç&W7VÇG3òå²vWFöFB×ÆææVBuÓ°¢6öç7B66ææVE&W7VÇBÒ&W7öç6Sòç&W7VÇG3òå²vWFöFB×66ææVBuÓ° ¢–b‚ÆææVE&W7VÇCòæö²ÇÂ66ææVE&W7VÇCòæö²’°¢F‡&÷ræWrW'&÷"‚tì:6òfö’÷7<:×fVÂGVÆ—¦"òWFôFBâr“°¢Ğ ¢6öç7BÆææVDÆ—7BÒ'&’æ—4'&’‡ÆææVE&W7VÇBæFFòæFFòæÆ—7B¢òÆææVE&W7VÇBæFFæFFæÆ—7@¢¢µÓ°¢6öç7B66ææVDÆ—7BÒ'&’æ—4'&’‡66ææVE&W7VÇBæFFòæFFòæÆ—7B¢ò66ææVE&W7VÇBæFFæFFæÆ—7@¢¢µÓ° ¢6öç7BÆææVD–G2ÒæWr6WB‚“°¢6öç7B66ææVD–G2ÒæWr6WB‚“° ¢f÷"†6öç7B—FVÒöbÆææVDÆ—7B’°¢–b„çVÖ&W"†—FVÓòæ÷&FW%öEöÆ–æ¶vR’ÓÒ"’6öçF–çVS°¢6öç7B6†—ÖVçD–BÒ7G&–ær†—FVÓòç6†—ÖVçEö–BÇÂrr’çG&–Ò‚’çFõWW$66R‚“°¢–b‡6†—ÖVçD–B’ÆææVD–G2æFB‡6†—ÖVçD–B“°¢Ğ ¢f÷"†6öç7B—FVÒöb66ææVDÆ—7B’°¢6öç7B6†—ÖVçD–BÒ7G&–ær†—FVÓòç6†—ÖVçEö–BÇÂrr’çG&–Ò‚’çFõWW$66R‚“°¢–b‡6†—ÖVçD–B’66ææVD–G2æFB‡6†—ÖVçD–B“°¢Ğ ¢ÆWBÆöFVBÒ°¢f÷"†6öç7B6†—ÖVçD–BöbÆææVD–G2’°¢–b‡66ææVD–G2æ†2‡6†—ÖVçD–B’’ÆöFVB³Ò°¢Ğ ¢&WGW&â°¢F÷FÃ¢ÆææVD–G2ç6—¦RÀ¢ÆöFVBÀ¢VæF–æs¢ÖF‚æÖ‚ƒÂÆææVD–G2ç6—¦RÒÆöFVB¢Ó°¢Ğ ¢7–æ2gVæ7F–öâvWE7FF–öä–B‚’°¢–b‡7FF–öä66†Ræ–Bâbb7FF–öä66†RæW‡—&W4BâFFRææ÷r‚’’&WGW&â7FF–öä66†Ræ–C° ¢6öç7B&W7öç6RÒv—BÆöFW$'&–FvRç&WVW7B‚væWGv÷&²æfWF6„&F6‚rÂ°¢&öf–ÆT–C¢w7‚rÀ¢&WVW7G3¢·²¶W“¢vWFöFB×7FF–öârÂW&Ã¢5DD”ôåõU$ÂÂÖWF†öC¢ttUBrÕĞ¢Ò“°¢6öç7B&W7VÇBÒ&W7öç6Sòç&W7VÇG3òå²vWFöFB×7FF–öâuÓ° ¢–b‚&W7VÇCòæö²’F‡&÷ræWrW'&÷"‚tì:6òfö’÷7<:×fVÂ–FVçF–f–6"W7F:|:6òâr“° ¢6öç7B7FF–öä–BÒçVÖ&W"‡&W7VÇBæFFòæFFòæ7W'&VçE÷7FF–öåö–BÇÂ“°¢–b‚çVÖ&W"æ—56fT–çFVvW"‡7FF–öä–B’ÇÂ7FF–öä–BÃÒ’F‡&÷ræWrW'&÷"‚tW7F:|:6ò–çl:Æ–Fâr“° ¢7FF–öä66†RÒ²–C¢7FF–öä–BÂW‡—&W4C¢FFRææ÷r‚’²¢c¢Ó°¢&WGW&â7FF–öä–C°¢Ğ§Ò’‚“° 
+    const row = ensureRow(list);
+    const value = row.querySelector('dd');
+    const validationTaskId = readValidationTaskId();
+
+    if (!validationTaskId) {
+      value.textContent = 'â€”';
+      return;
+    }
+
+    const cycleAt = Number(state?.fetchedAt || 0);
+    const key = `${validationTaskId}|${assignmentTaskId}`;
+    const cached = progressCache.get(key);
+
+    if (cached?.status === 'ready' && cached.cycleAt === cycleAt) {
+      renderProgress(value, cached);
+      return;
+    }
+
+    if (cached?.status === 'loading' && cached.cycleAt === cycleAt) {
+      value.textContent = 'Atualizando...';
+      return;
+    }
+
+    value.textContent = 'Atualizando...';
+    progressCache.set(key, { status: 'loading', cycleAt });
+
+    try {
+      const progress = await fetchAutoAddProgress(assignmentTaskId, validationTaskId);
+      progressCache.set(key, { status: 'ready', cycleAt, ...progress });
+    } catch {
+      progressCache.set(key, { status: 'error', cycleAt });
+    }
+
+    scheduleSync();
+  }
+
+  function readAssignmentTaskId(list) {
+    for (const row of list.querySelectorAll(':scope > div')) {
+      if (row.querySelector('dt')?.textContent?.trim() !== 'AT') continue;
+      const value = row.querySelector('dd')?.textContent?.trim() || '';
+      return /^AT[A-Z0-9]+$/i.test(value) ? value.toUpperCase() : '';
+    }
+    return '';
+  }
+
+  function readValidationTaskId() {
+    const value = String(state?.validationProgress?.taskId || '').trim();
+    return /^VT[A-Z0-9]+$/i.test(value) ? value.toUpperCase() : '';
+  }
+
+  function ensureRow(list) {
+    let row = list.querySelector('[data-autoadd-progress]');
+    if (row) return row;
+
+    row = document.createElement('div');
+    row.dataset.autoaddProgress = 'true';
+    row.innerHTML = '<dt>AutoAdd</dt><dd>Atualizando...</dd>';
+
+    const orderRow = [...list.querySelectorAll(':scope > div')]
+      .find(item => item.querySelector('dt')?.textContent?.trim() === 'Pedidos da AT');
+
+    if (orderRow?.nextSibling) list.insertBefore(row, orderRow.nextSibling);
+    else list.appendChild(row);
+
+    return row;
+  }
+
+  function renderProgress(value, progress) {
+    if (!progress.total) {
+      value.textContent = 'Rota sem AutoAdd';
+      return;
+    }
+
+    const loadedLabel = progress.loaded === 1 ? 'bipado' : 'bipados';
+    value.textContent = `${progress.loaded} ${loadedLabel} Â· ${progress.pending} faltando`;
+  }
+
+  async function fetchAutoAddProgress(assignmentTaskId, validationTaskId) {
+    const stationId = await getStationId();
+
+    const scannedParams = new URLSearchParams({
+      validation_task_id: validationTaskId,
+      target_id: assignmentTaskId,
+      audit_target_type: '2',
+      page_no: '1',
+      count: '999',
+      parcel_scan_status: '2',
+      shipment_id: ''
+    });
+
+    const response = await LoaderBridge.request('network.fetchBatch', {
+      profileId: 'spx',
+      requests: [
+        {
+          key: 'autoadd-planned',
+          url: PLANNED_URL,
+          method: 'POST',
+          body: { assignment_task_id: assignmentTaskId, station_id: stationId }
+        },
+        {
+          key: 'autoadd-scanned',
+          url: `${SCANNED_URL}?${scannedParams.toString()}`,
+          method: 'GET'
+        }
+      ]
+    });
+
+    const plannedResult = response?.results?.['autoadd-planned'];
+    const scannedResult = response?.results?.['autoadd-scanned'];
+
+    if (!plannedResult?.ok || !scannedResult?.ok) {
+      throw new Error('NÃ£o foi possÃ­vel atualizar o AutoAdd.');
+    }
+
+    const plannedList = Array.isArray(plannedResult.data?.data?.list)
+      ? plannedResult.data.data.list
+      : [];
+    const scannedList = Array.isArray(scannedResult.data?.data?.list)
+      ? scannedResult.data.data.list
+      : [];
+
+    const plannedIds = new Set();
+    const scannedIds = new Set();
+
+    for (const item of plannedList) {
+      if (Number(item?.order_at_linkage) !== 2) continue;
+      const shipmentId = String(item?.shipment_id || '').trim().toUpperCase();
+      if (shipmentId) plannedIds.add(shipmentId);
+    }
+
+    for (const item of scannedList) {
+      const shipmentId = String(item?.shipment_id || '').trim().toUpperCase();
+      if (shipmentId) scannedIds.add(shipmentId);
+    }
+
+    let loaded = 0;
+    for (const shipmentId of plannedIds) {
+      if (scannedIds.has(shipmentId)) loaded += 1;
+    }
+
+    return {
+      total: plannedIds.size,
+      loaded,
+      pending: Math.max(0, plannedIds.size - loaded)
+    };
+  }
+
+  async function getStationId() {
+    if (stationCache.id > 0 && stationCache.expiresAt > Date.now()) return stationCache.id;
+
+    const response = await LoaderBridge.request('network.fetchBatch', {
+      profileId: 'spx',
+      requests: [{ key: 'autoadd-station', url: STATION_URL, method: 'GET' }]
+    });
+    const result = response?.results?.['autoadd-station'];
+
+    if (!result?.ok) throw new Error('NÃ£o foi possÃ­vel identificar a estaÃ§Ã£o.');
+
+    const stationId = Number(result.data?.data?.current_station_id || 0);
+    if (!Number.isSafeInteger(stationId) || stationId <= 0) throw new Error('EstaÃ§Ã£o invÃ¡lida.');
+
+    stationCache = { id: stationId, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return stationId;
+  }
+})();

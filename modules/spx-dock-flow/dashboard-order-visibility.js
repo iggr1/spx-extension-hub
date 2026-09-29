@@ -157,12 +157,15 @@
   const PLANNED_URL = 'https://spx.shopee.com.br/spx_delivery/admin/assignment/assignment_task/detail/planned_order/search';
   const SCANNED_URL = 'https://spx.shopee.com.br/api/in-station/lmhub/audit/parcel/list';
   const progressCache = new Map();
+  const inFlight = new Map();
   let stationCache = { id: 0, expiresAt: 0 };
   let frame = 0;
 
   initialize();
 
   function initialize() {
+    injectAutoAddStyles();
+
     const observer = new MutationObserver(scheduleSync);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
 
@@ -174,97 +177,238 @@
     scheduleSync();
   }
 
+  function injectAutoAddStyles() {
+    if (document.getElementById('dockFlowAutoAddStyles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'dockFlowAutoAddStyles';
+    style.textContent = `
+      .assignment-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      }
+
+      .assignment-stat.autoadd b {
+        color: var(--green, #22c55e);
+      }
+
+      .assignment-stat.autoadd.pending b {
+        color: var(--orange, #ee4d2d);
+      }
+
+      .dock-autoadd-highlight {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        margin: 4px 0 16px;
+        padding: 16px 18px;
+        border: 1px solid color-mix(in srgb, var(--orange, #ee4d2d) 45%, var(--line));
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--orange, #ee4d2d) 10%, var(--panel, #111827));
+      }
+
+      .dock-autoadd-highlight .autoadd-copy {
+        min-width: 0;
+      }
+
+      .dock-autoadd-highlight .autoadd-label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--orange, #ee4d2d);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .04em;
+      }
+
+      .dock-autoadd-highlight .autoadd-status {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .dock-autoadd-highlight strong {
+        color: var(--ink);
+        font-size: 26px;
+        font-weight: 950;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .dock-autoadd-highlight.complete strong {
+        color: var(--green, #22c55e);
+      }
+
+      .dock-autoadd-highlight.pending strong {
+        color: var(--orange, #ee4d2d);
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function scheduleSync() {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      void syncAutoAddProgress();
+      void syncAutoAddUi();
     });
   }
 
-  async function syncAutoAddProgress() {
-    const dialog = document.querySelector('.dock-details-dialog[open]');
-    const list = dialog?.querySelector('.dock-details-body dl');
-    if (!list) return;
+  async function syncAutoAddUi() {
+    removeRouteLoadingMessage();
 
-    const assignmentTaskId = readAssignmentTaskId(list);
-    if (!assignmentTaskId) return;
-
-    const row = ensureRow(list);
-    const value = row.querySelector('dd');
     const validationTaskId = readValidationTaskId();
-
-    if (!validationTaskId) {
-      value.textContent = '—';
-      return;
-    }
-
     const cycleAt = Number(state?.fetchedAt || 0);
-    const key = `${validationTaskId}|${assignmentTaskId}`;
-    const cached = progressCache.get(key);
+    const assignments = collectVisibleAssignments();
 
-    if (cached?.status === 'ready' && cached.cycleAt === cycleAt) {
-      renderProgress(value, cached);
-      return;
+    for (const assignmentTaskId of assignments) {
+      const key = validationTaskId ? `${validationTaskId}|${assignmentTaskId}` : '';
+      const cached = key ? progressCache.get(key) : null;
+
+      renderCardProgress(assignmentTaskId, cached);
+      renderModalProgress(assignmentTaskId, cached);
+
+      if (!validationTaskId || !cycleAt) continue;
+      if (cached?.status === 'ready' && cached.cycleAt === cycleAt) continue;
+      if (cached?.status === 'loading' && cached.cycleAt === cycleAt) continue;
+      if (inFlight.has(key)) continue;
+
+      progressCache.set(key, { status: 'loading', cycleAt });
+      renderCardProgress(assignmentTaskId, progressCache.get(key));
+      renderModalProgress(assignmentTaskId, progressCache.get(key));
+
+      const request = fetchAutoAddProgress(assignmentTaskId, validationTaskId)
+        .then(progress => {
+          progressCache.set(key, { status: 'ready', cycleAt, ...progress });
+        })
+        .catch(() => {
+          progressCache.set(key, { status: 'error', cycleAt });
+        })
+        .finally(() => {
+          inFlight.delete(key);
+          scheduleSync();
+        });
+
+      inFlight.set(key, request);
     }
-
-    if (cached?.status === 'loading' && cached.cycleAt === cycleAt) {
-      value.textContent = 'Atualizando...';
-      return;
-    }
-
-    value.textContent = 'Atualizando...';
-    progressCache.set(key, { status: 'loading', cycleAt });
-
-    try {
-      const progress = await fetchAutoAddProgress(assignmentTaskId, validationTaskId);
-      progressCache.set(key, { status: 'ready', cycleAt, ...progress });
-    } catch {
-      progressCache.set(key, { status: 'error', cycleAt });
-    }
-
-    scheduleSync();
   }
 
-  function readAssignmentTaskId(list) {
-    for (const row of list.querySelectorAll(':scope > div')) {
-      if (row.querySelector('dt')?.textContent?.trim() !== 'AT') continue;
-      const value = row.querySelector('dd')?.textContent?.trim() || '';
-      return /^AT[A-Z0-9]+$/i.test(value) ? value.toUpperCase() : '';
-    }
-    return '';
+  function collectVisibleAssignments() {
+    const assignments = new Set();
+
+    document.querySelectorAll('.assignment-stats[data-assignment-task-id]').forEach(element => {
+      const assignmentTaskId = normalizeAssignmentId(element.dataset.assignmentTaskId);
+      if (assignmentTaskId) assignments.add(assignmentTaskId);
+    });
+
+    const modalAssignment = readModalAssignmentTaskId();
+    if (modalAssignment) assignments.add(modalAssignment);
+
+    return [...assignments];
+  }
+
+  function normalizeAssignmentId(value) {
+    const assignmentTaskId = String(value || '').trim().toUpperCase();
+    return /^AT[A-Z0-9]+$/i.test(assignmentTaskId) ? assignmentTaskId : '';
   }
 
   function readValidationTaskId() {
-    const value = String(state?.validationProgress?.taskId || '').trim();
-    return /^VT[A-Z0-9]+$/i.test(value) ? value.toUpperCase() : '';
+    const value = String(state?.validationProgress?.taskId || '').trim().toUpperCase();
+    return /^VT[A-Z0-9]+$/i.test(value) ? value : '';
   }
 
-  function ensureRow(list) {
-    let row = list.querySelector('[data-autoadd-progress]');
-    if (row) return row;
+  function readModalAssignmentTaskId() {
+    const list = document.querySelector('.dock-details-dialog[open] .dock-details-body dl');
+    if (!list) return '';
 
-    row = document.createElement('div');
-    row.dataset.autoaddProgress = 'true';
-    row.innerHTML = '<dt>AutoAdd</dt><dd>Atualizando...</dd>';
+    for (const row of list.querySelectorAll(':scope > div')) {
+      if (row.querySelector('dt')?.textContent?.trim() !== 'AT') continue;
+      return normalizeAssignmentId(row.querySelector('dd')?.textContent);
+    }
 
-    const orderRow = [...list.querySelectorAll(':scope > div')]
-      .find(item => item.querySelector('dt')?.textContent?.trim() === 'Pedidos da AT');
-
-    if (orderRow?.nextSibling) list.insertBefore(row, orderRow.nextSibling);
-    else list.appendChild(row);
-
-    return row;
+    return '';
   }
 
-  function renderProgress(value, progress) {
-    if (!progress.total) {
-      value.textContent = 'Rota sem AutoAdd';
+  function renderCardProgress(assignmentTaskId, progress) {
+    document.querySelectorAll('.assignment-stats[data-assignment-task-id]').forEach(container => {
+      if (normalizeAssignmentId(container.dataset.assignmentTaskId) !== assignmentTaskId) return;
+
+      let stat = container.querySelector('.assignment-stat.autoadd');
+      if (!stat) {
+        stat = document.createElement('div');
+        stat.className = 'assignment-stat autoadd';
+        stat.innerHTML = '<span>AUTOADD</span><b>…</b>';
+        container.appendChild(stat);
+      }
+
+      stat.classList.remove('pending', 'complete');
+      const value = stat.querySelector('b');
+
+      if (progress?.status === 'ready') {
+        value.textContent = `${progress.loaded}/${progress.total}`;
+        stat.classList.add(progress.pending > 0 ? 'pending' : 'complete');
+        stat.title = progress.total
+          ? `${progress.loaded} bipado${progress.loaded === 1 ? '' : 's'} · ${progress.pending} faltando`
+          : 'Rota sem AutoAdd';
+        return;
+      }
+
+      value.textContent = progress?.status === 'error' ? '—/—' : '…/…';
+      stat.title = progress?.status === 'error' ? 'AutoAdd indisponível' : 'Atualizando AutoAdd';
+    });
+  }
+
+  function renderModalProgress(assignmentTaskId, progress) {
+    const body = document.querySelector('.dock-details-dialog[open] .dock-details-body');
+    if (!body || readModalAssignmentTaskId() !== assignmentTaskId) return;
+
+    body.querySelectorAll('[data-autoadd-progress]').forEach(element => element.remove());
+
+    let highlight = body.querySelector('.dock-autoadd-highlight');
+    if (!highlight) {
+      highlight = document.createElement('section');
+      highlight.className = 'dock-autoadd-highlight';
+      highlight.innerHTML = `
+        <div class="autoadd-copy">
+          <span class="autoadd-label">AUTOADD</span>
+          <span class="autoadd-status">Atualizando...</span>
+        </div>
+        <strong>…/…</strong>
+      `;
+    }
+
+    const sizeSummary = body.querySelector('.dock-size-summary');
+    if (sizeSummary) body.insertBefore(highlight, sizeSummary);
+    else body.prepend(highlight);
+
+    highlight.classList.remove('pending', 'complete');
+    const status = highlight.querySelector('.autoadd-status');
+    const value = highlight.querySelector('strong');
+
+    if (progress?.status === 'ready') {
+      if (!progress.total) {
+        status.textContent = 'Rota sem AutoAdd';
+        value.textContent = '0/0';
+        highlight.classList.add('complete');
+        return;
+      }
+
+      const loadedLabel = progress.loaded === 1 ? 'bipado' : 'bipados';
+      status.textContent = `${progress.loaded} ${loadedLabel} · ${progress.pending} faltando`;
+      value.textContent = `${progress.loaded}/${progress.total}`;
+      highlight.classList.add(progress.pending > 0 ? 'pending' : 'complete');
       return;
     }
 
-    const loadedLabel = progress.loaded === 1 ? 'bipado' : 'bipados';
-    value.textContent = `${progress.loaded} ${loadedLabel} · ${progress.pending} faltando`;
+    status.textContent = progress?.status === 'error' ? 'Não foi possível atualizar' : 'Atualizando...';
+    value.textContent = progress?.status === 'error' ? '—/—' : '…/…';
+  }
+
+  function removeRouteLoadingMessage() {
+    document.querySelectorAll('.dock-details-dialog[open] .dock-details-body > p').forEach(element => {
+      if (element.textContent?.trim() === 'Atualizando informações da rota…') element.remove();
+    });
   }
 
   async function fetchAutoAddProgress(assignmentTaskId, validationTaskId) {
@@ -300,17 +444,10 @@
     const plannedResult = response?.results?.['autoadd-planned'];
     const scannedResult = response?.results?.['autoadd-scanned'];
 
-    if (!plannedResult?.ok || !scannedResult?.ok) {
-      throw new Error('Não foi possível atualizar o AutoAdd.');
-    }
+    if (!plannedResult?.ok || !scannedResult?.ok) throw new Error('Não foi possível atualizar o AutoAdd.');
 
-    const plannedList = Array.isArray(plannedResult.data?.data?.list)
-      ? plannedResult.data.data.list
-      : [];
-    const scannedList = Array.isArray(scannedResult.data?.data?.list)
-      ? scannedResult.data.data.list
-      : [];
-
+    const plannedList = Array.isArray(plannedResult.data?.data?.list) ? plannedResult.data.data.list : [];
+    const scannedList = Array.isArray(scannedResult.data?.data?.list) ? scannedResult.data.data.list : [];
     const plannedIds = new Set();
     const scannedIds = new Set();
 

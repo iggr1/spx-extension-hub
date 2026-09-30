@@ -1,5 +1,7 @@
 # Importador de Planilhas
 
+**Suspenso temporariamente.** O HUB oculta este módulo e desativa registros ativos ao carregar a lista. A entrada do catálogo é mantida para o loader permitir a desativação; o código permanece arquivado para retomada futura.
+
 Módulo livre do catálogo, com liga/desliga, executado no Google Sheets. Não usa a autenticação SPX, Apps Script, chaves de API ou um servidor de importação. Não armazena os arquivos no navegador nem os envia ao SPX.
 
 ## Uso

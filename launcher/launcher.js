@@ -1,6 +1,7 @@
 const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.1.0';
+const SUSPENDED_MODULES = new Set(['importador-de-planilhas']);
 
 const grid = document.getElementById('moduleGrid');
 const status = document.getElementById('status');
@@ -53,7 +54,7 @@ async function loadModules(forceRefresh) {
 
     currentLoaderVersion = loaderResponse?.ok ? String(loaderResponse.version || '0.0.0') : '0.0.0';
     currentModules = catalogResponse.catalog.modules
-      .filter(module => module.enabled)
+      .filter(module => module.enabled && !SUSPENDED_MODULES.has(module.id))
       .map(module => ({
         ...module,
         descriptionPdf: resolveDescriptionPdf(module)
@@ -68,6 +69,14 @@ async function loadModules(forceRefresh) {
     }
 
     await Promise.all([loadUserScriptStates(), HubAuth.refresh()]);
+    for (const id of SUSPENDED_MODULES) {
+      if (!catalogResponse.catalog.modules.some(module => module.id === id)) continue;
+      const state = await LoaderBridge.requestForModule(id, 'userscripts.status');
+      if (state?.ok && (state.enabled || state.registered)) {
+        const result = await LoaderBridge.requestForModule(id, 'userscripts.setEnabled', { enabled: false });
+        if (!result?.ok) status.textContent += ' · Atualize o loader para concluir a desativação do Importador de Planilhas.';
+      }
+    }
   } catch (error) {
     status.textContent = normalizeSwitchError(error);
     grid.innerHTML = '<div class="empty">Não foi possível carregar a lista de módulos.</div>';

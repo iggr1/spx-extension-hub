@@ -220,12 +220,15 @@ button:disabled {
 
 .module-card > .module-requirement { min-height: 0; color: #ffc08c; font-size: 12px; margin-top: 12px; }
 
-.module-actions [data-import-help] { color: #a5e9c0; border: 1px solid #376549; background: #163024; }
-.import-help-dialog { width: min(900px, calc(100vw - 24px)); max-width: none; height: min(850px, calc(100dvh - 32px)); max-height: none; padding: 0; border: 1px solid #35443e; border-radius: 16px; background: #101815; color: #edf5ef; overflow: hidden; }
-.import-help-dialog::backdrop { background: #000a; }
-.import-help-dialog[open] { display: flex; flex-direction: column; }
-.import-help-dialog header { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 16px 20px; border-bottom: 1px solid #35443e; }
-.import-help-dialog h2 { margin: 0; font-size: 18px; }
-.import-help-dialog form { margin: 0; }
-.import-help-dialog iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: #101815; }
-@media (max-width: 600px) { .import-help-dialog header { padding: 12px; }.import-help-dialog h2 { font-size: 16px; } }
+.loader-update-dialog { width: min(900px, calc(100vw - 24px)); max-width: none; height: min(850px, calc(100dvh - 32px)); max-height: none; padding: 0; border: 1px solid #35443e; border-radius: 16px; background: #101815; color: #edf5ef; overflow: hidden; }
+.loader-update-dialog::backdrop { background: #000a; }
+.loader-update-dialog[open] { display: flex; flex-direction: column; }
+.loader-update-dialog header { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 16px 20px; border-bottom: 1px solid #35443e; }
+.loader-update-dialog h2 { margin: 0; font-size: 18px; }
+.loader-update-dialog form { margin: 0; }
+.loader-update-dialog iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: #101815; }
+@media (max-width: 600px) { .loader-update-dialog header { padding: 12px; }.loader-update-dialog h2 { font-size: 16px; } }
+
+.header-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+#updateLoaderButton { background: #ff6500; }
+@media (max-width: 700px) { .page-shell > header { flex-wrap: wrap; }.header-actions { width: 100%; } }

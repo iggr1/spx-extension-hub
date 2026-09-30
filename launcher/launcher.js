@@ -25,6 +25,12 @@ let currentLoaderVersion = '0.0.0';
 const userScriptStates = new Map();
 
 document.getElementById('refreshButton').addEventListener('click', () => loadModules(true));
+document.getElementById('updateLoaderButton').addEventListener('click', () => {
+  const dialog = document.getElementById('loaderUpdateDialog');
+  const frame = dialog.querySelector('iframe');
+  if (!frame.getAttribute('src')) frame.src = 'atualizar-loader.html';
+  dialog.showModal();
+});
 closeDescriptionButton.addEventListener('click', closeDescription);
 openPdfButton.addEventListener('click', () => {
   if (activePdfUrl) window.open(activePdfUrl, '_blank', 'noopener,noreferrer');
@@ -63,7 +69,7 @@ async function loadModules(forceRefresh) {
 
     await Promise.all([loadUserScriptStates(), HubAuth.refresh()]);
   } catch (error) {
-    status.textContent = error.message || String(error);
+    status.textContent = normalizeSwitchError(error);
     grid.innerHTML = '<div class="empty">Não foi possível carregar a lista de módulos.</div>';
   }
 }
@@ -77,8 +83,7 @@ function renderModules() {
   grid.innerHTML = currentModules.map(module => {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
-    const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive)
-      + (module.id === 'importador-de-planilhas' ? '<button type="button" data-import-help>Liberar acesso ao Google</button>' : '');
+    const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive);
     const permission = HubAuth.access(module.id);
     const actions = !permission.allowed
       ? `${descriptionAction}<button type="button" disabled title="${escapeHtml(permission.message)}">Bloqueado</button><button type="button" data-access-id="${escapeHtml(module.id)}">Verificar acesso</button>${module.type === 'user_script' && userScriptStates.get(module.id)?.enabled ? `<button type="button" data-disable-id="${escapeHtml(module.id)}">Desativar</button>` : ''}`
@@ -105,15 +110,6 @@ function renderModules() {
   }).join('');
 
   const modulesById = new Map(currentModules.map(module => [module.id, module]));
-
-  for (const button of grid.querySelectorAll('[data-import-help]')) {
-    button.addEventListener('click', () => {
-      const dialog = document.getElementById('importHelpDialog');
-      const frame = dialog.querySelector('iframe');
-      if (!frame.getAttribute('src')) frame.src = '../modules/importador-de-planilhas/liberar-acesso.html';
-      dialog.showModal();
-    });
-  }
 
   for (const button of grid.querySelectorAll('[data-module-id]')) {
     button.addEventListener('click', async () => {
@@ -174,7 +170,7 @@ function renderUserScriptSwitch(module) {
   const loaderSupported = compareVersions(currentLoaderVersion, USER_SCRIPT_SWITCH_MIN_LOADER_VERSION) >= 0;
   const disabled = state.loading || state.busy || state.unavailable || !loaderSupported;
   const message = !loaderSupported
-    ? `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`
+    ? `Clique em “Atualizar loader” no topo para instalar a versão atual.`
     : state.message || (state.enabled ? activeScriptMessage(module) : 'Desativado.');
 
   return `
@@ -204,7 +200,7 @@ async function loadUserScriptStates() {
       userScriptStates.set(module.id, {
         enabled: false,
         unavailable: true,
-        message: `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`
+        message: `Clique em “Atualizar loader” no topo para instalar a versão atual.`
       });
     }
     renderModules();
@@ -305,11 +301,11 @@ function formatReloadedTabs(value, module) {
 
 function normalizeSwitchError(error) {
   const message = String(error?.message || error || 'Falha desconhecida.');
-  if (/Permitir scripts de usuário/i.test(message)) return message;
-  if (/launcher não pode|operação|capability/i.test(message)) {
-    return `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`;
+  const guidance = 'Clique em “Atualizar loader” no topo, substitua os arquivos e recarregue a extensão.';
+  if (/permissões necessárias|acesso não possa ser liberado|launcher não pode|capability/i.test(message)) {
+    return `O módulo não pôde ser iniciado. ${guidance}`;
   }
-  return message;
+  return `${message} ${guidance}`;
 }
 
 function compareVersions(left, right) {

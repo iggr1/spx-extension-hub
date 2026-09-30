@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20260930-2">
+  <link rel="stylesheet" href="launcher.css?v=20260930-3">
   <style>
     [data-module-card="assistente-de-devolucoes"] .module-access { display: none !important; }
     [data-module-card="spx-dock-flow-autoadd"] .module-access { display: none !important; }
@@ -18,7 +18,7 @@
         <h1>SPX Extension Hub</h1>
         <p>Os módulos são publicados e atualizados diretamente pelo repositório.</p>
       </div>
-      <button id="refreshButton" type="button">Atualizar lista</button>
+      <div class="header-actions"><button id="refreshButton" type="button">Atualizar lista</button><button id="updateLoaderButton" type="button">Atualizar loader</button></div>
     </header>
 
     <div class="workspace" id="workspace">
@@ -56,20 +56,20 @@
     </div>
 
     <footer>
-      <p>Quando um módulo exigir uma permissão que ainda não existe no loader, contate <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
+      <p>Se uma ferramenta ou módulo não funcionar, clique em <strong>Atualizar loader</strong> no topo e siga o tutorial. Se o problema continuar, contate <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
       <span id="loaderVersion"></span>
     </footer>
   </main>
 
-  <dialog class="import-help-dialog" id="importHelpDialog" aria-labelledby="importHelpTitle">
-    <header><h2 id="importHelpTitle">Liberar acesso ao Google Sheets</h2><form method="dialog"><button type="submit" autofocus>Fechar</button></form></header>
-    <iframe title="Tutorial para liberar o acesso do Importador de Planilhas"></iframe>
+  <dialog class="loader-update-dialog" id="loaderUpdateDialog" aria-labelledby="loaderUpdateTitle">
+    <header><h2 id="loaderUpdateTitle">Atualizar loader</h2><form method="dialog"><button type="submit" autofocus>Fechar</button></form></header>
+    <iframe title="Tutorial para atualizar o loader"></iframe>
   </dialog>
 
   <script src="../shared/loader-bridge.js"></script>
   <script src="../shared/spx-access.js?v=20260916-8"></script>
-  <script src="spx-auth.js?v=20260930-2"></script>
-  <script src="launcher.js?v=20260930-2"></script>
+  <script src="spx-auth.js?v=20260930-3"></script>
+  <script src="launcher.js?v=20260930-3"></script>
   <script>
     (() => {
       const MIGRATION_KEY = 'spxAutoAddAssistantMigrationV112';

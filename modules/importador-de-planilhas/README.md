@@ -4,7 +4,7 @@ Módulo livre do catálogo, com liga/desliga, executado no Google Sheets. Não u
 
 ## Uso
 
-Se o loader informar que faltam permissões, abra **Liberar acesso ao Google** no cartão do módulo. O [tutorial de configuração](liberar-acesso.html) explica a edição do manifesto em instalações locais por pasta e a recarga da extensão.
+Se o loader informar que faltam permissões, clique em **Atualizar loader** no topo do HUB. O [tutorial de atualização](../../launcher/atualizar-loader.html) disponibiliza o ZIP completo e explica como substituir os arquivos da extensão.
 
 1. Atualize o catálogo e ative **Importador de Planilhas** no launcher. Autorize os domínios do Google quando solicitado pelo loader.
 2. Abra ou recarregue uma planilha editável no Google Sheets.

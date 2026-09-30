@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-09-29T14:20:00+00:00",
+  "updatedAt": "2026-09-30T18:34:06+00:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260929-5"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20260930-1"
   },
   "modules": [
     {
@@ -214,6 +214,41 @@
       ],
       "allowedOpenUrls": [
         "https://spx.shopee.com.br/*"
+      ]
+    },
+    {
+      "id": "importador-de-planilhas",
+      "name": "Importador de Planilhas",
+      "description": "Importa CSV e Excel no Google Sheets com botão Importar ou arrastando o arquivo sobre a planilha. Permite criar uma planilha, substituir a aba atual, adicionar abas ou substituir tudo.",
+      "version": "1.0.0",
+      "enabled": true,
+      "type": "user_script",
+      "permissions": [
+        "tabs",
+        "userScripts",
+        "scripting"
+      ],
+      "hostPermissions": [
+        "https://docs.google.com/*",
+        "https://drive.google.com/*"
+      ],
+      "capabilities": [
+        "userscripts.status",
+        "userscripts.setEnabled"
+      ],
+      "userScripts": [
+        {
+          "id": "spx-sheets-importer",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/importador-de-planilhas/importador-de-planilhas.js",
+          "matches": [
+            "https://docs.google.com/*",
+            "https://drive.google.com/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": true
+        }
       ]
     }
   ]

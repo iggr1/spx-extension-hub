@@ -82,6 +82,8 @@ Quando o campo não estiver presente, o botão **Descrição** ficará desabilit
 
 ## Acesso dos módulos
 
+O **Importador de Planilhas** é livre e funciona no Google Sheets, com botão Importar e arraste de CSV/XLSX sobre a planilha. Oferece criar uma planilha, substituir a aba atual, adicionar abas ou substituir tudo, preparando o fluxo nativo para confirmação em **Importar dados**. Detalhes e limitações: [README do módulo](modules/importador-de-planilhas/README.md).
+
 O Assistente de devoluções usa a sessão existente do SPX e exige e-mail válido `@shopee.com` mais os aliases `RESOLVE_EO` e `CANCEL_EO_REASON`. A regra é verificada no catálogo e durante a execução na página SPX. O Dock Flow continua livre no catálogo.
 
 A autenticação anterior por código de e-mail/Sheets/Apps Script foi removida. O novo catálogo descarta as antigas sessões locais e não acessa mais o webapp. Implantações externas antigas podem ser desativadas pelo proprietário no Apps Script; removê-las do repositório não exclui a implantação nem a planilha.

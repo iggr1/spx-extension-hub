@@ -165,7 +165,7 @@ function renderUserScriptSwitch(module) {
   const disabled = state.loading || state.busy || state.unavailable || !loaderSupported;
   const message = !loaderSupported
     ? `Atualize o loader para a versão ${USER_SCRIPT_SWITCH_MIN_LOADER_VERSION} ou superior.`
-    : state.message || (state.enabled ? 'Ativo nas páginas compatíveis do SPX.' : 'Desativado.');
+    : state.message || (state.enabled ? activeScriptMessage(module) : 'Desativado.');
 
   return `
     <label class="module-toggle${state.enabled ? ' is-enabled' : ''}${state.error ? ' has-error' : ''}">
@@ -212,7 +212,7 @@ async function loadUserScriptStates() {
         enabled: response.enabled === true,
         registered: response.registered === true,
         message: response.enabled
-          ? 'Ativo nas páginas compatíveis do SPX.'
+          ? activeScriptMessage(module)
           : 'Desativado.'
       });
     } catch (error) {
@@ -244,7 +244,7 @@ async function toggleUserScript(module, enabled) {
     enabled,
     busy: true,
     error: false,
-    message: enabled ? 'Ativando e recarregando abas SPX...' : 'Desativando e recarregando abas SPX...'
+    message: enabled ? 'Ativando e recarregando páginas compatíveis...' : 'Desativando e recarregando páginas compatíveis...'
   });
   renderModules();
 
@@ -263,8 +263,8 @@ async function toggleUserScript(module, enabled) {
       enabled: response.enabled === true,
       registered: response.registered === true,
       message: response.enabled
-        ? `Ligado. ${formatReloadedTabs(response.reloadedTabs)}`
-        : `Desligado. ${formatReloadedTabs(response.reloadedTabs)}`
+        ? `Ligado. ${formatReloadedTabs(response.reloadedTabs, module)}`
+        : `Desligado. ${formatReloadedTabs(response.reloadedTabs, module)}`
     });
     status.textContent = `${module.name} ${enabled ? 'ativado' : 'desativado'} com sucesso.`;
   } catch (error) {
@@ -280,8 +280,15 @@ async function toggleUserScript(module, enabled) {
   renderModules();
 }
 
-function formatReloadedTabs(value) {
+function activeScriptMessage(module) {
+  return module.id === 'importador-de-planilhas' ? 'Ativo no Google Sheets.' : 'Ativo nas páginas compatíveis do SPX.';
+}
+
+function formatReloadedTabs(value, module) {
   const count = Number(value || 0);
+  if (module?.id === 'importador-de-planilhas') {
+    return count ? `${count} página${count === 1 ? '' : 's'} compatível${count === 1 ? '' : 'is'} recarregada${count === 1 ? '' : 's'}.` : 'Abra ou recarregue o Google Sheets para aplicar.';
+  }
   if (!count) return 'Abra ou recarregue a página de recebimento para aplicar.';
   return `${count} aba${count === 1 ? '' : 's'} do SPX recarregada${count === 1 ? '' : 's'}.`;
 }

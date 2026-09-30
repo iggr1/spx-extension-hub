@@ -1,0 +1,6 @@
+{
+  "name": "spx-importador-de-planilhas-tests",
+  "private": true,
+  "scripts": { "test": "node --test importador-de-planilhas.test.cjs" },
+  "devDependencies": { "jsdom": "26.1.0" }
+}

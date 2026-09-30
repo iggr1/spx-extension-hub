@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20260916-8">
+  <link rel="stylesheet" href="launcher.css?v=20260930-2">
   <style>
     [data-module-card="assistente-de-devolucoes"] .module-access { display: none !important; }
     [data-module-card="spx-dock-flow-autoadd"] .module-access { display: none !important; }
@@ -61,10 +61,15 @@
     </footer>
   </main>
 
+  <dialog class="import-help-dialog" id="importHelpDialog" aria-labelledby="importHelpTitle">
+    <header><h2 id="importHelpTitle">Liberar acesso ao Google Sheets</h2><form method="dialog"><button type="submit" autofocus>Fechar</button></form></header>
+    <iframe title="Tutorial para liberar o acesso do Importador de Planilhas"></iframe>
+  </dialog>
+
   <script src="../shared/loader-bridge.js"></script>
   <script src="../shared/spx-access.js?v=20260916-8"></script>
-  <script src="spx-auth.js?v=20260929-1"></script>
-  <script src="launcher.js?v=20260916-8"></script>
+  <script src="spx-auth.js?v=20260930-2"></script>
+  <script src="launcher.js?v=20260930-2"></script>
   <script>
     (() => {
       const MIGRATION_KEY = 'spxAutoAddAssistantMigrationV112';

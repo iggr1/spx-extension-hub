@@ -1,6 +1,14 @@
 {
   "name": "spx-importador-de-planilhas-tests",
   "private": true,
-  "scripts": { "test": "node --test importador-de-planilhas.test.cjs" },
-  "devDependencies": { "jsdom": "26.1.0" }
+  "scripts": {
+    "test": "npm run build && node --test importador-de-planilhas.test.cjs",
+    "build": "node build.cjs",
+    "test:browser": "npm run build && node importador-de-planilhas.browser.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "playwright": "1.58.2",
+    "sax": "1.6.1"
+  }
 }

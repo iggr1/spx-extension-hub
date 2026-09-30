@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM } = require('jsdom');
 const core = require('./importador-de-planilhas.js');
-global.DOMParser = new JSDOM('').window.DOMParser;
+global.DOMParser = class { constructor() { throw new Error('DOMParser não deve ser usado sob Trusted Types.'); } };
 
 function archive(files, deflate = true) {
   const locals = [], directory = [];

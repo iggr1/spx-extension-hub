@@ -77,7 +77,8 @@ function renderModules() {
   grid.innerHTML = currentModules.map(module => {
     const hasDescription = Boolean(module.descriptionPdf);
     const isDescriptionActive = activeDescriptionModuleId === module.id;
-    const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive);
+    const descriptionAction = renderDescriptionAction(module, hasDescription, isDescriptionActive)
+      + (module.id === 'importador-de-planilhas' ? '<button type="button" data-import-help>Liberar acesso ao Google</button>' : '');
     const permission = HubAuth.access(module.id);
     const actions = !permission.allowed
       ? `${descriptionAction}<button type="button" disabled title="${escapeHtml(permission.message)}">Bloqueado</button><button type="button" data-access-id="${escapeHtml(module.id)}">Verificar acesso</button>${module.type === 'user_script' && userScriptStates.get(module.id)?.enabled ? `<button type="button" data-disable-id="${escapeHtml(module.id)}">Desativar</button>` : ''}`
@@ -104,6 +105,15 @@ function renderModules() {
   }).join('');
 
   const modulesById = new Map(currentModules.map(module => [module.id, module]));
+
+  for (const button of grid.querySelectorAll('[data-import-help]')) {
+    button.addEventListener('click', () => {
+      const dialog = document.getElementById('importHelpDialog');
+      const frame = dialog.querySelector('iframe');
+      if (!frame.getAttribute('src')) frame.src = '../modules/importador-de-planilhas/liberar-acesso.html';
+      dialog.showModal();
+    });
+  }
 
   for (const button of grid.querySelectorAll('[data-module-id]')) {
     button.addEventListener('click', async () => {

@@ -4,6 +4,8 @@ Módulo livre do catálogo, com liga/desliga, executado no Google Sheets. Não u
 
 ## Uso
 
+Se o loader informar que faltam permissões, abra **Liberar acesso ao Google** no cartão do módulo. O [tutorial de configuração](liberar-acesso.html) explica a edição do manifesto em instalações locais por pasta e a recarga da extensão.
+
 1. Atualize o catálogo e ative **Importador de Planilhas** no launcher. Autorize os domínios do Google quando solicitado pelo loader.
 2. Abra ou recarregue uma planilha editável no Google Sheets.
 3. Clique em **Importar**, no canto inferior direito, ou arraste um CSV/XLSX sobre o meio da planilha. O arraste abre o painel com o arquivo selecionado.
@@ -34,4 +36,13 @@ npm ci
 npm test
 ```
 
-`jsdom` é usado somente nos testes. O módulo publicado não depende de bibliotecas externas. Os testes cobrem arquivos ZIP inválidos, compressão, valores do Excel, células esparsas, limites, abertura por arraste e seleção do destino no diálogo simulado. A validação final do seletor nativo deve ser feita em uma sessão Google editável.
+`jsdom` e Playwright são usados somente nos testes. O parser SAX 1.6.1 é incorporado ao script publicado, com licença em `SAX-LICENSE.md`; nenhum código é baixado durante a importação. Edite `src/importer.js` e execute `npm run build` para gerar o arquivo distribuído. A interface usa construção DOM e o XML é lido como dados, sem `innerHTML`, `DOMParser` ou criação de políticas Trusted Types. Os testes cobrem arquivos ZIP inválidos, compressão, valores do Excel, células esparsas, limites, abertura por arraste e seleção do destino no diálogo simulado. A validação final do seletor nativo deve ser feita em uma sessão Google editável.
+
+Para testar em Chromium com Trusted Types obrigatório e criação de políticas bloqueada:
+
+```sh
+npx playwright install chromium
+npm run test:browser
+```
+
+Também é possível apontar `CHROMIUM_EXECUTABLE_PATH` para um Chromium existente. O teste verifica CSV, XLSX compactado, seleção de aba, transferência entre frames e confirmação final manual em uma interface simulada.

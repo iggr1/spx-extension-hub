@@ -235,7 +235,7 @@
   function enabled(node) {
     return node && !node.disabled && node.getAttribute('aria-disabled') !== 'true' && !/goog-[\w-]*disabled/.test(node.className || '');
   }
-  function label(node) { return node.querySelector('.goog-menu-button-caption')?.textContent || node.getAttribute('aria-label') || node.textContent; }
+  function label(node) { return node.querySelector('.docs-material-gm-labeled-select-caption,.goog-menu-button-caption,.goog-menuitem-label')?.textContent || node.getAttribute('aria-label') || node.textContent; }
   function find(labels, root = document, selector = '[role="button"],button,[role="menuitem"],[role="option"],[role="tab"],.goog-menuitem,.goog-menu-button') {
     const targets = labels.map(normalize);
     return Array.from(root.querySelectorAll(selector)).find(node => visible(node) && enabled(node) && targets.includes(normalize(label(node))));
@@ -389,8 +389,12 @@
   async function openNative(signal) {
     const fileMenu = document.getElementById('docs-file-menu') || find(['Arquivo', 'File'], document, '[role="menuitem"],.menu-button');
     if (!fileMenu) throw new Error('Não foi possível abrir o menu Arquivo. Verifique se você tem permissão para editar a planilha.');
-    click(fileMenu);
-    const importItem = await waitFor(() => find(['Importar', 'Import', 'Importar…', 'Import…']), signal);
+    if (fileMenu.getAttribute('aria-expanded') !== 'true') click(fileMenu);
+    const importItem = await waitFor(() => {
+      const icon = Array.from(document.querySelectorAll('.docs-icon-editors-ia-import')).find(visible);
+      const item = icon?.closest('[role="menuitem"],.goog-menuitem');
+      return item && enabled(item) ? item : find(['Importar', 'Import', 'Importar…', 'Import…'], document, '[role="menuitem"],.goog-menuitem');
+    }, signal);
     click(importItem);
   }
 
@@ -423,14 +427,17 @@
       const option = Array.from(select.options).find(option => target.native.map(normalize).includes(normalize(option.textContent)) && !option.disabled);
       if (option) { select.value = option.value; select.dispatchEvent(new Event('change', { bubbles: true })); return; }
     }
-    let dropdown = Array.from(dialog.querySelectorAll('[role="listbox"],[role="combobox"],.goog-menu-button')).find(node => visible(node) && Object.values(MODES).some(item => item.native.map(normalize).includes(normalize(label(node)))));
+    let dropdown = dialog.querySelector('.waffle-import-options-destination [role="listbox"],.waffle-import-options-destination [role="combobox"]');
+    if (!visible(dropdown) || !enabled(dropdown)) dropdown = null;
+    dropdown ||= Array.from(dialog.querySelectorAll('[role="listbox"],[role="combobox"],.goog-menu-button')).find(node => visible(node) && Object.values(MODES).some(item => item.native.map(normalize).includes(normalize(label(node)))));
     if (!dropdown) {
       const locationLabel = Array.from(dialog.querySelectorAll('label,[id]')).find(node => visible(node) && ['local de importacao', 'import location'].includes(normalize(node.textContent)));
       if (locationLabel) dropdown = document.getElementById(locationLabel.getAttribute('for')) || dialog.querySelector('[aria-labelledby="' + CSS.escape(locationLabel.id) + '"]');
     }
     if (!dropdown) throw new Error('Não foi possível selecionar o destino automaticamente. Escolha “' + target.label + '” na janela do Google.');
+    if (target.native.map(normalize).includes(normalize(label(dropdown)))) return;
     click(dropdown);
-    const option = await waitFor(() => find(target.native), signal, 4000);
+    const option = await waitFor(() => find(target.native, document, '[role="option"],[role="menuitem"],.goog-menuitem,.docs-material-gm-select-option'), signal, 6000);
     click(option);
     await waitFor(() => target.native.map(normalize).includes(normalize(label(dropdown))), signal, 4000);
   }
@@ -454,13 +461,17 @@
       status('Abrindo a importação do Google…');
       panel(false);
       await openNative(controller.signal);
+      status('Abrindo a aba Upload e enviando o arquivo…');
       await sendFile(controller.signal);
+      status('Aguardando as opções de importação do Google…');
       const dialog = await waitFor(importDialog, controller.signal, 90000);
+      status('Selecionando o destino da importação…');
       await chooseDestination(dialog, target, controller.signal);
       status('Arquivo enviado e destino selecionado. Confira as opções e clique em “Importar dados” na janela do Google.');
       $('.status').classList.add('ok');
     } catch (error) {
-      status(error.message || 'Não foi possível preparar a importação. Continue na janela do Google.', true);
+      const stage = $('.status').textContent;
+      status((error.message || 'Não foi possível preparar a importação.') + '\nEtapa: ' + stage + '\nSe o problema continuar, use “Atualizar loader” no HUB.', true);
       if (preparedFile) {
         $('.download').hidden = false;
         status($('.status').textContent + '\nBaixe o CSV preparado para selecionar esse arquivo na janela do Google e substituir somente a aba atual.', true);

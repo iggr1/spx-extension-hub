@@ -1,4 +1,5 @@
- protectedBytes = File.ReadAllBytes(path);
+ts(path)) return null;
+            byte[] protectedBytes = File.ReadAllBytes(path);
             byte[] plainBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
             try { return Encoding.UTF8.GetString(plainBytes).Trim(); }
             finally { Array.Clear(plainBytes, 0, plainBytes.Length); }

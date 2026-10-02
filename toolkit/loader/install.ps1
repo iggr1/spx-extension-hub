@@ -26,7 +26,6 @@ function Copy-FolderClean {
 }
 
 if (-not (Test-Path $ExtensionIdFile)) { throw "extension-id.txt não encontrado em $ScriptDir" }
-if (-not (Test-Path $UpdaterSource)) { throw "SPXToolkitUpdater.cs não encontrado em $ScriptDir" }
 if (-not (Test-Path (Join-Path $SourceExtension 'manifest.json'))) { throw "manifest.json não encontrado em $SourceExtension" }
 
 $ExtensionId = (Get-Content -LiteralPath $ExtensionIdFile -Raw).Trim()
@@ -50,7 +49,14 @@ $config = [ordered]@{
 $config | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $ConfigPath -Encoding UTF8
 
 if (Test-Path $UpdaterExe) { Remove-Item -LiteralPath $UpdaterExe -Force }
-$sourceCode = Get-Content -LiteralPath $UpdaterSource -Raw
+$sourceCode = $null
+if (Test-Path $UpdaterSource) {
+  $sourceCode = Get-Content -LiteralPath $UpdaterSource -Raw
+} else {
+  $sourceParts = Get-ChildItem -LiteralPath $ScriptDir -Filter 'SPXToolkitUpdater.part-*.txt' | Sort-Object Name
+  if ($sourceParts.Count -eq 0) { throw 'Código-fonte do SPX Toolkit Loader não encontrado.' }
+  $sourceCode = ($sourceParts | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join ''
+}
 Add-Type `
   -TypeDefinition $sourceCode `
   -Language CSharp `

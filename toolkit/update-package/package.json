@@ -1,0 +1,14 @@
+{
+  "version": "1.6.0",
+  "format": "zip-base64-parts-v1",
+  "mode": "overlay",
+  "sha256": "002bb53b8419045a69364707ebd17cabc61011422ed9a8195b9eababc32fe2ce",
+  "parts": [
+    "part-v160-001.b64",
+    "part-v160-002.b64",
+    "part-v160-003.b64",
+    "part-v160-004.b64",
+    "part-v160-005.b64"
+  ],
+  "delete": []
+}

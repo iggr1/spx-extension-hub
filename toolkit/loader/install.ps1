@@ -46,7 +46,8 @@ $config = [ordered]@{
   updatePath = 'toolkit/update.json'
   packageManifestPath = 'toolkit/update-package/package.json'
 }
-$config | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $ConfigPath -Encoding UTF8
+$Utf8NoBom = New-Object Text.UTF8Encoding($false)
+[IO.File]::WriteAllText($ConfigPath, ($config | ConvertTo-Json -Depth 4), $Utf8NoBom)
 
 if (Test-Path $UpdaterExe) { Remove-Item -LiteralPath $UpdaterExe -Force }
 $sourceCode = $null
@@ -71,7 +72,7 @@ $hostManifest = [ordered]@{
   type = 'stdio'
   allowed_origins = @("chrome-extension://$ExtensionId/")
 }
-$hostManifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $HostManifestPath -Encoding UTF8
+[IO.File]::WriteAllText($HostManifestPath, ($hostManifest | ConvertTo-Json -Depth 5), $Utf8NoBom)
 
 $registryPath = "HKCU:\Software\Google\Chrome\NativeMessagingHosts\$NativeHostName"
 New-Item -Path $registryPath -Force | Out-Null

@@ -1,0 +1,137 @@
+ageDir) ? part : packageDir + "/" + part;
+                    base64.Append(GetGitHubFileText(repository, branch, partPath, token).Trim());
+                }
+
+                byte[] zipBytes = Convert.FromBase64String(base64.ToString());
+                string expectedSha256 = RequireString(package, "sha256");
+                string actualSha256 = ComputeSha256(zipBytes);
+                if (!String.Equals(expectedSha256, actualSha256, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("A assinatura SHA-256 do pacote não confere.");
+
+                File.WriteAllBytes(packageZipPath, zipBytes);
+                ZipFile.ExtractToDirectory(packageZipPath, packageExtractPath);
+
+                string manifestPath = Path.Combine(packageExtractPath, "manifest.json");
+                if (!File.Exists(manifestPath))
+                    throw new FileNotFoundException("O pacote de atualização não contém manifest.json.");
+
+                Dictionary<string, object> manifest = LoadJsonFile(manifestPath);
+                string manifestVersion = RequireString(manifest, "version");
+                if (!String.Equals(manifestVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Versão inconsistente: pacote=" + manifestVersion + " e canal=" + remoteVersion + ".");
+
+                if (Directory.Exists(extensionPath))
+                {
+                    backupPath = Path.Combine(
+                        backupRoot,
+                        "v" + SanitizeFileName(currentVersion) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss")
+                    );
+                    CopyDirectory(extensionPath, backupPath, true);
+                }
+                else
+                {
+                    Directory.CreateDirectory(extensionPath);
+                }
+
+                string mode = GetString(package, "mode", "overlay");
+                try
+                {
+                    if (String.Equals(mode, "replace", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (Directory.Exists(extensionPath)) Directory.Delete(extensionPath, true);
+                        Directory.CreateDirectory(extensionPath);
+                    }
+
+                    CopyDirectory(packageExtractPath, extensionPath, false);
+                    ApplyDeleteList(package, extensionPath);
+                    CleanupOldBackups(backupRoot, 3);
+                }
+                catch
+                {
+                    if (!String.IsNullOrWhiteSpace(backupPath) && Directory.Exists(backupPath))
+                    {
+                        if (Directory.Exists(extensionPath)) Directory.Delete(extensionPath, true);
+                        CopyDirectory(backupPath, extensionPath, true);
+                    }
+                    throw;
+                }
+
+                return new Dictionary<string, object>
+                {
+                    { "ok", true },
+                    { "updated", true },
+                    { "version", remoteVersion },
+                    { "remoteVersion", remoteVersion },
+                    { "message", "SPX Toolkit atualizado para " + remoteVersion + "." }
+                };
+            }
+            finally
+            {
+                TryDeleteDirectory(workRoot);
+            }
+        }
+
+        private static void ApplyDeleteList(Dictionary<string, object> package, string extensionPath)
+        {
+            if (!package.ContainsKey("delete")) return;
+            foreach (string relative in GetStringList(package, "delete"))
+            {
+                string normalized = relative.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                string target = Path.GetFullPath(Path.Combine(extensionPath, normalized));
+                string root = Path.GetFullPath(extensionPath).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Caminho inválido na lista de exclusão: " + relative);
+                if (File.Exists(target)) File.Delete(target);
+                else if (Directory.Exists(target)) Directory.Delete(target, true);
+            }
+        }
+
+        private static string GetGitHubFileText(string repository, string branch, string path, string token)
+        {
+            string apiUrl = "https://api.github.com/repos/" + repository + "/contents/" + EscapePath(path) + "?ref=" + Uri.EscapeDataString(branch);
+            try
+            {
+                using (WebClient client = CreateWebClient(token))
+                {
+                    string response = client.DownloadString(apiUrl);
+                    Dictionary<string, object> payload = Json.Deserialize<Dictionary<string, object>>(response);
+                    string encoding = GetString(payload, "encoding", "");
+                    string content = GetString(payload, "content", "").Replace("\n", "").Replace("\r", "");
+                    if (!String.Equals(encoding, "base64", StringComparison.OrdinalIgnoreCase) || String.IsNullOrWhiteSpace(content))
+                        throw new InvalidOperationException("O GitHub não retornou " + path + " em base64.");
+                    return Encoding.UTF8.GetString(Convert.FromBase64String(content));
+                }
+            }
+            catch (WebException ex)
+            {
+                HttpWebResponse response = ex.Response as HttpWebResponse;
+                if (response != null && response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    string suffix = String.IsNullOrWhiteSpace(token)
+                        ? " Se o repositório for privado, reinstale o Loader informando um token de leitura."
+                        : " Confira se o arquivo existe na branch configurada e se o token possui Contents: Read.";
+                    throw new InvalidOperationException("Arquivo não encontrado no GitHub: " + path + "." + suffix, ex);
+                }
+                throw;
+            }
+        }
+
+        private static WebClient CreateWebClient(string token)
+        {
+            WebClient client = new WebClient();
+            client.Headers[HttpRequestHeader.UserAgent] = "SPXToolkitLoader/1.0";
+            client.Headers[HttpRequestHeader.Accept] = "application/vnd.github+json";
+            if (!String.IsNullOrWhiteSpace(token))
+                client.Headers[HttpRequestHeader.Authorization] = "Bearer " + token;
+            return client;
+        }
+
+        private static string EscapePath(string path)
+        {
+            return String.Join("/", path.Replace('\\', '/').Split('/').Where(p => p.Length > 0).Select(Uri.EscapeDataString).ToArray());
+        }
+
+        private static string LoadToken(string path)
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+            byte[] 

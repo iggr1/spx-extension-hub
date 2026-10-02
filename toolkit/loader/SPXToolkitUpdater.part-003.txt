@@ -1,0 +1,143 @@
+ protectedBytes = File.ReadAllBytes(path);
+            byte[] plainBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
+            try { return Encoding.UTF8.GetString(plainBytes).Trim(); }
+            finally { Array.Clear(plainBytes, 0, plainBytes.Length); }
+        }
+
+        private static string ReadNativeMessage()
+        {
+            Stream input = Console.OpenStandardInput();
+            byte[] lengthBytes = ReadExactly(input, 4);
+            if (lengthBytes == null) return "";
+            int length = BitConverter.ToInt32(lengthBytes, 0);
+            if (length <= 0 || length > 16 * 1024 * 1024)
+                throw new InvalidOperationException("Tamanho de mensagem nativa inválido.");
+            byte[] payload = ReadExactly(input, length);
+            if (payload == null) throw new EndOfStreamException("Mensagem nativa incompleta.");
+            return Encoding.UTF8.GetString(payload);
+        }
+
+        private static void WriteNativeMessage(object payload)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(Json.Serialize(payload));
+            byte[] length = BitConverter.GetBytes(bytes.Length);
+            Stream output = Console.OpenStandardOutput();
+            output.Write(length, 0, length.Length);
+            output.Write(bytes, 0, bytes.Length);
+            output.Flush();
+        }
+
+        private static byte[] ReadExactly(Stream stream, int count)
+        {
+            byte[] buffer = new byte[count];
+            int offset = 0;
+            while (offset < count)
+            {
+                int read = stream.Read(buffer, offset, count - offset);
+                if (read <= 0) return offset == 0 ? null : null;
+                offset += read;
+            }
+            return buffer;
+        }
+
+        private static Dictionary<string, object> LoadJsonFile(string path)
+        {
+            if (!File.Exists(path)) throw new FileNotFoundException("Arquivo não encontrado: " + path);
+            return Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
+        }
+
+        private static IEnumerable<string> GetStringList(Dictionary<string, object> source, string key)
+        {
+            object raw;
+            if (!source.TryGetValue(key, out raw) || raw == null) yield break;
+            object[] array = raw as object[];
+            if (array == null)
+            {
+                ArrayList list = raw as ArrayList;
+                if (list != null) array = list.ToArray();
+            }
+            if (array == null) throw new InvalidOperationException("Lista inválida: " + key);
+            foreach (object item in array)
+            {
+                string value = Convert.ToString(item);
+                if (!String.IsNullOrWhiteSpace(value)) yield return value;
+            }
+        }
+
+        private static string RequireString(Dictionary<string, object> source, string key)
+        {
+            string value = GetString(source, key, null);
+            if (String.IsNullOrWhiteSpace(value)) throw new InvalidOperationException("Campo obrigatório ausente: " + key);
+            return value;
+        }
+
+        private static string GetString(Dictionary<string, object> source, string key, string fallback)
+        {
+            object value;
+            if (source != null && source.TryGetValue(key, out value) && value != null)
+                return Convert.ToString(value);
+            return fallback;
+        }
+
+        private static bool GetBool(Dictionary<string, object> source, string key, bool fallback)
+        {
+            object value;
+            if (source != null && source.TryGetValue(key, out value) && value != null)
+            {
+                bool parsed;
+                if (Boolean.TryParse(Convert.ToString(value), out parsed)) return parsed;
+            }
+            return fallback;
+        }
+
+        private static int CompareVersions(string a, string b)
+        {
+            Version va, vb;
+            if (Version.TryParse(a, out va) && Version.TryParse(b, out vb)) return va.CompareTo(vb);
+            return StringComparer.OrdinalIgnoreCase.Compare(a ?? "", b ?? "");
+        }
+
+        private static string ComputeSha256(byte[] bytes)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(bytes);
+                StringBuilder sb = new StringBuilder(hash.Length * 2);
+                foreach (byte b in hash) sb.Append(b.ToString("x2"));
+                return sb.ToString();
+            }
+        }
+
+        private static void CopyDirectory(string source, string destination, bool deleteDestinationFirst)
+        {
+            if (!Directory.Exists(source)) throw new DirectoryNotFoundException(source);
+            if (deleteDestinationFirst && Directory.Exists(destination)) Directory.Delete(destination, true);
+            Directory.CreateDirectory(destination);
+            foreach (string file in Directory.GetFiles(source))
+                File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), true);
+            foreach (string directory in Directory.GetDirectories(source))
+                CopyDirectory(directory, Path.Combine(destination, Path.GetFileName(directory)), false);
+        }
+
+        private static void CleanupOldBackups(string backupRoot, int keep)
+        {
+            if (!Directory.Exists(backupRoot)) return;
+            string[] backups = Directory.GetDirectories(backupRoot)
+                .OrderByDescending(Directory.GetCreationTimeUtc)
+                .ToArray();
+            for (int i = keep; i < backups.Length; i++) TryDeleteDirectory(backups[i]);
+        }
+
+        private static void TryDeleteDirectory(string path)
+        {
+            try { if (Directory.Exists(path)) Directory.Delete(path, true); } catch { }
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            string result = value ?? "unknown";
+            foreach (char c in Path.GetInvalidFileNameChars()) result = result.Replace(c, '_');
+            return result;
+        }
+    }
+}

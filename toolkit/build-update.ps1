@@ -1,6 +1,6 @@
 param(
   [string]$ToolkitRoot = $PSScriptRoot,
-  [ValidateSet('overlay','replace')][string]$Mode = 'overlay'
+  [ValidateSet('overlay','replace')][string]$Mode = 'replace'
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression

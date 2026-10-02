@@ -1,0 +1,156 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Web.Script.Serialization;
+
+namespace SpxToolkitNativeUpdater
+{
+    internal static class Program
+    {
+        private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
+        private static string BaseDir { get { return AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar); } }
+
+        private static int Main(string[] args)
+        {
+            bool ownsMutex = false;
+            using (Mutex mutex = new Mutex(false, "SPXToolkitUpdaterMutex"))
+            {
+                try
+                {
+                    ownsMutex = mutex.WaitOne(TimeSpan.FromSeconds(45));
+                    if (!ownsMutex)
+                    {
+                        WriteNativeMessage(new Dictionary<string, object>
+                        {
+                            { "ok", false },
+                            { "updated", false },
+                            { "error", "O SPX Toolkit Loader já está verificando uma atualização." }
+                        });
+                        return 2;
+                    }
+
+                    ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+                    string input = ReadNativeMessage();
+                    Dictionary<string, object> request = String.IsNullOrWhiteSpace(input)
+                        ? new Dictionary<string, object>()
+                        : Json.Deserialize<Dictionary<string, object>>(input);
+
+                    string action = GetString(request, "action", "check");
+                    if (String.Equals(action, "ping", StringComparison.OrdinalIgnoreCase))
+                    {
+                        WriteNativeMessage(new Dictionary<string, object>
+                        {
+                            { "ok", true },
+                            { "updated", false },
+                            { "message", "SPX Toolkit Loader ativo." }
+                        });
+                        return 0;
+                    }
+
+                    if (!String.Equals(action, "check", StringComparison.OrdinalIgnoreCase))
+                    {
+                        WriteNativeMessage(new Dictionary<string, object>
+                        {
+                            { "ok", false },
+                            { "updated", false },
+                            { "error", "Ação não suportada: " + action }
+                        });
+                        return 1;
+                    }
+
+                    Dictionary<string, object> result = CheckAndUpdate(request);
+                    WriteNativeMessage(result);
+                    return GetBool(result, "ok", false) ? 0 : 1;
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        WriteNativeMessage(new Dictionary<string, object>
+                        {
+                            { "ok", false },
+                            { "updated", false },
+                            { "error", ex.Message }
+                        });
+                    }
+                    catch { }
+                    return 1;
+                }
+                finally
+                {
+                    if (ownsMutex)
+                    {
+                        try { mutex.ReleaseMutex(); } catch { }
+                    }
+                }
+            }
+        }
+
+        private static Dictionary<string, object> CheckAndUpdate(Dictionary<string, object> request)
+        {
+            Dictionary<string, object> config = LoadJsonFile(Path.Combine(BaseDir, "config.json"));
+            string repository = RequireString(config, "repository");
+            string branch = GetString(config, "branch", "main");
+            string extensionPath = RequireString(config, "extensionPath");
+            string tokenPath = GetString(config, "tokenPath", Path.Combine(BaseDir, "github-token.dat"));
+            string updatePath = GetString(config, "updatePath", "toolkit/update.json");
+            string packageManifestPath = GetString(config, "packageManifestPath", "toolkit/update-package/package.json");
+            string currentVersion = GetString(request, "currentVersion", "0.0.0");
+            string token = LoadToken(tokenPath);
+
+            Dictionary<string, object> remoteUpdate = Json.Deserialize<Dictionary<string, object>>(
+                GetGitHubFileText(repository, branch, updatePath, token)
+            );
+            string remoteVersion = RequireString(remoteUpdate, "version");
+
+            if (CompareVersions(remoteVersion, currentVersion) <= 0)
+            {
+                return new Dictionary<string, object>
+                {
+                    { "ok", true },
+                    { "updated", false },
+                    { "version", currentVersion },
+                    { "remoteVersion", remoteVersion },
+                    { "message", "SPX Toolkit está atualizado." }
+                };
+            }
+
+            string workRoot = Path.Combine(Path.GetTempPath(), "SPXToolkitUpdate-" + Guid.NewGuid().ToString("N"));
+            string packageZipPath = Path.Combine(workRoot, "update.zip");
+            string packageExtractPath = Path.Combine(workRoot, "extension");
+            string backupRoot = Path.Combine(Path.GetDirectoryName(extensionPath), "backups");
+            string backupPath = null;
+
+            Directory.CreateDirectory(workRoot);
+            Directory.CreateDirectory(packageExtractPath);
+            Directory.CreateDirectory(backupRoot);
+
+            try
+            {
+                Dictionary<string, object> package = Json.Deserialize<Dictionary<string, object>>(
+                    GetGitHubFileText(repository, branch, packageManifestPath, token)
+                );
+
+                string packageVersion = RequireString(package, "version");
+                if (!String.Equals(packageVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Versão inconsistente: update.json=" + remoteVersion + " e package.json=" + packageVersion + ".");
+
+                string format = RequireString(package, "format");
+                if (!String.Equals(format, "zip-base64-parts-v1", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Formato de atualização não suportado: " + format);
+
+                string packageDir = packageManifestPath.Replace('\\', '/');
+                int slash = packageDir.LastIndexOf('/');
+                packageDir = slash >= 0 ? packageDir.Substring(0, slash) : "";
+
+                StringBuilder base64 = new StringBuilder();
+                foreach (string part in GetStringList(package, "parts"))
+                {
+                    string partPath = String.IsNullOrEmpty(pack

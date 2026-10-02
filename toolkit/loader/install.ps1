@@ -60,7 +60,7 @@ if (Test-Path $UpdaterSource) {
 Add-Type `
   -TypeDefinition $sourceCode `
   -Language CSharp `
-  -ReferencedAssemblies @('System.Web.Extensions.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','System.Security.dll') `
+  -ReferencedAssemblies @('System.dll','System.Core.dll','System.Web.Extensions.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','System.Security.dll') `
   -OutputAssembly $UpdaterExe `
   -OutputType ConsoleApplication
 

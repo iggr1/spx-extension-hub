@@ -88,9 +88,16 @@ ageDir) ? part : packageDir + "/" + part;
 
         private static string GetGitHubFileText(string repository, string branch, string path, string token)
         {
-            string apiUrl = "https://api.github.com/repos/" + repository + "/contents/" + EscapePath(path) + "?ref=" + Uri.EscapeDataString(branch);
             try
             {
+                if (String.IsNullOrWhiteSpace(token))
+                {
+                    string rawUrl = "https://raw.githubusercontent.com/" + repository + "/" + Uri.EscapeDataString(branch) + "/" + EscapePath(path);
+                    using (WebClient rawClient = CreateWebClient(null))
+                        return rawClient.DownloadString(rawUrl);
+                }
+
+                string apiUrl = "https://api.github.com/repos/" + repository + "/contents/" + EscapePath(path) + "?ref=" + Uri.EscapeDataString(branch);
                 using (WebClient client = CreateWebClient(token))
                 {
                     string response = client.DownloadString(apiUrl);
@@ -106,12 +113,7 @@ ageDir) ? part : packageDir + "/" + part;
             {
                 HttpWebResponse response = ex.Response as HttpWebResponse;
                 if (response != null && response.StatusCode == HttpStatusCode.NotFound)
-                {
-                    string suffix = String.IsNullOrWhiteSpace(token)
-                        ? " Se o repositório for privado, reinstale o Loader informando um token de leitura."
-                        : " Confira se o arquivo existe na branch configurada e se o token possui Contents: Read.";
-                    throw new InvalidOperationException("Arquivo não encontrado no GitHub: " + path + "." + suffix, ex);
-                }
+                    throw new InvalidOperationException("Arquivo não encontrado no GitHub: " + path + ".", ex);
                 throw;
             }
         }
@@ -133,5 +135,4 @@ ageDir) ? part : packageDir + "/" + part;
 
         private static string LoadToken(string path)
         {
-            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
-            byte[] 
+            if (String.IsNullOrWhiteSpace(path) || !File.Exis

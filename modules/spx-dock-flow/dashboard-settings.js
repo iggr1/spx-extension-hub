@@ -7,8 +7,6 @@
   const DEFAULT_SETTINGS = Object.freeze({
     autoRefreshEnabled: true,
     refreshIntervalSeconds: 10,
-    loadingAlertMinutes: 10,
-    waitingAlertMinutes: 10,
     historyWindowHours: 2.5,
     zoomPercent: 100
   });
@@ -69,8 +67,6 @@
     return {
       autoRefreshEnabled: value.autoRefreshEnabled !== false,
       refreshIntervalSeconds: clampNumber(value.refreshIntervalSeconds, 10, 120, DEFAULT_SETTINGS.refreshIntervalSeconds),
-      loadingAlertMinutes: clampNumber(value.loadingAlertMinutes, 0, 120, DEFAULT_SETTINGS.loadingAlertMinutes),
-      waitingAlertMinutes: clampNumber(value.waitingAlertMinutes, 0, 120, DEFAULT_SETTINGS.waitingAlertMinutes),
       historyWindowHours: clampNumber(value.historyWindowHours, 1, 24, DEFAULT_SETTINGS.historyWindowHours),
       zoomPercent: roundZoom(value.zoomPercent)
     };
@@ -159,8 +155,6 @@
   function fillSettingsForm() {
     setInputValue('settingAutoRefresh', settings.autoRefreshEnabled);
     setInputValue('settingRefreshInterval', settings.refreshIntervalSeconds);
-    setInputValue('settingLoadingAlert', settings.loadingAlertMinutes);
-    setInputValue('settingWaitingAlert', settings.waitingAlertMinutes);
     setInputValue('settingHistoryWindow', settings.historyWindowHours);
     setInputValue('settingZoomPercent', settings.zoomPercent);
 
@@ -181,8 +175,6 @@
     settings = sanitizeSettings({
       autoRefreshEnabled: document.getElementById('settingAutoRefresh')?.checked,
       refreshIntervalSeconds: document.getElementById('settingRefreshInterval')?.value,
-      loadingAlertMinutes: document.getElementById('settingLoadingAlert')?.value,
-      waitingAlertMinutes: document.getElementById('settingWaitingAlert')?.value,
       historyWindowHours: document.getElementById('settingHistoryWindow')?.value,
       zoomPercent: document.getElementById('settingZoomPercent')?.value
     });
@@ -465,20 +457,20 @@
     const loadingFinalized = route.kind === 'route-finished';
     const statusLabel = loadingFinalized ? 'Finalizado' : displayStatus.label;
     const statusClass = loadingFinalized ? 'finished' : displayStatus.key;
-    const loadingThreshold = getLoadingAlertSeconds();
+    const loadingThreshold = getLoadingAlertSeconds(route.assignmentTaskId);
     const waitingThreshold = getWaitingAlertSeconds();
     const loadingOverLimit = occupied && !loadingFinalized && loadingThreshold > 0 && rawDockSeconds > loadingThreshold;
     const waitingOverLimit = Boolean(nextDriver) && waitingThreshold > 0 && rawWaitingSeconds > waitingThreshold;
     const alertTitle = loadingFinalized
       ? 'Carregamento finalizado · aguardando saída do motorista'
       : loadingOverLimit
-        ? `Carregamento acima de ${formatMinutes(settings.loadingAlertMinutes)}`
+        ? `Carregamento acima de ${formatMinutes(loadingThreshold / 60)}`
         : waitingOverLimit
-          ? `Espera acima de ${formatMinutes(settings.waitingAlertMinutes)}`
+          ? `Espera acima de ${formatMinutes(waitingThreshold / 60)}`
           : displayStatus.label;
 
     return `
-      <article class="dock-card ${displayStatus.key}${loadingFinalized ? ' loading-finished' : ''}${loadingOverLimit ? ' overdue' : ''}${waitingOverLimit ? ' waiting-overdue' : ''}" data-dock-id="${id}">
+      <article class="dock-card ${displayStatus.key}${loadingFinalized ? ' loading-finished' : ''}${loadingOverLimit ? ' overdue' : ''}${waitingOverLimit ? ' waiting-overdue' : ''}" data-dock-id="${id}" data-assignment-task-id="${escapeHtml(route.assignmentTaskId || '')}">
         <div class="dock-card-header">
           <div class="dock-name-block">
             <span>MESA / DOCA</span>
@@ -521,7 +513,6 @@
   }
 
   function configuredUpdateLiveTimes() {
-    const loadingThreshold = getLoadingAlertSeconds();
     const waitingThreshold = getWaitingAlertSeconds();
 
     document.querySelectorAll('.live-duration').forEach(element => {
@@ -535,6 +526,7 @@
       element.textContent = formatDuration(displaySeconds);
 
       const card = element.closest('.dock-card');
+      const loadingThreshold = getLoadingAlertSeconds(card?.dataset.assignmentTaskId);
 
       if (timerKind === 'occupation') {
         const isOverLimit = !card?.classList.contains('loading-finished') && loadingThreshold > 0 && rawSeconds > loadingThreshold;
@@ -550,9 +542,9 @@
         const statusBadge = card.querySelector('.status-badge');
         if (statusBadge) {
           statusBadge.title = card.classList.contains('overdue')
-            ? `Carregamento acima de ${formatMinutes(settings.loadingAlertMinutes)}`
+            ? `Carregamento acima de ${formatMinutes(loadingThreshold / 60)}`
             : card.classList.contains('waiting-overdue')
-              ? `Espera acima de ${formatMinutes(settings.waitingAlertMinutes)}`
+              ? `Espera acima de ${formatMinutes(waitingThreshold / 60)}`
               : statusBadge.querySelector(':scope > span:last-child')?.textContent || '';
         }
       }
@@ -667,12 +659,14 @@
     if (label) label.textContent = `Média por rota · ${formatCompactHours(settings.historyWindowHours)}`;
   }
 
-  function getLoadingAlertSeconds() {
-    return Math.max(0, settings.loadingAlertMinutes * 60);
+  function getLoadingAlertSeconds(assignmentTaskId) {
+    const item = assignmentTaskId && state.assignmentStats?.[assignmentTaskId];
+    const count = item?.status === 'ready' ? Number(item.totalOrders) : NaN;
+    return Number.isFinite(count) && count > 0 ? Math.max(2, Math.ceil(count * 7 / 100)) * 60 : 7 * 60;
   }
 
   function getWaitingAlertSeconds() {
-    return Math.max(0, settings.waitingAlertMinutes * 60);
+    return 10 * 60;
   }
 
   function getHistoryWindowSeconds() {

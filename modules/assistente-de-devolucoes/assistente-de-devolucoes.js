@@ -316,7 +316,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  if(!modal){
   modal=document.createElement('section');modal.id=MODAL_ID;
   modal.setAttribute('aria-label','Assistente de devoluções');
-  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Exportar On Hold do dia" title="Exportar On Hold do dia">CSV</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
+  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Abrir relatório On Hold do dia" title="Relatório On Hold do dia">On Hold</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
   modal.onclick=handleModalClick;document.body.appendChild(modal);
   const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
   toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
@@ -457,31 +457,76 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
     const records = Object.values(data[today] || {});
     const rows = records.filter(row => row.attempts > 0);
     const reasons = {};
-    for (const row of rows) reasons[row.reason] = (reasons[row.reason] || 0) + 1;
-    document.getElementById('spx-onhold-report-window')?.remove();
-    const panel = document.createElement('section');
-    panel.id = 'spx-onhold-report-window';
-    panel.style.cssText = 'position:fixed;z-index:2147483647;top:6vh;left:50%;transform:translateX(-50%);width:min(760px,94vw);max-height:85vh;overflow:auto;padding:18px;background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:14px;box-shadow:0 20px 70px #0009;font:13px Arial';
-    panel.innerHTML = '<header style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:18px">On Hold · ' + today + '</strong><div><button data-download>CSV</button> <button data-close>Fechar</button></div></header>' +
-      '<p>Pedidos consultados: ' + records.length + ' · Com On Hold: ' + rows.length + '</p>' +
-      '<p style="color:#94a3b8">Histórico local deste navegador, sem dados retroativos de outras estações.</p>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">' + Object.entries(reasons).sort((a,b)=>b[1]-a[1]).map(([reason,count])=>'<span style="background:#334155;padding:8px;border-radius:7px">'+escapeHtml(reason)+': '+count+'</span>').join('') + '</div>' +
-      '<div style="overflow:auto"><table style="width:100%;text-align:left"><thead><tr><th>BR</th><th>Motivo</th><th>Motorista</th><th>Tentativas</th><th>Horário</th></tr></thead><tbody>' +
-      rows.sort((a,b)=>b.checkedAt-a.checkedAt).map(row=>'<tr><td style="padding:7px">'+escapeHtml(row.id)+'</td><td>'+escapeHtml(row.reason)+'</td><td>'+escapeHtml(row.driver)+'</td><td>'+Number(row.attempts)+'</td><td>'+new Date(row.checkedAt).toLocaleTimeString('pt-BR')+'</td></tr>').join('')+'</tbody></table></div>';
-    panel.querySelector('[data-close]').onclick = () => panel.remove();
-    panel.querySelector('[data-download]').onclick = dailyOnHoldReport;
-    panel.querySelectorAll('button').forEach(button=>button.style.cssText='padding:7px 10px;background:#334155;color:white;border:0;border-radius:6px;cursor:pointer');
-    document.body.appendChild(panel);
-  }
-
-  function ensureDailyOnHoldButton() {
-    if (document.getElementById('spx-onhold-daily-button')) return;
-    const button = document.createElement('button');
-    button.id = 'spx-onhold-daily-button';
-    button.textContent = 'On Hold · Hoje';
-    button.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:2147483642;background:#0f172a;color:white;border:1px solid #475569;border-radius:10px;padding:12px;cursor:pointer';
-    button.onclick = showDailyOnHold;
-    document.body.appendChild(button);
+    for (const row of rows) reasons[row.reason || 'Não informado'] = (reasons[row.reason || 'Não informado'] || 0) + 1;
+    const totalAttempts = rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0);
+    let panel = document.getElementById('spx-onhold-report-window');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'spx-onhold-report-window';
+      panel.dataset.collapsed = 'true';
+      panel.style.cssText = 'position:fixed;z-index:2147483645;right:18px;bottom:18px;width:min(500px,calc(100vw - 36px));max-height:85vh;overflow:hidden;display:flex;flex-direction:column;background:#101827;color:#f8fafc;border:1px solid #334155;border-radius:16px;box-shadow:0 18px 60px #02061777;font:12px Arial,sans-serif';
+      panel.innerHTML = `
+        <style>
+          #spx-onhold-report-window *{box-sizing:border-box}
+          #spx-onhold-report-window .oh-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;background:linear-gradient(120deg,#18263d,#111827)}
+          #spx-onhold-report-window .oh-symbol{display:grid;place-items:center;width:36px;height:36px;flex-shrink:0;border-radius:11px;background:#f59e0b25;color:#fbbf24;font-weight:900}
+          #spx-onhold-report-window .oh-heading{flex:1;min-width:0}
+          #spx-onhold-report-window .oh-heading strong{display:block;font-size:13px}
+          #spx-onhold-report-window .oh-heading small{display:block;margin-top:4px;color:#94a3b8;font-size:10px}
+          #spx-onhold-report-window .oh-action{border:1px solid #40516a;border-radius:8px;background:#27364b;color:#e2e8f0;padding:7px 9px;cursor:pointer;font-size:11px}
+          #spx-onhold-report-window .oh-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px 14px}
+          #spx-onhold-report-window .oh-summary span{color:#cbd5e1}
+          #spx-onhold-report-window .oh-summary strong{font-size:17px;color:#fbbf24}
+          #spx-onhold-report-window .oh-details{min-height:0;overflow:auto;border-top:1px solid #334155}
+          #spx-onhold-report-window[data-collapsed="true"] .oh-details{display:none}
+          #spx-onhold-report-window .oh-body{padding:14px 16px}
+          #spx-onhold-report-window .oh-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+          #spx-onhold-report-window .oh-metric{padding:11px;background:#1e293b;border:1px solid #334155;border-radius:10px}
+          #spx-onhold-report-window .oh-metric span{display:block;color:#94a3b8;font-size:10px;margin-bottom:6px}
+          #spx-onhold-report-window .oh-metric strong{font-size:18px}
+          #spx-onhold-report-window .oh-reason{padding:11px;margin:7px 0;background:#1c293b;border:1px solid #334155;border-radius:10px}
+          #spx-onhold-report-window .oh-reason-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+          #spx-onhold-report-window .oh-track{height:7px;background:#334155;border-radius:99px;overflow:hidden}
+          #spx-onhold-report-window .oh-track i{display:block;height:100%;border-radius:inherit;background:#f59e0b}
+          #spx-onhold-report-window .oh-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px}
+          #spx-onhold-report-window .oh-table th,#spx-onhold-report-window .oh-table td{padding:8px 5px;border-bottom:1px solid #334155;overflow-wrap:anywhere}
+          #spx-onhold-report-window .oh-table th{color:#94a3b8}
+        </style>
+        <div class="oh-header" data-oh-toggle tabindex="0" role="button" aria-expanded="false">
+          <div class="oh-symbol">OH</div><div class="oh-heading"><strong>On Hold · Relatório do dia</strong><small data-oh-day></small></div>
+          <button type="button" class="oh-action" data-oh-export title="Exportar CSV">CSV</button>
+          <button type="button" class="oh-action" data-oh-collapse aria-label="Expandir relatório">⌄</button>
+          <button type="button" class="oh-action" data-oh-close aria-label="Fechar relatório">×</button>
+        </div>
+        <div class="oh-summary"><span data-oh-summary>Pedidos registrados</span><strong data-oh-count>0</strong></div>
+        <div class="oh-details"><div class="oh-body" data-oh-body></div></div>`;
+      const toggle = () => {
+        const collapsed = panel.dataset.collapsed !== 'true';
+        panel.dataset.collapsed = String(collapsed);
+        panel.querySelector('[data-oh-toggle]').setAttribute('aria-expanded', String(!collapsed));
+        panel.querySelector('[data-oh-collapse]').textContent = collapsed ? '⌄' : '⌃';
+      };
+      panel.querySelector('[data-oh-toggle]').addEventListener('click', event => { if (!event.target.closest('button')) toggle(); });
+      panel.querySelector('[data-oh-toggle]').addEventListener('keydown', event => { if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) { event.preventDefault(); toggle(); } });
+      panel.querySelector('[data-oh-collapse]').onclick = toggle;
+      panel.querySelector('[data-oh-close]').onclick = () => panel.remove();
+      panel.querySelector('[data-oh-export]').onclick = dailyOnHoldReport;
+      document.body.appendChild(panel);
+    }
+    panel.querySelector('[data-oh-day]').textContent = today + ' · Armazenamento local';
+    panel.querySelector('[data-oh-summary]').textContent = records.length + ' consultados · ' + totalAttempts + ' tentativas registradas';
+    panel.querySelector('[data-oh-count]').textContent = rows.length + ' On Hold';
+    const reasonCards = Object.entries(reasons).sort((a,b) => b[1]-a[1]).map(([reason,count]) => {
+      const percent = rows.length ? Math.round(count / rows.length * 100) : 0;
+      return '<div class="oh-reason"><div class="oh-reason-top"><strong>' + escapeHtml(reason) + '</strong><b>' + count + ' · ' + percent + '%</b></div><div class="oh-track"><i style="width:' + percent + '%"></i></div></div>';
+    }).join('');
+    const table = rows.slice().sort((a,b) => b.checkedAt-a.checkedAt).map(row =>
+      '<tr><td>' + escapeHtml(row.id) + '</td><td>' + escapeHtml(row.reason) + '</td><td>' + escapeHtml(row.driver) + '</td><td>' + Number(row.attempts) + '</td><td>' + new Date(row.checkedAt).toLocaleTimeString('pt-BR') + '</td></tr>').join('');
+    panel.querySelector('[data-oh-body]').innerHTML =
+      '<div class="oh-grid"><div class="oh-metric"><span>Consultados</span><strong>' + records.length + '</strong></div><div class="oh-metric"><span>Com On Hold</span><strong style="color:#fbbf24">' + rows.length + '</strong></div><div class="oh-metric"><span>Tentativas</span><strong>' + totalAttempts + '</strong></div></div>' +
+      '<p style="color:#94a3b8;font-size:10px">Apenas pedidos consultados neste navegador. Dados retidos por até 7 dias.</p>' +
+      '<strong style="display:block;margin:14px 0 8px">Motivos registrados</strong>' + (reasonCards || '<p>Sem registros On Hold hoje.</p>') +
+      '<strong style="display:block;margin:18px 0 8px">Pedidos do dia</strong><div style="overflow:auto"><table class="oh-table"><thead><tr><th>BR</th><th>Motivo</th><th>Motorista</th><th>Tent.</th><th>Hora</th></tr></thead><tbody>' + table + '</tbody></table></div>';
   }
 
   function selectAuditTask(tasks) {
@@ -722,6 +767,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   function handleModalClick(event){
  const target=event.target;if(!target?.closest)return;
  if(target.closest('[data-collapse]')){setCollapsed(true);document.getElementById(FAB_ID)?.focus();return;}
+ if(target.closest('[data-onhold-report]')){showDailyOnHold();return;}
  if(target.closest('[data-refresh]')){if(!historyBusy&&!pendingActions.has(lastShipmentId))startShipment(lastShipmentId,0);return;}
  const button=target.closest('[data-address-action]');if(button)void handleAddress(button);
 }
@@ -747,7 +793,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  document.removeEventListener('input',shipmentChanged,true);
  document.removeEventListener('change',shipmentChanged,true);
  document.removeEventListener('keydown',shipmentChanged,true);
- document.getElementById('spx-onhold-daily-button')?.remove();document.getElementById('spx-onhold-report-window')?.remove();
+ document.getElementById('spx-onhold-report-window')?.remove();
  lastShipmentId='';observedInput='';collapsed=false;removeUi();
 }
 
@@ -777,7 +823,6 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   if(!runtimePending && (runtimeIdentity!==sessionFingerprint() || Date.now()-runtimeCheckedAt>=30000))void verifyRuntimeAccess();
   return;
  }
- ensureDailyOnHoldButton();
  if(monitorId)return shipmentChanged();
  monitorId=setInterval(shipmentChanged,300);
  document.addEventListener('input',shipmentChanged,true);

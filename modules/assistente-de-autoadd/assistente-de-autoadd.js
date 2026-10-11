@@ -385,19 +385,23 @@
         const at = String(item?.target_id || '').toUpperCase();
         if (/^AT[A-Z0-9]+$/.test(at)) items.set(at, { at, route: String(item.binding_entity || '-'), validated: item.validation_status === 4 });
       }
-      if (list.length === 0 || items.size >= Number(data.total || data.all_qty || 0) || list.length < 100) break;
+      if (list.length === 0 || (Number(data.total || data.all_qty || 0) > 0 && items.size >= Number(data.total || data.all_qty || 0))) break;
     }
     return [...items.values()];
   }
 
   async function overviewAtStats(vt, at, signal) {
-    const stationId = await getStationId(signal);
     const planned = await fetchPlannedAutoAdd({ assignmentTaskId: at, validationTaskId: vt }, signal);
     if (!planned.length) return { planned: 0, scanned: 0 };
     const params = new URLSearchParams({ validation_task_id: vt, target_id: at, audit_target_type: '2', page_no: '1', count: '999', parcel_scan_status: '2', shipment_id: '' });
-    const data = await fetchJson(SCANNED_URL + '?' + params, {}, signal);
-    const list = Array.isArray(data?.data?.list) ? data.data.list : [];
-    const scanned = new Set(list.map(item => String(item.shipment_id || '').toUpperCase()));
+    const scanned = new Set();
+    for (let page = 1; page <= 100; page++) {
+      params.set('page_no', String(page));
+      const data = await fetchJson(SCANNED_URL + '?' + params, {}, signal);
+      const list = Array.isArray(data?.data?.list) ? data.data.list : [];
+      for (const item of list) scanned.add(String(item.shipment_id || '').toUpperCase());
+      if (!list.length || (Number(data?.data?.total || 0) > 0 && scanned.size >= Number(data.data.total)) || list.length < 24) break;
+    }
     return { planned: planned.length, scanned: planned.filter(item => scanned.has(item.shipmentId)).length };
   }
 

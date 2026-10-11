@@ -316,7 +316,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  if(!modal){
   modal=document.createElement('section');modal.id=MODAL_ID;
   modal.setAttribute('aria-label','Assistente de devoluções');
-  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
+  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Exportar On Hold do dia" title="Exportar On Hold do dia">CSV</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
   modal.onclick=handleModalClick;document.body.appendChild(modal);
   const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
   toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
@@ -399,6 +399,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   if(!isCurrent(version))return;
   if(!Array.isArray(data?.data?.recipient?.On_Hold))throw new Error('O SPX não retornou o histórico no formato esperado.');
   const attempts=data.data.recipient.On_Hold.filter(item=>item&&typeof item==='object');
+  recordDailyOnHold(shipmentId, attempts);
   const latestReason=normalize(translateReason(attempts.slice().sort((a,b)=>Number(a.ctime)-Number(b.ctime)).at(-1)?.on_hold_reason__desc));
   let address={state:''};
   if(latestReason==='endereco nao encontrado'&&recommendation(attempts,'').text!=='RETORNAR AO SOC'){
@@ -416,6 +417,37 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   }
  }
 }
+
+
+  function recordDailyOnHold(id, attempts) {
+    try {
+      const key = 'spxOnHoldDailyV1';
+      const today = new Date().toLocaleDateString('sv-SE');
+      const all = JSON.parse(localStorage.getItem(key) || '{}');
+      for (const day of Object.keys(all)) {
+        if (new Date(day + 'T12:00:00').getTime() < Date.now() - 7 * 86400000) delete all[day];
+      }
+      const latest = attempts.slice().sort((a, b) => Number(a.ctime) - Number(b.ctime)).at(-1);
+      all[today] ||= {};
+      all[today][id] = { id, reason: latest ? translateReason(latest.on_hold_reason__desc) : '', driver: String(latest?.driver_name || ''), attempts: attempts.length, checkedAt: Date.now() };
+      localStorage.setItem(key, JSON.stringify(all));
+    } catch (error) { console.warn('[SPX OnHold]', error); }
+  }
+
+  function dailyOnHoldReport() {
+    const today = new Date().toLocaleDateString('sv-SE');
+    const all = JSON.parse(localStorage.getItem('spxOnHoldDailyV1') || '{}');
+    const rows = Object.values(all[today] || {}).filter(row => row.attempts > 0);
+    const csv = [['BR', 'Motivo', 'Motorista', 'Tentativas', 'Consulta'], ...rows.map(row => [row.id, row.reason, row.driver, row.attempts, new Date(row.checkedAt).toLocaleString('pt-BR')])]
+      .map(row => row.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(';')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'onhold-' + today + '.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 
   function selectAuditTask(tasks) {
     const list = Array.isArray(tasks) ? tasks : [];

@@ -358,13 +358,63 @@
     return /^VT[A-Z0-9]+$/.test(vt) ? vt : null;
   }
 
+  function overviewColor(p) {
+    return p >= 90 ? '#22c55e' : p >= 60 ? '#f59e0b' : '#ef4444';
+  }
+
   function overviewHost() {
     let host = document.getElementById(OVERVIEW_ID);
     if (host) return host;
     host = document.createElement('section');
     host.id = OVERVIEW_ID;
-    host.style.cssText = 'position:fixed;z-index:2147483644;bottom:18px;left:18px;width:min(480px,calc(100vw - 36px));max-height:65vh;overflow:auto;background:#0f172a;color:#f8fafc;border-radius:14px;box-shadow:0 16px 44px #0007;border:1px solid #334155;font:12px Arial,sans-serif';
-    host.innerHTML = '<header style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #334155"><strong>AutoAdd · Visão geral da VT</strong><button type="button" data-overview-refresh style="background:#334155;color:white;border:0;border-radius:7px;padding:7px 10px;cursor:pointer">Atualizar</button></header><div data-overview-body style="padding:15px">Carregando...</div>';
+    host.style.cssText = 'position:fixed;z-index:2147483644;bottom:18px;right:18px;width:min(510px,calc(100vw - 36px));max-height:85vh;display:flex;flex-direction:column;overflow:hidden;background:#101827;color:#f8fafc;border:1px solid #334155;border-radius:16px;box-shadow:0 18px 60px #02061777;font:12px Arial,sans-serif';
+    host.innerHTML = `
+      <style>
+        #${OVERVIEW_ID} *{box-sizing:border-box}
+        #${OVERVIEW_ID} .ov-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:linear-gradient(120deg,#18263d,#111827)}
+        #${OVERVIEW_ID} .ov-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#2563eb30;color:#93c5fd;font-weight:900;flex-shrink:0}
+        #${OVERVIEW_ID} .ov-heading{flex:1;min-width:0}
+        #${OVERVIEW_ID} .ov-heading strong{display:block;font-size:13px}
+        #${OVERVIEW_ID} .ov-heading small{display:block;margin-top:4px;color:#94a3b8;font-size:10px}
+        #${OVERVIEW_ID} .ov-action{background:#26354a;color:#e2e8f0;border:1px solid #3b4a60;border-radius:8px;padding:7px 10px;cursor:pointer}
+        #${OVERVIEW_ID} .ov-summary{padding:0 16px 14px}
+        #${OVERVIEW_ID} .ov-summary-line{display:flex;justify-content:space-between;gap:8px;margin-bottom:9px;align-items:center}
+        #${OVERVIEW_ID} .ov-summary-line span{color:#cbd5e1;font-size:11px}
+        #${OVERVIEW_ID} .ov-summary-line strong{font-size:15px;white-space:nowrap}
+        #${OVERVIEW_ID} .ov-bar{height:8px;background:#334155;border-radius:99px;overflow:hidden}
+        #${OVERVIEW_ID} .ov-bar i{display:block;height:100%;border-radius:99px;transition:width .3s ease}
+        #${OVERVIEW_ID} .ov-details{min-height:0;overflow-y:auto;border-top:1px solid #334155}
+        #${OVERVIEW_ID}[data-collapsed="true"] .ov-details{display:none}
+        #${OVERVIEW_ID} .ov-body{padding:14px 16px}
+        #${OVERVIEW_ID} .ov-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+        #${OVERVIEW_ID} .ov-metric{padding:11px;border-radius:10px;border:1px solid #334155;background:#1e293b}
+        #${OVERVIEW_ID} .ov-metric span{display:block;font-size:10px;color:#94a3b8;margin-bottom:6px}
+        #${OVERVIEW_ID} .ov-metric strong{font-size:18px}
+        #${OVERVIEW_ID} .ov-route{padding:12px;margin-top:8px;border-radius:11px;background:#182436;border:1px solid #30415a}
+        #${OVERVIEW_ID} .ov-route-head,.ov-route-meta{display:flex;justify-content:space-between;align-items:center;gap:10px}
+        #${OVERVIEW_ID} .ov-route-name{font-size:13px;font-weight:800}
+        #${OVERVIEW_ID} .ov-route-id{font-size:10px;color:#94a3b8;margin-top:4px}
+        #${OVERVIEW_ID} .ov-route-percent{font-size:16px;font-weight:900}
+        #${OVERVIEW_ID} .ov-route-meta{font-size:10px;color:#94a3b8;margin:9px 0}
+        #${OVERVIEW_ID} .ov-footer{padding:10px 16px;border-top:1px solid #334155;color:#94a3b8;font-size:10px}
+      </style>
+      <div class="ov-header" data-toggle role="button" tabindex="0" aria-expanded="false">
+        <div class="ov-icon">AA</div><div class="ov-heading"><strong>AutoAdd · Visão geral da VT</strong><small data-status>Buscando pedidos...</small></div>
+        <button class="ov-action" type="button" data-overview-refresh title="Atualizar agora">↻</button>
+        <button class="ov-action" type="button" data-expand aria-label="Expandir painel">⌄</button>
+      </div>
+      <div class="ov-summary"><div class="ov-summary-line"><span data-brief>Carregamento AutoAdd</span><strong data-percent>—</strong></div><div class="ov-bar"><i data-progress></i></div></div>
+      <div class="ov-details"><div class="ov-body" data-overview-body>Carregando...</div><div class="ov-footer">Atualização automática a cada 2 minutos</div></div>`;
+    host.dataset.collapsed = 'true';
+    const toggle = () => {
+      const collapsed = host.dataset.collapsed !== 'true';
+      host.dataset.collapsed = String(collapsed);
+      host.querySelector('[data-toggle]').setAttribute('aria-expanded', String(!collapsed));
+      host.querySelector('[data-expand]').textContent = collapsed ? '⌄' : '⌃';
+    };
+    host.querySelector('[data-toggle]').addEventListener('click', e => { if (!e.target.closest('button')) toggle(); });
+    host.querySelector('[data-toggle]').addEventListener('keydown', e => { if (e.target === e.currentTarget && ['Enter',' '].includes(e.key)) { e.preventDefault(); toggle(); } });
+    host.querySelector('[data-expand]').onclick = toggle;
     host.querySelector('[data-overview-refresh]').onclick = () => void refreshOverview(overviewKey, true);
     document.documentElement.appendChild(host);
     return host;
@@ -423,14 +473,26 @@
       function render() {
         if (controller.signal.aborted || overviewKey !== vt) return;
         const known = rows.filter(x => x.planned !== null);
-        const total = known.reduce((n, x) => n + x.planned, 0);
-        const loaded = known.reduce((n, x) => n + x.scanned, 0);
+        const total = known.reduce((n,x) => n + x.planned, 0);
+        const loaded = known.reduce((n,x) => n + x.scanned, 0);
         const pct = total ? Math.round(loaded / total * 100) : 0;
-        overviewMessage('<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"><strong>ATs: ' + ats.length + '</strong><strong>AutoAdd: ' + total + '</strong><strong>Carregados: ' + loaded + '</strong><strong>Pendentes: ' + (total - loaded) + '</strong><strong>' + pct + '%</strong></div>' +
-          '<p style="color:#94a3b8;margin:0 0 10px">Consultadas: ' + done + '/' + ats.length + (failed ? ' · Falhas: ' + failed : '') + '</p>' +
-          '<div style="max-height:35vh;overflow:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Rota</th><th>AT</th><th>AutoAdd</th><th>Carregados</th></tr></thead><tbody>' +
-          rows.filter(x => x.planned !== null && x.planned > 0).map(x => '<tr style="border-top:1px solid #334155"><td style="padding:6px">' + x.route.replace(/[&<>"]/g, '') + '</td><td>' + x.at + '</td><td>' + x.planned + '</td><td>' + x.scanned + '</td></tr>').join('') +
-          '</tbody></table></div>');
+        const host = overviewHost();
+        host.querySelector('[data-status]').textContent = done + '/' + ats.length + ' ATs consultadas' + (failed ? ' · ' + failed + ' falhas' : '');
+        host.querySelector('[data-brief]').textContent = total + ' AutoAdd · ' + loaded + ' carregados · ' + (total - loaded) + ' pendentes';
+        host.querySelector('[data-percent]').textContent = pct + '%' + (done < ats.length ? ' *' : '');
+        const bar = host.querySelector('[data-progress]');
+        bar.style.width = pct + '%';
+        bar.style.background = overviewColor(pct);
+        const items = rows.filter(x => x.planned > 0).sort((x,y) => x.scanned / x.planned - y.scanned / y.planned);
+        const cards = items.map(item => {
+          const progress = Math.round(item.scanned / item.planned * 100);
+          const color = overviewColor(progress);
+          return '<article class="ov-route"><div class="ov-route-head"><div><div class="ov-route-name">' + item.route.replace(/[&<>"']/g, '') + '</div><div class="ov-route-id">' + item.at + '</div></div><strong class="ov-route-percent" style="color:' + color + '">' + progress + '%</strong></div>' +
+            '<div class="ov-route-meta"><span>' + item.scanned + ' / ' + item.planned + ' carregados</span><span>' + (item.planned-item.scanned) + ' pendentes</span></div><div class="ov-bar"><i style="width:' + progress + '%;background:' + color + '"></i></div></article>';
+        }).join('');
+        overviewMessage('<div class="ov-metrics"><div class="ov-metric"><span>AutoAdd</span><strong>' + total + '</strong></div><div class="ov-metric"><span>Carregados</span><strong style="color:#22c55e">' + loaded + '</strong></div><div class="ov-metric"><span>Pendentes</span><strong style="color:#f59e0b">' + (total-loaded) + '</strong></div></div>' +
+          '<p style="color:#94a3b8;font-size:10px">Vermelho: &lt;60% · Amarelo: 60–89% · Verde: ≥90%. ' + (done < ats.length ? 'Resumo parcial.' : failed ? 'Algumas ATs não puderam ser consultadas.' : '') + '</p>' +
+          (cards || '<p style="color:#94a3b8">Nenhuma AT com AutoAdd identificada até o momento.</p>'));
       }
       render();
       async function worker() {

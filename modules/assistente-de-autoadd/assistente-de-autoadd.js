@@ -344,7 +344,132 @@
     document.getElementById(PANEL_ID)?.remove();
   }
 
+
+  const OVERVIEW_ID = 'spx-autoadd-vt-overview';
+  const OVERVIEW_REFRESH_MS = 120000;
+  let overviewKey = '';
+  let overviewTimer = 0;
+  let overviewController = null;
+
+  function overviewContext() {
+    if (location.origin !== 'https://spx.shopee.com.br' || !location.hash.startsWith('#/mercadao/audit-list/vt-detail')) return null;
+    const params = new URLSearchParams(location.hash.split('?')[1] || '');
+    const vt = String(params.get('vt-task-id') || params.get('vt_task_id') || params.get('task_id') || '').toUpperCase();
+    return /^VT[A-Z0-9]+$/.test(vt) ? vt : null;
+  }
+
+  function overviewHost() {
+    let host = document.getElementById(OVERVIEW_ID);
+    if (host) return host;
+    host = document.createElement('section');
+    host.id = OVERVIEW_ID;
+    host.style.cssText = 'position:fixed;z-index:2147483644;bottom:18px;left:18px;width:min(480px,calc(100vw - 36px));max-height:65vh;overflow:auto;background:#0f172a;color:#f8fafc;border-radius:14px;box-shadow:0 16px 44px #0007;border:1px solid #334155;font:12px Arial,sans-serif';
+    host.innerHTML = '<header style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #334155"><strong>AutoAdd · Visão geral da VT</strong><button type="button" data-overview-refresh style="background:#334155;color:white;border:0;border-radius:7px;padding:7px 10px;cursor:pointer">Atualizar</button></header><div data-overview-body style="padding:15px">Carregando...</div>';
+    host.querySelector('[data-overview-refresh]').onclick = () => void refreshOverview(overviewKey, true);
+    document.documentElement.appendChild(host);
+    return host;
+  }
+
+  function overviewMessage(html) {
+    const body = overviewHost().querySelector('[data-overview-body]');
+    if (body) body.innerHTML = html;
+  }
+
+  async function fetchOverviewTargets(vt, signal) {
+    const items = new Map();
+    for (let page = 1; page <= 100; page++) {
+      const url = '/api/in-station/lmhub/audit/target/list?' + new URLSearchParams({ task_id: vt, page_no: String(page), count: '100' });
+      const data = (await fetchJson(url, {}, signal))?.data || {};
+      const list = Array.isArray(data.list) ? data.list : [];
+      for (const item of list) {
+        const at = String(item?.target_id || '').toUpperCase();
+        if (/^AT[A-Z0-9]+$/.test(at)) items.set(at, { at, route: String(item.binding_entity || '-'), validated: item.validation_status === 4 });
+      }
+      if (list.length === 0 || items.size >= Number(data.total || data.all_qty || 0) || list.length < 100) break;
+    }
+    return [...items.values()];
+  }
+
+  async function overviewAtStats(vt, at, signal) {
+    const stationId = await getStationId(signal);
+    const planned = await fetchPlannedAutoAdd({ assignmentTaskId: at, validationTaskId: vt }, signal);
+    if (!planned.length) return { planned: 0, scanned: 0 };
+    const params = new URLSearchParams({ validation_task_id: vt, target_id: at, audit_target_type: '2', page_no: '1', count: '999', parcel_scan_status: '2', shipment_id: '' });
+    const data = await fetchJson(SCANNED_URL + '?' + params, {}, signal);
+    const list = Array.isArray(data?.data?.list) ? data.data.list : [];
+    const scanned = new Set(list.map(item => String(item.shipment_id || '').toUpperCase()));
+    return { planned: planned.length, scanned: planned.filter(item => scanned.has(item.shipmentId)).length };
+  }
+
+  async function refreshOverview(vt, force = false) {
+    if (!vt || overviewKey !== vt) return;
+    if (overviewController) {
+      if (!force) return;
+      overviewController.abort();
+    }
+    const controller = new AbortController();
+    overviewController = controller;
+    overviewMessage('<span>Consultando ATs e pedidos AutoAdd da VT...</span>');
+    try {
+      const ats = await fetchOverviewTargets(vt, controller.signal);
+      const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
+      let index = 0;
+      let done = 0;
+      let failed = 0;
+      function render() {
+        if (controller.signal.aborted || overviewKey !== vt) return;
+        const known = rows.filter(x => x.planned !== null);
+        const total = known.reduce((n, x) => n + x.planned, 0);
+        const loaded = known.reduce((n, x) => n + x.scanned, 0);
+        const pct = total ? Math.round(loaded / total * 100) : 0;
+        overviewMessage('<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"><strong>ATs: ' + ats.length + '</strong><strong>AutoAdd: ' + total + '</strong><strong>Carregados: ' + loaded + '</strong><strong>Pendentes: ' + (total - loaded) + '</strong><strong>' + pct + '%</strong></div>' +
+          '<p style="color:#94a3b8;margin:0 0 10px">Consultadas: ' + done + '/' + ats.length + (failed ? ' · Falhas: ' + failed : '') + '</p>' +
+          '<div style="max-height:35vh;overflow:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Rota</th><th>AT</th><th>AutoAdd</th><th>Carregados</th></tr></thead><tbody>' +
+          rows.filter(x => x.planned !== null && x.planned > 0).map(x => '<tr style="border-top:1px solid #334155"><td style="padding:6px">' + x.route.replace(/[&<>"]/g, '') + '</td><td>' + x.at + '</td><td>' + x.planned + '</td><td>' + x.scanned + '</td></tr>').join('') +
+          '</tbody></table></div>');
+      }
+      render();
+      async function worker() {
+        while (index < rows.length && !controller.signal.aborted) {
+          const item = rows[index++];
+          try {
+            const stats = await overviewAtStats(vt, item.at, controller.signal);
+            item.planned = stats.planned;
+            item.scanned = stats.scanned;
+          } catch (error) {
+            if (controller.signal.aborted) break;
+            failed++;
+          }
+          done++;
+          if (done % 5 === 0 || done === rows.length) render();
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));
+      render();
+    } catch (error) {
+      if (!controller.signal.aborted) overviewMessage('<span style="color:#fca5a5">' + String(error.message || error).replace(/[&<>"]/g, '') + '</span>');
+    } finally {
+      if (overviewController === controller) {
+        overviewController = null;
+        clearTimeout(overviewTimer);
+        if (overviewKey === vt) overviewTimer = setTimeout(() => refreshOverview(vt), OVERVIEW_REFRESH_MS);
+      }
+    }
+  }
+
+  function checkOverview() {
+    const vt = overviewContext();
+    if (vt === overviewKey) return;
+    clearTimeout(overviewTimer);
+    overviewController?.abort();
+    overviewController = null;
+    document.getElementById(OVERVIEW_ID)?.remove();
+    overviewKey = vt || '';
+    if (vt) void refreshOverview(vt);
+  }
+
   function checkLocation() {
+    checkOverview();
     if (destroyed) return;
     const context = getRouteContext();
     if (!context) {
@@ -366,6 +491,9 @@
     window.removeEventListener('hashchange', checkLocation);
     window.removeEventListener('popstate', checkLocation);
     window.clearInterval(locationTimer);
+    clearTimeout(overviewTimer);
+    overviewController?.abort();
+    document.getElementById(OVERVIEW_ID)?.remove();
     deactivate();
     delete document.documentElement.dataset[MARKER];
   }

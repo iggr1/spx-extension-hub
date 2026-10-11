@@ -200,7 +200,8 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
 
       #${MODAL_ID}[hidden]{display:none!important}
       #${MODAL_ID} header{padding-right:80px}
-      #${MODAL_ID} .header-actions{position:absolute;right:9px;top:9px;display:flex;gap:6px}
+      #${MODAL_ID} .header-actions{position:absolute;right:9px;top:9px;display:flex;align-items:center;gap:6px}
+      #${MODAL_ID} [data-onhold-report]{display:inline-flex;align-items:center;justify-content:center;min-width:78px;width:auto;height:28px;padding:4px 11px;white-space:nowrap;flex-shrink:0;font-size:11px;font-weight:700;line-height:1}
       #${MODAL_ID} .icon-button{display:grid;place-items:center;width:28px;height:28px;padding:4px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#fff;cursor:pointer}
       #${MODAL_ID} .icon,#${FAB_ID} svg{width:18px;height:18px}
       #${MODAL_ID} .shipment{margin-top:3px;color:#cbd5e1;font-size:12px}
@@ -316,7 +317,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  if(!modal){
   modal=document.createElement('section');modal.id=MODAL_ID;
   modal.setAttribute('aria-label','Assistente de devoluções');
-  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Abrir relatório On Hold do dia" title="Relatório On Hold do dia">On Hold</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
+  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Abrir relatório On Hold do dia" title="Abrir relatório On Hold em nova aba">On Hold</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('close')}</button></div></header><div class="body"></div>`;
   modal.onclick=handleModalClick;document.body.appendChild(modal);
   const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
   toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
@@ -451,82 +452,50 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
 
 
   function showDailyOnHold() {
-    const today = new Date().toLocaleDateString('sv-SE');
-    let data = {};
-    try { data = JSON.parse(localStorage.getItem('spxOnHoldDailyV1') || '{}'); } catch {}
-    const records = Object.values(data[today] || {});
-    const rows = records.filter(row => row.attempts > 0);
-    const reasons = {};
-    for (const row of rows) reasons[row.reason || 'Não informado'] = (reasons[row.reason || 'Não informado'] || 0) + 1;
-    const totalAttempts = rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0);
-    let panel = document.getElementById('spx-onhold-report-window');
-    if (!panel) {
-      panel = document.createElement('section');
-      panel.id = 'spx-onhold-report-window';
-      panel.dataset.collapsed = 'true';
-      panel.style.cssText = 'position:fixed;z-index:2147483645;right:18px;bottom:18px;width:min(500px,calc(100vw - 36px));max-height:85vh;overflow:hidden;display:flex;flex-direction:column;background:#101827;color:#f8fafc;border:1px solid #334155;border-radius:16px;box-shadow:0 18px 60px #02061777;font:12px Arial,sans-serif';
-      panel.innerHTML = `
-        <style>
-          #spx-onhold-report-window *{box-sizing:border-box}
-          #spx-onhold-report-window .oh-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;background:linear-gradient(120deg,#18263d,#111827)}
-          #spx-onhold-report-window .oh-symbol{display:grid;place-items:center;width:36px;height:36px;flex-shrink:0;border-radius:11px;background:#f59e0b25;color:#fbbf24;font-weight:900}
-          #spx-onhold-report-window .oh-heading{flex:1;min-width:0}
-          #spx-onhold-report-window .oh-heading strong{display:block;font-size:13px}
-          #spx-onhold-report-window .oh-heading small{display:block;margin-top:4px;color:#94a3b8;font-size:10px}
-          #spx-onhold-report-window .oh-action{border:1px solid #40516a;border-radius:8px;background:#27364b;color:#e2e8f0;padding:7px 9px;cursor:pointer;font-size:11px}
-          #spx-onhold-report-window .oh-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px 14px}
-          #spx-onhold-report-window .oh-summary span{color:#cbd5e1}
-          #spx-onhold-report-window .oh-summary strong{font-size:17px;color:#fbbf24}
-          #spx-onhold-report-window .oh-details{min-height:0;overflow:auto;border-top:1px solid #334155}
-          #spx-onhold-report-window[data-collapsed="true"] .oh-details{display:none}
-          #spx-onhold-report-window .oh-body{padding:14px 16px}
-          #spx-onhold-report-window .oh-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
-          #spx-onhold-report-window .oh-metric{padding:11px;background:#1e293b;border:1px solid #334155;border-radius:10px}
-          #spx-onhold-report-window .oh-metric span{display:block;color:#94a3b8;font-size:10px;margin-bottom:6px}
-          #spx-onhold-report-window .oh-metric strong{font-size:18px}
-          #spx-onhold-report-window .oh-reason{padding:11px;margin:7px 0;background:#1c293b;border:1px solid #334155;border-radius:10px}
-          #spx-onhold-report-window .oh-reason-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
-          #spx-onhold-report-window .oh-track{height:7px;background:#334155;border-radius:99px;overflow:hidden}
-          #spx-onhold-report-window .oh-track i{display:block;height:100%;border-radius:inherit;background:#f59e0b}
-          #spx-onhold-report-window .oh-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px}
-          #spx-onhold-report-window .oh-table th,#spx-onhold-report-window .oh-table td{padding:8px 5px;border-bottom:1px solid #334155;overflow-wrap:anywhere}
-          #spx-onhold-report-window .oh-table th{color:#94a3b8}
-        </style>
-        <div class="oh-header" data-oh-toggle tabindex="0" role="button" aria-expanded="false">
-          <div class="oh-symbol">OH</div><div class="oh-heading"><strong>On Hold · Relatório do dia</strong><small data-oh-day></small></div>
-          <button type="button" class="oh-action" data-oh-export title="Exportar CSV">CSV</button>
-          <button type="button" class="oh-action" data-oh-collapse aria-label="Expandir relatório">⌄</button>
-          <button type="button" class="oh-action" data-oh-close aria-label="Fechar relatório">×</button>
-        </div>
-        <div class="oh-summary"><span data-oh-summary>Pedidos registrados</span><strong data-oh-count>0</strong></div>
-        <div class="oh-details"><div class="oh-body" data-oh-body></div></div>`;
-      const toggle = () => {
-        const collapsed = panel.dataset.collapsed !== 'true';
-        panel.dataset.collapsed = String(collapsed);
-        panel.querySelector('[data-oh-toggle]').setAttribute('aria-expanded', String(!collapsed));
-        panel.querySelector('[data-oh-collapse]').textContent = collapsed ? '⌄' : '⌃';
-      };
-      panel.querySelector('[data-oh-toggle]').addEventListener('click', event => { if (!event.target.closest('button')) toggle(); });
-      panel.querySelector('[data-oh-toggle]').addEventListener('keydown', event => { if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) { event.preventDefault(); toggle(); } });
-      panel.querySelector('[data-oh-collapse]').onclick = toggle;
-      panel.querySelector('[data-oh-close]').onclick = () => panel.remove();
-      panel.querySelector('[data-oh-export]').onclick = dailyOnHoldReport;
-      document.body.appendChild(panel);
+    const tab = window.open('', '_blank');
+    if (!tab) { alert('Permita pop-ups para abrir o relatório On Hold.'); return; }
+    const day = new Date().toLocaleDateString('sv-SE');
+    let store = {};
+    try { store = JSON.parse(localStorage.getItem('spxOnHoldDailyV1') || '{}'); } catch {}
+    const records = Object.values(store[day] || {});
+    const rows = records.filter(item => item && Number(item.attempts) > 0).sort((a,b) => b.checkedAt-a.checkedAt);
+    const reasons = Object.create(null);
+    for (const row of rows) {
+      const reason = String(row.reason || 'Não informado');
+      reasons[reason] = (reasons[reason] || 0) + 1;
     }
-    panel.querySelector('[data-oh-day]').textContent = today + ' · Armazenamento local';
-    panel.querySelector('[data-oh-summary]').textContent = records.length + ' consultados · ' + totalAttempts + ' tentativas registradas';
-    panel.querySelector('[data-oh-count]').textContent = rows.length + ' On Hold';
-    const reasonCards = Object.entries(reasons).sort((a,b) => b[1]-a[1]).map(([reason,count]) => {
-      const percent = rows.length ? Math.round(count / rows.length * 100) : 0;
-      return '<div class="oh-reason"><div class="oh-reason-top"><strong>' + escapeHtml(reason) + '</strong><b>' + count + ' · ' + percent + '%</b></div><div class="oh-track"><i style="width:' + percent + '%"></i></div></div>';
+    const totalAttempts = rows.reduce((n,item) => n + Number(item.attempts || 0),0);
+    const reasonHtml = Object.entries(reasons).sort((a,b)=>b[1]-a[1]).map(([reason,count]) => {
+      const pct = rows.length ? Math.round(count / rows.length * 100) : 0;
+      return '<article class="reason"><div class="reason-head"><strong>'+escapeHtml(reason)+'</strong><b>'+count+' · '+pct+'%</b></div><div class="bar"><i style="width:'+pct+'%"></i></div></article>';
     }).join('');
-    const table = rows.slice().sort((a,b) => b.checkedAt-a.checkedAt).map(row =>
-      '<tr><td>' + escapeHtml(row.id) + '</td><td>' + escapeHtml(row.reason) + '</td><td>' + escapeHtml(row.driver) + '</td><td>' + Number(row.attempts) + '</td><td>' + new Date(row.checkedAt).toLocaleTimeString('pt-BR') + '</td></tr>').join('');
-    panel.querySelector('[data-oh-body]').innerHTML =
-      '<div class="oh-grid"><div class="oh-metric"><span>Consultados</span><strong>' + records.length + '</strong></div><div class="oh-metric"><span>Com On Hold</span><strong style="color:#fbbf24">' + rows.length + '</strong></div><div class="oh-metric"><span>Tentativas</span><strong>' + totalAttempts + '</strong></div></div>' +
-      '<p style="color:#94a3b8;font-size:10px">Apenas pedidos consultados neste navegador. Dados retidos por até 7 dias.</p>' +
-      '<strong style="display:block;margin:14px 0 8px">Motivos registrados</strong>' + (reasonCards || '<p>Sem registros On Hold hoje.</p>') +
-      '<strong style="display:block;margin:18px 0 8px">Pedidos do dia</strong><div style="overflow:auto"><table class="oh-table"><thead><tr><th>BR</th><th>Motivo</th><th>Motorista</th><th>Tent.</th><th>Hora</th></tr></thead><tbody>' + table + '</tbody></table></div>';
+    const tableHtml = rows.map(row => '<tr data-search="'+escapeHtml([row.id,row.reason,row.driver].join(' ').toLowerCase())+'"><td>'+escapeHtml(row.id)+'</td><td>'+escapeHtml(row.reason)+'</td><td>'+escapeHtml(row.driver)+'</td><td>'+Number(row.attempts)+'</td><td>'+new Date(row.checkedAt).toLocaleString('pt-BR')+'</td></tr>').join('');
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>On Hold · ${day}</title><style>
+      *{box-sizing:border-box}body{margin:0;background:#0b1220;color:#f8fafc;font:14px system-ui,Arial,sans-serif}main{max-width:1180px;margin:auto;padding:32px 22px}
+      header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:25px}
+      h1{font-size:27px;letter-spacing:-.7px;margin:0 0 5px}h2{font-size:17px;margin:0 0 15px}p,small{color:#94a3b8}
+      button{background:#26364c;color:#fff;border:1px solid #40516a;border-radius:9px;padding:11px 15px;cursor:pointer;font-weight:650}
+      .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card,.panel{border:1px solid #334155;border-radius:15px;background:#152135;padding:21px}
+      .card span{display:block;color:#94a3b8;font-size:12px}.card strong{display:block;font-size:30px;margin-top:8px}
+      .panels{display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1.65fr);gap:15px;margin-top:18px}
+      .reason{padding:14px;border-radius:10px;background:#1c2c42;margin:9px 0}.reason-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px}
+      .reason-head b{color:#fbbf24;white-space:nowrap}.bar{height:8px;background:#334155;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:#f59e0b;border-radius:99px}
+      input{width:100%;padding:12px;border-radius:9px;background:#0e1828;border:1px solid #40516a;color:white;margin-bottom:12px;font:inherit}
+      .table-wrap{overflow:auto;max-height:65vh}table{border-collapse:collapse;width:100%;text-align:left;min-width:630px}th,td{padding:12px 9px;border-bottom:1px solid #304057}th{color:#94a3b8;position:sticky;top:0;background:#152135}
+      @media(max-width:820px){.panels{grid-template-columns:1fr}.grid{gap:8px}.card{padding:13px}.card strong{font-size:23px}main{padding:18px 12px}}
+      </style></head><body><main><header><div><h1>Relatório On Hold</h1><p>${day} · Registros deste navegador</p></div><button id="export">Exportar CSV</button></header>
+      <div class="grid"><div class="card"><span>Pedidos consultados</span><strong>${records.length}</strong></div><div class="card"><span>Pedidos com On Hold</span><strong style="color:#fbbf24">${rows.length}</strong></div><div class="card"><span>Tentativas registradas</span><strong>${totalAttempts}</strong></div></div>
+      <div class="panels"><section class="panel"><h2>Motivos On Hold</h2>${reasonHtml || '<p>Nenhum registro encontrado.</p>'}</section>
+      <section class="panel"><h2>Pedidos consultados</h2><input id="filter" type="search" placeholder="Pesquisar BR, motivo ou motorista"><div class="table-wrap"><table><thead><tr><th>BR</th><th>Motivo</th><th>Motorista</th><th>Tentativas</th><th>Consulta</th></tr></thead><tbody>${tableHtml}</tbody></table></div></section></div>
+      <p>Dados locais, com retenção de até 7 dias. Não representam todos os pedidos da operação.</p></main></body></html>`;
+    tab.document.open();
+    tab.document.write(html);
+    tab.document.close();
+    tab.document.getElementById('filter').addEventListener('input', event => {
+      const q = event.target.value.trim().toLowerCase();
+      tab.document.querySelectorAll('tbody tr').forEach(tr => { tr.hidden = !tr.dataset.search.includes(q); });
+    });
+    tab.document.getElementById('export').addEventListener('click', dailyOnHoldReport);
   }
 
   function selectAuditTask(tasks) {

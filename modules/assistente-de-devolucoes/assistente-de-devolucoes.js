@@ -449,6 +449,41 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+
+  function showDailyOnHold() {
+    const today = new Date().toLocaleDateString('sv-SE');
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem('spxOnHoldDailyV1') || '{}'); } catch {}
+    const records = Object.values(data[today] || {});
+    const rows = records.filter(row => row.attempts > 0);
+    const reasons = {};
+    for (const row of rows) reasons[row.reason] = (reasons[row.reason] || 0) + 1;
+    document.getElementById('spx-onhold-report-window')?.remove();
+    const panel = document.createElement('section');
+    panel.id = 'spx-onhold-report-window';
+    panel.style.cssText = 'position:fixed;z-index:2147483647;top:6vh;left:50%;transform:translateX(-50%);width:min(760px,94vw);max-height:85vh;overflow:auto;padding:18px;background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:14px;box-shadow:0 20px 70px #0009;font:13px Arial';
+    panel.innerHTML = '<header style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:18px">On Hold · ' + today + '</strong><div><button data-download>CSV</button> <button data-close>Fechar</button></div></header>' +
+      '<p>Pedidos consultados: ' + records.length + ' · Com On Hold: ' + rows.length + '</p>' +
+      '<p style="color:#94a3b8">Histórico local deste navegador, sem dados retroativos de outras estações.</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">' + Object.entries(reasons).sort((a,b)=>b[1]-a[1]).map(([reason,count])=>'<span style="background:#334155;padding:8px;border-radius:7px">'+escapeHtml(reason)+': '+count+'</span>').join('') + '</div>' +
+      '<div style="overflow:auto"><table style="width:100%;text-align:left"><thead><tr><th>BR</th><th>Motivo</th><th>Motorista</th><th>Tentativas</th><th>Horário</th></tr></thead><tbody>' +
+      rows.sort((a,b)=>b.checkedAt-a.checkedAt).map(row=>'<tr><td style="padding:7px">'+escapeHtml(row.id)+'</td><td>'+escapeHtml(row.reason)+'</td><td>'+escapeHtml(row.driver)+'</td><td>'+Number(row.attempts)+'</td><td>'+new Date(row.checkedAt).toLocaleTimeString('pt-BR')+'</td></tr>').join('')+'</tbody></table></div>';
+    panel.querySelector('[data-close]').onclick = () => panel.remove();
+    panel.querySelector('[data-download]').onclick = dailyOnHoldReport;
+    panel.querySelectorAll('button').forEach(button=>button.style.cssText='padding:7px 10px;background:#334155;color:white;border:0;border-radius:6px;cursor:pointer');
+    document.body.appendChild(panel);
+  }
+
+  function ensureDailyOnHoldButton() {
+    if (document.getElementById('spx-onhold-daily-button')) return;
+    const button = document.createElement('button');
+    button.id = 'spx-onhold-daily-button';
+    button.textContent = 'On Hold · Hoje';
+    button.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:2147483642;background:#0f172a;color:white;border:1px solid #475569;border-radius:10px;padding:12px;cursor:pointer';
+    button.onclick = showDailyOnHold;
+    document.body.appendChild(button);
+  }
+
   function selectAuditTask(tasks) {
     const list = Array.isArray(tasks) ? tasks : [];
     return list.find((task) => Number(task?.end_time || 0) === 0) || list[0] || null;
@@ -712,6 +747,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  document.removeEventListener('input',shipmentChanged,true);
  document.removeEventListener('change',shipmentChanged,true);
  document.removeEventListener('keydown',shipmentChanged,true);
+ document.getElementById('spx-onhold-daily-button')?.remove();document.getElementById('spx-onhold-report-window')?.remove();
  lastShipmentId='';observedInput='';collapsed=false;removeUi();
 }
 
@@ -741,6 +777,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   if(!runtimePending && (runtimeIdentity!==sessionFingerprint() || Date.now()-runtimeCheckedAt>=30000))void verifyRuntimeAccess();
   return;
  }
+ ensureDailyOnHoldButton();
  if(monitorId)return shipmentChanged();
  monitorId=setInterval(shipmentChanged,300);
  document.addEventListener('input',shipmentChanged,true);

@@ -21,6 +21,8 @@ async function handleModuleMessage(message) {
     switch (message.type) {
       case 'FETCH_DOCKS':
         return await fetchDocks(message.payload || {});
+      case 'FETCH_DOCKS_FALLBACK':
+        return await fetchDocksDirect(message.payload || {});
       case 'FETCH_DOCK_QUEUES':
         return await fetchDockQueues(message.payload || {});
       case 'FETCH_DRIVER_ROUTES':
@@ -82,6 +84,47 @@ async function fetchDocks(payload) {
       capturedAt: status.capturedAt || null
     }
   };
+}
+
+async function fetchDocksDirect(payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const status = await Promise.race([
+      LoaderBridge.request('network.connectionStatus', { profileId: 'spx' }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Sessão do loader indisponível.')), 4000))
+    ]);
+    if (!status?.ok) throw new Error('Não foi possível consultar a sessão do loader.');
+    const headers = { 'content-type': 'application/json;charset=UTF-8', app: 'FMS Portal' };
+    const captured = status.headers || {};
+    for (const name of ['x-csrftoken', 'device-id', 'x-sap-ri', 'x-sap-sec']) {
+      if (typeof captured[name] === 'string' && captured[name]) headers[name] = captured[name];
+    }
+    const response = await fetch(DOCK_API_URL, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'include',
+      headers,
+      body: JSON.stringify({
+        dock_active_status: Number(payload.dockActiveStatus ?? 1),
+        pageno: Number(payload.pageno ?? 1),
+        count: Number(payload.count ?? 100)
+      }),
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    if (data?.retcode !== 0) throw new Error(data?.message || 'Resposta inválida da SPX.');
+    return { ok: true, source: 'direct-session', httpStatus: response.status, data };
+  } catch (error) {
+    return { ok: false, source: 'direct-session', error: error?.name === 'AbortError'
+      ? 'Tempo limite da consulta direta atingido.'
+      : error instanceof TypeError
+        ? 'Navegador bloqueou a consulta direta (CORS/rede).'
+        : String(error?.message || error) };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchValidationProgress(payload) {

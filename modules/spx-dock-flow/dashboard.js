@@ -288,6 +288,33 @@ async function refreshConnectionStatus() {
   }
 }
 
+const RECOVERY_TIMEOUT_MS = 12000;
+const RECOVERY_COOLDOWN_MS = 60000;
+let recoveryPending = null;
+let recoveryBlockedUntil = 0;
+
+function boundedDockRequest() {
+  if (recoveryPending) return Promise.reject(new Error('Consulta SPX anterior ainda pendente. Aguardando recuperação da sessão.'));
+  if (Date.now() < recoveryBlockedUntil) return Promise.reject(new Error('Aguardando nova tentativa de conexão com a SPX.'));
+  let timeout;
+  const underlying = Promise.all([
+    sendMessage({ type: 'FETCH_DOCKS', payload: { dockActiveStatus: 1, pageno: 1, count: 100 } }),
+    sendMessage({ type: 'FETCH_VALIDATION_PROGRESS', payload: { pageNo: 1, count: 24, taskStatus: 2 } })
+      .catch(error => ({ ok: false, error: error.message || String(error) }))
+  ]);
+  recoveryPending = underlying;
+  underlying.finally(() => { if (recoveryPending === underlying) recoveryPending = null; }).catch(() => {});
+  return Promise.race([
+    underlying,
+    new Promise((_, reject) => {
+      timeout = setTimeout(() => {
+        recoveryBlockedUntil = Date.now() + RECOVERY_COOLDOWN_MS;
+        reject(new Error('A conexão com a SPX não respondeu em 12 segundos. Nenhuma nova aba será aberta automaticamente.'));
+      }, RECOVERY_TIMEOUT_MS);
+    })
+  ]).finally(() => clearTimeout(timeout));
+}
+
 async function loadDocks(manual = false) {
   if (state.loading) return;
 
@@ -297,16 +324,7 @@ async function loadDocks(manual = false) {
   updateCountdown();
 
   try {
-    const [result, validationResult] = await Promise.all([
-      sendMessage({
-        type: 'FETCH_DOCKS',
-        payload: { dockActiveStatus: 1, pageno: 1, count: 100 }
-      }),
-      sendMessage({
-        type: 'FETCH_VALIDATION_PROGRESS',
-        payload: { pageNo: 1, count: 24, taskStatus: 2 }
-      }).catch(error => ({ ok: false, error: error.message || String(error) }))
-    ]);
+    const [result, validationResult] = await boundedDockRequest();
 
     if (!result?.ok || result.data?.retcode !== 0 || !Array.isArray(result.data?.data?.dock_list)) {
       throw createFetchError(result);
@@ -340,7 +358,7 @@ async function loadDocks(manual = false) {
     renderAll();
   } catch (error) {
     showFetchError(error, manual);
-    await refreshConnectionStatus();
+    await Promise.race([refreshConnectionStatus(), new Promise(resolve => setTimeout(resolve, 3000))]);
   } finally {
     state.loading = false;
     setRefreshIndicatorState(false);

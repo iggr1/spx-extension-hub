@@ -324,7 +324,19 @@ async function loadDocks(manual = false) {
   updateCountdown();
 
   try {
-    const [result, validationResult] = await boundedDockRequest();
+    let result, validationResult;
+    try {
+      [result, validationResult] = await boundedDockRequest();
+    } catch (normalError) {
+      if (!/não respondeu em 12 segundos|ainda pendente|Aguardando nova tentativa/i.test(String(normalError.message || normalError))) throw normalError;
+      const fallback = await Promise.race([
+        sendMessage({ type: 'FETCH_DOCKS_FALLBACK', payload: { dockActiveStatus: 1, pageno: 1, count: 100 } }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Consulta alternativa excedeu 10 segundos.')), 10000))
+      ]);
+      if (!fallback?.ok) throw new Error(fallback?.error || 'Consulta alternativa indisponível.');
+      result = fallback;
+      validationResult = { ok: false, error: 'Progresso da VT temporariamente indisponível no modo alternativo.' };
+    }
 
     if (!result?.ok || result.data?.retcode !== 0 || !Array.isArray(result.data?.data?.dock_list)) {
       throw createFetchError(result);
@@ -344,10 +356,12 @@ async function loadDocks(manual = false) {
     state.routesLoading = true;
 
     hideNotice();
-    setConnectionState('connected', ['spx-tab', 'authenticated-tab'].includes(result.source) ? 'Conectado pela aba SPX' : 'Conectado pela sessão');
-    elements.dataSource.textContent = ['spx-tab', 'authenticated-tab'].includes(result.source)
-      ? 'Fonte: API SPX pela aba autenticada'
-      : 'Fonte: API SPX pela sessão do navegador';
+    setConnectionState('connected', result.source === 'direct-session' ? 'Conectado pela sessão direta' : ['spx-tab', 'authenticated-tab'].includes(result.source) ? 'Conectado pela aba SPX' : 'Conectado pela sessão');
+    elements.dataSource.textContent = result.source === 'direct-session'
+      ? 'Fonte: API SPX pela sessão direta (recuperação)'
+      : ['spx-tab', 'authenticated-tab'].includes(result.source)
+        ? 'Fonte: API SPX pela aba autenticada'
+        : 'Fonte: API SPX pela sessão do navegador';
 
     updateLastUpdated();
     renderAll();

@@ -9,6 +9,7 @@
   const STYLE_ID = 'spx-returns-assistant-style';
   const ADDRESS_REASON_ID = 'ER40';
   const ADDRESS_REASON_DESC = 'Onhold with Delivery Address Issue';
+  const AUTO_ADDRESS_KEY = 'spxReturnsAutoAddressV1';
   const AUTO_ADD_OPERATOR = 'Admin(Polygon Auto Add)';
 
   if (document.documentElement.dataset[MARKER] === 'active') return;
@@ -53,6 +54,8 @@
   let observedInput = '';
   let historyBusy = false;
   const pendingActions = new Set();
+  const autoAddressHandled = new Set();
+  let autoAddressEnabled = (() => { try { return localStorage.getItem(AUTO_ADDRESS_KEY) === '1'; } catch { return false; } })();
   const FAB_ID = 'spx-returns-assistant-toggle';
 
 // Shared by the catalog and embedded in the standalone user script.
@@ -195,6 +198,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       #${MODAL_ID} .reason{display:inline-block;padding:3px 7px;border-radius:999px;background:#2563eb33;color:#bfdbfe;font-size:11px;font-weight:800}#${MODAL_ID} .reason.valid{background:#16a34a33;color:#bbf7d0}#${MODAL_ID} .reason.final{background:#dc262633;color:#fecaca}
       #${MODAL_ID} .driver{margin-top:5px;color:#dbeafe;font-size:11px}#${MODAL_ID} time{color:#94a3b8;font-size:10px;white-space:nowrap}#${MODAL_ID} img{width:52px;height:52px;margin-top:7px;border-radius:7px;object-fit:cover;cursor:zoom-in}
       #${MODAL_ID} .decision{margin-top:9px;padding:10px;border:1px solid #22c55e66;border-radius:10px;background:#16a34a22}#${MODAL_ID} .decision.warn{border-color:#fb923c88;background:#9a341e33}#${MODAL_ID} .decision.stop{border-color:#ef444488;background:#7f1d1d44}#${MODAL_ID} .decision.address{border-color:#c084fc88;background:#6b21a844}#${MODAL_ID} .decision strong{font-size:15px}
+      #${MODAL_ID} .auto-address{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border-bottom:1px solid #334155;background:#182438;font-size:11px}#${MODAL_ID} .auto-address small{display:block;margin-top:2px;color:#94a3b8;font-size:10px}#${MODAL_ID} .auto-address input{position:absolute;opacity:0;width:1px;height:1px}#${MODAL_ID} .auto-address .switch{position:relative;display:block;flex:0 0 37px;width:37px;height:21px;border-radius:20px;background:#475569;transition:background .2s;cursor:pointer}#${MODAL_ID} .auto-address .switch:after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:transform .2s}#${MODAL_ID} .auto-address input:checked+.switch{background:#16a34a}#${MODAL_ID} .auto-address input:checked+.switch:after{transform:translateX(16px)}#${MODAL_ID} .auto-address input:focus-visible+.switch{outline:2px solid #fb923c;outline-offset:3px}#${MODAL_ID} .auto-address-info{padding:6px 11px;border-bottom:1px solid #334155;background:#132033;color:#93c5fd;font-size:10px}
       #${MODAL_ID} .address-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}#${MODAL_ID} .address-actions button{border:0;border-radius:8px;padding:8px;color:#fff;font-weight:900;cursor:pointer}#${MODAL_ID} .confirm{background:#16a34a}#${MODAL_ID} .cancel{background:#dc2626}#${MODAL_ID} .action-status{grid-column:1/-1;min-height:13px;color:#cbd5e1;font-size:10px}
       @media(max-width:680px){#${MODAL_ID}{top:8px;right:8px;width:calc(100vw - 16px);max-height:calc(100vh - 16px)}}
 
@@ -317,12 +321,13 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  if(!modal){
   modal=document.createElement('section');modal.id=MODAL_ID;
   modal.setAttribute('aria-label','Assistente de devoluções');
-  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Abrir relatório On Hold do dia" title="Abrir relatório On Hold em nova aba">On Hold</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('chevron')}</button></div></header><div class="body"></div>`;
-  modal.onclick=handleModalClick;document.body.appendChild(modal);
+  modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><button class="icon-button" type="button" data-onhold-report aria-label="Abrir relatório On Hold do dia" title="Abrir relatório On Hold em nova aba">On Hold</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('chevron')}</button></div></header><label class="auto-address"><span><b>Tratativa automática de endereço</b><small>2+ tentativas: confirmar · 1 tentativa: cancelar</small></span><span><input type="checkbox" data-auto-address><span class="switch" aria-hidden="true"></span></span></label><div class="auto-address-info" data-auto-address-status>Age apenas quando a exceção está pendente.</div><div class="body"></div>`;
+  modal.onclick=handleModalClick;modal.querySelector('[data-auto-address]').addEventListener('change', event => { autoAddressEnabled = event.target.checked; try { localStorage.setItem(AUTO_ADDRESS_KEY, autoAddressEnabled ? '1' : '0'); } catch {} if(autoAddressEnabled && !historyBusy && lastShipmentId) startShipment(lastShipmentId,0); });document.body.appendChild(modal);
   const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
   toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
   toggle.onclick=()=>setCollapsed(!collapsed);document.body.appendChild(toggle);
  }
+ modal.querySelector('[data-auto-address]').checked=autoAddressEnabled;
  modal.dataset.shipmentId=shipmentId;
  modal.querySelector('.shipment strong').textContent=shipmentId;
  modal.querySelector('.body').innerHTML=html;
@@ -408,6 +413,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
    catch{address={state:'unknown'};}
   }
   if(isCurrent(version))showModal(shipmentId,renderHistory(attempts,address));
+  if(isCurrent(version) && autoAddressEnabled) void autoTreatAddress(shipmentId,attempts,address,version);
  }catch(error){
   if(isCurrent(version))showModal(shipmentId,'<div class="message error"><strong>Não foi possível consultar</strong>'+escapeHtml(error.message||error)+'</div>');
  }finally{
@@ -695,7 +701,35 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
     return { start, end: start + 86399 };
   }
 
-  async function handleAddress(button){
+    async function autoTreatAddress(shipmentId, attempts, address, version) {
+    if (!autoAddressEnabled || address?.state !== 'pending' || !isCurrent(version) || pendingActions.has(shipmentId) || autoAddressHandled.has(shipmentId)) return;
+    const latest = attempts.slice().sort((a,b)=>Number(a.ctime)-Number(b.ctime)).at(-1);
+    if (normalize(translateReason(latest?.on_hold_reason__desc)) !== 'endereco nao encontrado') return;
+    if (recommendation(attempts,'').text === 'RETORNAR AO SOC') return;
+    const count = attempts.filter(item => normalize(translateReason(item?.on_hold_reason__desc)) === 'endereco nao encontrado').length;
+    if (!count) return;
+    const action = count >= 2 ? 'confirm' : 'cancel';
+    const modal = document.getElementById(MODAL_ID);
+    const status = modal?.querySelector('[data-auto-address-status]');
+    if(status) status.textContent = count + ' tentativa(s) de endereço. Verificando exceção para ' + (action === 'confirm' ? 'confirmar' : 'cancelar') + '...';
+    const access = await verifyRuntimeAccess(true);
+    if (!access || !isCurrent(version) || !autoAddressEnabled || modal?.dataset.shipmentId !== shipmentId) return;
+    let check;
+    try { check = addressState(await postJson('https://spx.shopee.com.br/api/in-station/admin/common_site/eha/no_reason_inbound',{shipment_id:shipmentId})); }
+    catch { if(status) status.textContent='Não foi possível confirmar a exceção. Nenhuma ação automática executada.'; return; }
+    if (check.state !== 'pending' || String(check.reasonId) !== String(address.reasonId)) {
+      if(status) status.textContent='Exceção não está mais pendente. Nenhuma ação automática executada.';
+      return;
+    }
+    if (!isCurrent(version) || !autoAddressEnabled || pendingActions.has(shipmentId) || autoAddressHandled.has(shipmentId)) return;
+    const button = modal.querySelector('[data-address-action="'+action+'"]');
+    if (!button) { if(status) status.textContent='Ação automática indisponível. Use os botões manuais.'; return; }
+    autoAddressHandled.add(shipmentId);
+    if(status) status.textContent=count+' tentativa(s) de endereço · '+(action==='confirm'?'confirmação':'cancelamento')+' automático solicitado.';
+    button.click();
+  }
+
+async function handleAddress(button){
  const accessVersion=requestVersion;
  if(!(await verifyRuntimeAccess(true))||accessVersion!==requestVersion)return;
  const modal=button.closest('#'+MODAL_ID);

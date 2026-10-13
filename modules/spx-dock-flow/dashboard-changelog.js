@@ -8,11 +8,11 @@
     ['12/10/2026', 'Conexão com a SPX', 'Consultas mantidas pelo loader para evitar bloqueios de acesso entre domínios.'],
     ['11/10/2026', 'Alertas por quantidade', 'O tempo de alerta de carregamento agora considera a quantidade de pedidos da AT.'],
     ['11/10/2026', 'Configuração simplificada', 'Removidos os limites manuais de alerta de carregamento das configurações.'],
-    ['10/10/2026', 'Visibilidade de pedidos', 'Quantidades de pedidos e volumosos exibidas junto às informações das rotas.'],
-    ['09/10/2026', 'Painel de ocupação', 'Acompanhamento dos tempos de espera e carregamento nas mesas.'],
-    ['08/10/2026', 'Histórico operacional', 'Indicadores de ocupação e tempos acompanhados em uma janela configurável.'],
-    ['07/10/2026', 'Visualização de rotas', 'Melhor organização das informações de motorista, rota e AT em cada mesa.'],
-    ['06/10/2026', 'Ajustes de interface', 'Controles de zoom, atualização automática e melhor adaptação a diferentes telas.']
+    ['Melhoria', 'Visibilidade de pedidos', 'Quantidades de pedidos e volumosos exibidas junto às informações das rotas.'],
+    ['Melhoria', 'Painel de ocupação', 'Acompanhamento dos tempos de espera e carregamento nas mesas.'],
+    ['Melhoria', 'Histórico operacional', 'Indicadores de ocupação e tempos acompanhados em uma janela configurável.'],
+    ['Melhoria', 'Visualização de rotas', 'Melhor organização das informações de motorista, rota e AT em cada mesa.'],
+    ['Melhoria', 'Ajustes de interface', 'Controles de zoom, atualização automática e melhor adaptação a diferentes telas.']
   ];
   let priorFocus = null;
   let overlay = null;

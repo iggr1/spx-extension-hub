@@ -405,7 +405,7 @@
         <div class="ov-icon">AA</div><div class="ov-heading"><strong>AutoAdd · Visão geral da VT</strong><small data-status>Buscando pedidos...</small></div>
         <button class="ov-action ov-report-button" type="button" data-overview-report title="Abrir relatório da VT">Relatório</button>
         <button class="ov-action" type="button" data-overview-refresh aria-label="Atualizar agora" title="Atualizar agora"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
-        <button class="ov-action" type="button" data-expand aria-label="Expandir painel"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button class="ov-action" type="button" data-expand aria-label="Expandir painel"><svg style="transform:rotate(180deg)" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
       <div class="ov-summary"><div class="ov-summary-line"><span data-brief>Carregamento AutoAdd</span><strong data-percent>—</strong></div><div class="ov-bar"><i data-progress></i></div></div>
       <div class="ov-details"><div class="ov-body" data-overview-body>Carregando...</div><div class="ov-footer">Atualização automática a cada 2 minutos</div></div>`;
@@ -416,7 +416,7 @@
       host.querySelector('[data-toggle]').setAttribute('aria-expanded', String(!collapsed));
       const expand = host.querySelector('[data-expand]');
       expand.setAttribute('aria-label', collapsed ? 'Expandir painel' : 'Recolher painel');
-      expand.querySelector('svg').style.transform = collapsed ? '' : 'rotate(180deg)';
+      expand.querySelector('svg').style.transform = collapsed ? 'rotate(180deg)' : '';
     };
     host.querySelector('[data-toggle]').addEventListener('click', e => { if (!e.target.closest('button')) toggle(); });
     host.querySelector('[data-toggle]').addEventListener('keydown', e => { if (e.target === e.currentTarget && ['Enter',' '].includes(e.key)) { e.preventDefault(); toggle(); } });

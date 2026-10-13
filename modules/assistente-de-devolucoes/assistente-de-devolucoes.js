@@ -402,7 +402,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   async function loadHistory(shipmentId,version){
  try{
   const data=await fetchJson(`https://spx.shopee.com.br/api/fleet_order/order/detail/recipient_info?shipment_id=${encodeURIComponent(shipmentId)}&station_type=3`);
-  if(!isCurrent(version))return;
+  if(!isCurrent(version) && !autoAddressEnabled)return;
   if(!Array.isArray(data?.data?.recipient?.On_Hold))throw new Error('O SPX não retornou o histórico no formato esperado.');
   const attempts=data.data.recipient.On_Hold.filter(item=>item&&typeof item==='object');
   recordDailyOnHold(shipmentId, attempts);
@@ -413,7 +413,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
    catch{address={state:'unknown'};}
   }
   if(isCurrent(version))showModal(shipmentId,renderHistory(attempts,address));
-  if(isCurrent(version) && autoAddressEnabled) void autoTreatAddress(shipmentId,attempts,address,version);
+  if(autoAddressEnabled && isTargetRoute()) void autoTreatAddress(shipmentId,attempts,address,version);
  }catch(error){
   if(isCurrent(version))showModal(shipmentId,'<div class="message error"><strong>Não foi possível consultar</strong>'+escapeHtml(error.message||error)+'</div>');
  }finally{
@@ -702,34 +702,69 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   }
 
     async function autoTreatAddress(shipmentId, attempts, address, version) {
-    if (!autoAddressEnabled || address?.state !== 'pending' || !isCurrent(version) || pendingActions.has(shipmentId) || autoAddressHandled.has(shipmentId)) return;
-    const latest = attempts.slice().sort((a,b)=>Number(a.ctime)-Number(b.ctime)).at(-1);
-    if (normalize(translateReason(latest?.on_hold_reason__desc)) !== 'endereco nao encontrado') return;
+    if (!autoAddressEnabled || address?.state !== 'pending' || !isTargetRoute() || autoAddressHandled.has(shipmentId) || pendingActions.has(shipmentId)) return;
+    const ordered = attempts.slice().sort((a,b)=>Number(a.ctime)-Number(b.ctime));
+    if (normalize(translateReason(ordered.at(-1)?.on_hold_reason__desc)) !== 'endereco nao encontrado') return;
     if (recommendation(attempts,'').text === 'RETORNAR AO SOC') return;
     const count = attempts.filter(item => normalize(translateReason(item?.on_hold_reason__desc)) === 'endereco nao encontrado').length;
     if (!count) return;
     const action = count >= 2 ? 'confirm' : 'cancel';
-    const modal = document.getElementById(MODAL_ID);
-    const status = modal?.querySelector('[data-auto-address-status]');
-    if(status) status.textContent = count + ' tentativa(s) de endereço. Verificando exceção para ' + (action === 'confirm' ? 'confirmar' : 'cancelar') + '...';
-    const access = await verifyRuntimeAccess(true);
-    if (!access || !isCurrent(version) || !autoAddressEnabled || modal?.dataset.shipmentId !== shipmentId) return;
-    let check;
-    try { check = addressState(await postJson('https://spx.shopee.com.br/api/in-station/admin/common_site/eha/no_reason_inbound',{shipment_id:shipmentId})); }
-    catch { if(status) status.textContent='Não foi possível confirmar a exceção. Nenhuma ação automática executada.'; return; }
-    if (check.state !== 'pending' || String(check.reasonId) !== String(address.reasonId)) {
-      if(status) status.textContent='Exceção não está mais pendente. Nenhuma ação automática executada.';
-      return;
+    const fingerprint = sessionFingerprint();
+    const statusForOriginal = message => {
+      const modal = document.getElementById(MODAL_ID);
+      if (modal?.dataset.shipmentId === shipmentId) {
+        const status = modal.querySelector('[data-auto-address-status]');
+        if (status) status.textContent = message;
+      }
+    };
+    pendingActions.add(shipmentId);
+    statusForOriginal(count+' tentativa(s). Verificando exceção antes da tratativa automática...');
+    try {
+      if (!(await verifyRuntimeAccess(true)) || !autoAddressEnabled || fingerprint !== sessionFingerprint()) return;
+      const response = await postJson('https://spx.shopee.com.br/api/in-station/admin/common_site/eha/no_reason_inbound', { shipment_id: shipmentId });
+      const check = addressState(response);
+      if (check.state !== 'pending' || String(check.reasonId) !== String(address.reasonId)) {
+        statusForOriginal('Exceção não está mais pendente. Nenhuma ação automática realizada.');
+        return;
+      }
+      if (!autoAddressEnabled || fingerprint !== sessionFingerprint() || !hasRuntimeAccess()) return;
+      autoAddressHandled.add(shipmentId);
+      statusForOriginal('Executando '+(action === 'confirm' ? 'confirmação' : 'cancelamento')+' automático para '+shipmentId+'...');
+      if (action === 'confirm') {
+        await postJson('https://spx.shopee.com.br/api/in-station/admin/common_site/eha/resolve_reason', {
+          shipment_id: shipmentId, reason_id: check.reasonId
+        });
+      } else {
+        await postJson('https://spx.shopee.com.br/api/in-station/admin/common_site/eha/cancel_eo_reason', {
+          shipment_id: shipmentId, reason_id: check.reasonId,
+          reason_desc: ADDRESS_REASON_DESC, local_lang: check.localLang || ''
+        });
+      }
+      statusForOriginal('Tratativa automática concluída para '+shipmentId+'.');
+      const modal = document.getElementById(MODAL_ID);
+      if (modal?.dataset.shipmentId === shipmentId) {
+        modal.querySelectorAll('.address-actions button').forEach(button => { button.hidden = true; });
+        const decision = modal.querySelector('.decision');
+        if (decision) {
+          decision.className = 'decision' + (action === 'confirm' ? ' address' : '');
+          decision.querySelector('strong').textContent = action === 'confirm' ? 'AGUARDAR TRATATIVA (24h)' : 'PROCESSAR PARA ENTREGA';
+        }
+      }
+    } catch (error) {
+      statusForOriginal(autoAddressHandled.has(shipmentId)
+        ? 'Resultado não confirmado. Consulte o pedido no SPX antes de repetir.'
+        : 'Não foi possível verificar a exceção. Nenhuma tratativa enviada.');
+    } finally {
+      pendingActions.delete(shipmentId);
+      const modal = document.getElementById(MODAL_ID);
+      if (modal?.dataset.shipmentId === shipmentId) {
+        const refresh = modal.querySelector('[data-refresh]');
+        if (refresh) refresh.disabled = historyBusy;
+      }
     }
-    if (!isCurrent(version) || !autoAddressEnabled || pendingActions.has(shipmentId) || autoAddressHandled.has(shipmentId)) return;
-    const button = modal.querySelector('[data-address-action="'+action+'"]');
-    if (!button) { if(status) status.textContent='Ação automática indisponível. Use os botões manuais.'; return; }
-    autoAddressHandled.add(shipmentId);
-    if(status) status.textContent=count+' tentativa(s) de endereço · '+(action==='confirm'?'confirmação':'cancelamento')+' automático solicitado.';
-    button.click();
   }
 
-async function handleAddress(button){
+  async function handleAddress(button){
  const accessVersion=requestVersion;
  if(!(await verifyRuntimeAccess(true))||accessVersion!==requestVersion)return;
  const modal=button.closest('#'+MODAL_ID);

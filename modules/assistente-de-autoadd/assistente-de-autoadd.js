@@ -350,6 +350,9 @@
   let overviewKey = '';
   let overviewTimer = 0;
   let overviewController = null;
+  let overviewReportRows = [];
+  let overviewReportProgress = { done: 0, total: 0, failed: 0 };
+  let overviewReportWindow = null;
 
   function overviewContext() {
     if (location.origin !== 'https://spx.shopee.com.br' || !location.hash.startsWith('#/mercadao/audit-list/vt-detail')) return null;
@@ -400,6 +403,7 @@
       </style>
       <div class="ov-header" data-toggle role="button" tabindex="0" aria-expanded="false">
         <div class="ov-icon">AA</div><div class="ov-heading"><strong>AutoAdd · Visão geral da VT</strong><small data-status>Buscando pedidos...</small></div>
+        <button class="ov-action ov-report-button" type="button" data-overview-report title="Abrir relatório da VT">Relatório</button>
         <button class="ov-action" type="button" data-overview-refresh aria-label="Atualizar agora" title="Atualizar agora"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
         <button class="ov-action" type="button" data-expand aria-label="Expandir painel"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
@@ -417,6 +421,7 @@
     host.querySelector('[data-toggle]').addEventListener('click', e => { if (!e.target.closest('button')) toggle(); });
     host.querySelector('[data-toggle]').addEventListener('keydown', e => { if (e.target === e.currentTarget && ['Enter',' '].includes(e.key)) { e.preventDefault(); toggle(); } });
     host.querySelector('[data-expand]').addEventListener('click', event => { event.stopPropagation(); toggle(); });
+    host.querySelector('[data-overview-report]').onclick = () => openOverviewReport();
     host.querySelector('[data-overview-refresh]').onclick = () => void refreshOverview(overviewKey, true);
     document.documentElement.appendChild(host);
     return host;
@@ -425,6 +430,100 @@
   function overviewMessage(html) {
     const body = overviewHost().querySelector('[data-overview-body]');
     if (body) body.innerHTML = html;
+  }
+
+
+  function reportEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+  }
+
+  function reportData() {
+    const rows = overviewReportRows.filter(item => Number.isFinite(item.planned) && Number.isFinite(item.scanned));
+    const active = rows.filter(item => item.planned > 0).map(item => ({
+      ...item, pending: Math.max(0, item.planned - item.scanned),
+      pct: Math.round(Math.min(100, item.scanned / item.planned * 100))
+    }));
+    const planned = active.reduce((n,item) => n + item.planned, 0);
+    const scanned = active.reduce((n,item) => n + item.scanned, 0);
+    return { rows, active, planned, scanned, pending: Math.max(0, planned-scanned),
+      percent: planned ? Math.round(scanned / planned * 100) : 0,
+      red: active.filter(item=>item.pct<60).length,
+      yellow: active.filter(item=>item.pct>=60&&item.pct<90).length,
+      green: active.filter(item=>item.pct>=90).length };
+  }
+
+  function renderOverviewReport() {
+    const tab = overviewReportWindow;
+    if (!tab || tab.closed || !overviewKey) return;
+    try {
+      const doc = tab.document;
+      if (!doc.getElementById('spx-report-content')) return;
+      const data = reportData();
+      const { done, total, failed } = overviewReportProgress;
+      const isPartial = done < total || failed > 0;
+      const color = overviewColor(data.percent);
+      const classes = data.active.length;
+      const redPercent = classes ? data.red/classes*100 : 0;
+      const yellowPercent = classes ? data.yellow/classes*100 : 0;
+      const greenPercent = classes ? data.green/classes*100 : 0;
+      const ranking = [...data.active].sort((a,b)=>b.pending-a.pending || a.pct-b.pct);
+      const offenders = ranking.filter(item=>item.pending>0).slice(0,8);
+      const routeCards = [...data.active].sort((a,b)=>a.pct-b.pct || b.pending-a.pending).map(item => `
+        <article class="route"><div class="route-title"><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)}</small><b style="color:${overviewColor(item.pct)}">${item.pct}%</b></div>
+        <div class="bar"><i style="width:${item.pct}%;background:${overviewColor(item.pct)}"></i></div>
+        <div class="route-meta"><span>${item.scanned} de ${item.planned} carregados</span><strong>${item.pending} pendentes</strong></div></article>`).join('');
+      const qualityPie = `conic-gradient(#ef4444 0 ${redPercent}%,#f59e0b ${redPercent}% ${redPercent+yellowPercent}%,#22c55e ${redPercent+yellowPercent}% 100%)`;
+      const loadedPie = `conic-gradient(#22c55e 0 ${data.percent}%,#ef4444 ${data.percent}% 100%)`;
+      const opportunities = offenders.map(item => `<div class="opportunity"><strong>${reportEscape(item.route)} · ${item.pending} pendentes</strong><p>Priorizar o carregamento dos ${item.pending} pedidos AutoAdd restantes nesta rota (${item.pct}% concluído).</p></div>`).join('');
+      doc.getElementById('spx-report-content').innerHTML = `
+        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')}</p></div>
+        <div class="report-actions"><button type="button" data-csv>Exportar CSV</button><button type="button" data-print>Imprimir / PDF</button></div></div>
+        <p class="notice">${isPartial ? 'Relatório parcial: '+done+' de '+total+' ATs verificadas'+(failed?' · '+failed+' falhas de consulta':'')+'. Os percentuais usam somente ATs com dados confirmados.' : 'Relatório consolidado: '+done+' ATs verificadas.'} </p>
+        <div class="metrics"><div class="metric"><span>Pedidos AutoAdd</span><strong>${data.planned}</strong></div><div class="metric"><span>Carregados</span><strong class="green">${data.scanned}</strong></div><div class="metric"><span>Pendentes</span><strong class="red">${data.pending}</strong></div><div class="metric"><span>Taxa de carregamento</span><strong style="color:${color}">${data.percent}%</strong></div><div class="metric"><span>Rotas com AutoAdd</span><strong>${classes}</strong></div></div>
+        <div class="charts"><section class="panel"><h2>Qualidade por rota</h2><div class="donut-row"><div class="donut" style="background:${qualityPie}"><div>${classes}<small>rotas</small></div></div><div class="legend"><div><i style="background:#ef4444"></i> Críticas (&lt;60%) <b>${data.red}</b></div><div><i style="background:#f59e0b"></i> Atenção (60–89%) <b>${data.yellow}</b></div><div><i style="background:#22c55e"></i> Boas (≥90%) <b>${data.green}</b></div></div></div></section>
+        <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${data.percent}%<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
+        <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${item.pct}% concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
+        <section class="panel"><h2>Oportunidades de melhoria</h2><p class="muted">Ações sugeridas automaticamente a partir das pendências.</p>${opportunities || '<p class="muted">Não foram identificadas oportunidades relacionadas a pedidos pendentes.</p>'}</section></div>
+        <section class="panel"><div class="section-header"><h2>Detalhamento de todas as ATs</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
+        <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
+      doc.querySelector('[data-csv]').onclick=()=> {
+        const header=['VT','AT','Rota','AutoAdd','Carregados','Pendentes','Percentual'];
+        const lines=[header,...data.active.map(item=>[overviewKey,item.at,item.route,item.planned,item.scanned,item.pending,item.pct+'%'])];
+        const csv='\\uFEFF'+lines.map(line=>line.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(';')).join('\\r\\n');
+        const url=URL.createObjectURL(new Blob([csv.replace('\\uFEFF','\uFEFF').replaceAll('\\r\\n','\r\n')],{type:'text/csv;charset=utf-8'}));
+        const link=doc.createElement('a');link.href=url;link.download='autoadd-'+overviewKey+'.csv';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      };
+      doc.querySelector('[data-print]').onclick=()=>tab.print();
+    } catch (error) { console.warn('[SPX AutoAdd] Relatório indisponível:',error); }
+  }
+
+  function openOverviewReport() {
+    if (!overviewKey) return;
+    let tab=overviewReportWindow;
+    if (!tab || tab.closed) {
+      tab=window.open('','_blank');
+      if (!tab) { alert('Permita pop-ups para abrir o relatório da VT.'); return; }
+      overviewReportWindow=tab;
+      tab.document.open();
+      tab.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoAdd · Relatório da VT</title><style>
+        *{box-sizing:border-box}body{margin:0;background:#0b1220;color:#f8fafc;font:13px/1.5 system-ui,Arial,sans-serif}main{max-width:1300px;margin:auto;padding:30px 24px}
+        h1{font-size:27px;letter-spacing:-.5px;margin:4px 0}h2{font-size:17px;margin:0 0 12px}p{margin:7px 0}.muted{color:#93a6c1}.eyebrow{font-size:11px;color:#93c5fd;letter-spacing:.12em;font-weight:850}
+        .report-head,.report-actions,.donut-row,.section-header{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}.report-head{margin-bottom:22px}.report-actions{justify-content:flex-end}
+        button{border:1px solid #42536f;background:#233955;color:#e8f1ff;padding:10px 14px;border-radius:9px;font-weight:750;cursor:pointer}
+        .notice{padding:12px 14px;background:#142944;border:1px solid #2e557f;color:#c7d9f5;border-radius:9px;margin-bottom:18px}
+        .metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}.metric,.panel{background:#152136;border:1px solid #31415b;border-radius:14px;padding:19px}.metric span{font-size:11px;color:#99aecb;display:block}.metric strong{display:block;margin-top:7px;font-size:26px}.green{color:#22c55e}.red{color:#ef4444}
+        .charts,.sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.donut-row{justify-content:flex-start;gap:30px;min-height:200px}.donut{width:177px;height:177px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}.donut>div{background:#152136;width:121px;height:121px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:24px;font-weight:900}.donut small{font-size:11px;font-weight:400;color:#9fb0c9}
+        .legend{flex:1;min-width:170px}.legend div{display:flex;align-items:center;gap:9px;margin:12px 0;color:#b9c9df}.legend i{width:10px;height:10px;border-radius:3px;flex:0 0 auto}.legend b{margin-left:auto;color:#fff}
+        .offender{display:flex;align-items:center;gap:12px;border-top:1px solid #31415b;padding:12px 0}.offender>div{flex:1}.offender small{display:block;color:#93a6c1}.offender b{color:#fda4af}.rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#3f2636;color:#fda4af;font-weight:850}
+        .opportunity{padding:12px;border-left:3px solid #f59e0b;background:#1d2b40;border-radius:6px;margin:11px 0}.opportunity p{color:#9fb0c9;font-size:12px}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.route{background:#192a42;border:1px solid #304664;border-radius:11px;padding:13px}.route-title{display:grid;grid-template-columns:1fr auto;gap:0 8px}.route-title strong{font-size:15px}.route-title small{grid-column:1;color:#93a6c1}.route-title b{grid-column:2;grid-row:1/3;font-size:17px}.bar{height:8px;border-radius:99px;overflow:hidden;background:#34455f;margin:10px 0}.bar i{display:block;height:100%;border-radius:99px}.route-meta{display:flex;justify-content:space-between;font-size:11px;color:#a6b8d0}.route-meta strong{color:#f8fafc}.section-header span{color:#94a3b8;font-size:11px}
+        footer{color:#91a5c0;font-size:11px;margin-top:20px;padding-bottom:25px} @media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.route-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){main{padding:16px}.metrics{grid-template-columns:repeat(2,1fr)}.charts,.sections,.route-grid{grid-template-columns:1fr}.donut{width:145px;height:145px}.donut>div{width:100px;height:100px}}
+        @media print{body{background:white;color:#172033}.panel,.metric,.route{background:white;color:#172033;border-color:#d0d7e0}button{display:none}.notice{color:#172033;background:white}.muted,footer{color:#475569}}
+      </style></head><body><main id="spx-report-content"></main></body></html>`);
+      tab.document.close();
+    }
+    renderOverviewReport();
+    tab.focus();
   }
 
   async function fetchOverviewTargets(vt, signal) {
@@ -469,6 +568,9 @@
     try {
       const ats = await fetchOverviewTargets(vt, controller.signal);
       const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
+      overviewReportRows = rows;
+      overviewReportProgress = { done: 0, total: ats.length, failed: 0 };
+      renderOverviewReport();
       let index = 0;
       let done = 0;
       let failed = 0;
@@ -509,7 +611,8 @@
             failed++;
           }
           done++;
-          if (done % 5 === 0 || done === rows.length) render();
+          overviewReportProgress = { done, total: rows.length, failed };
+        if (done % 5 === 0 || done === rows.length) { render(); renderOverviewReport(); }
         }
       }
       await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));
@@ -533,6 +636,10 @@
     overviewController = null;
     document.getElementById(OVERVIEW_ID)?.remove();
     overviewKey = vt || '';
+    overviewReportRows = [];
+    overviewReportProgress = { done: 0, total: 0, failed: 0 };
+    if (overviewReportWindow && !overviewReportWindow.closed) { overviewReportWindow.close(); }
+    overviewReportWindow = null;
     if (vt) void refreshOverview(vt);
   }
 

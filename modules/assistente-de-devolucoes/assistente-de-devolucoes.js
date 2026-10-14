@@ -121,7 +121,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       notice = document.createElement('div');
       notice.id = ACCESS_NOTICE_ID;
       notice.setAttribute('role', 'status');
-      notice.style.cssText = 'position:fixed;right:16px;top:16px;z-index:999999;max-width:360px;padding:14px;border:1px solid #fb923c;border-radius:10px;background:#0f172a;color:#f8fafc;font:13px/1.5 Arial,sans-serif';
+      notice.style.cssText = 'position:fixed;right:16px;top:16px;z-index:999999;max-width:360px;padding:14px 16px;border:1px solid #d97706;border-left:4px solid #f59e0b;border-radius:11px;background:#152238;color:#f8fafc;box-shadow:0 12px 32px #02061766;font:12px/1.5 Inter,system-ui,Arial,sans-serif';
       document.body.appendChild(notice);
     }
     notice.textContent = message;
@@ -222,6 +222,22 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       #${MODAL_ID} .message strong{display:block}
       #${MODAL_ID} button:disabled{opacity:.5;cursor:wait}
       #${MODAL_ID} button:focus-visible,#${MODAL_ID} a:focus-visible,#${FAB_ID}:focus-visible{outline:2px solid #ff6000;outline-offset:3px}
+
+      #${MODAL_ID}{font:12px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#0f172a;border:1px solid #334155;border-radius:14px;box-shadow:0 18px 55px rgba(2,6,23,.42)}
+      #${MODAL_ID} header{background:linear-gradient(120deg,#18263d,#111827);padding:13px 14px;border-bottom:1px solid #334155;min-height:64px}
+      #${MODAL_ID} h2{font-size:15px;font-weight:800;letter-spacing:-.2px}
+      #${MODAL_ID} .body{background:#0f172a;padding:11px}
+      #${MODAL_ID} .attempt{background:#18263a;border:1px solid #334155;border-radius:11px;padding:11px;gap:10px}
+      #${MODAL_ID} .index{background:#26354a;color:#bfdbfe}
+      #${MODAL_ID} .decision{border-radius:11px;padding:12px}
+      #${MODAL_ID} .icon-button,#${MODAL_ID} [data-onhold-report]{border-radius:9px;background:#23344d;border:1px solid #3b4a60;color:#e2e8f0;font-family:inherit;font-weight:750}
+      #${MODAL_ID} .icon-button:hover,#${MODAL_ID} [data-onhold-report]:hover{background:#30445d}
+      #${MODAL_ID} .address-actions button{border-radius:9px;font-family:inherit}
+      #${FAB_ID}{font:750 12px Inter,system-ui,Arial,sans-serif;border:1px solid #334155;border-radius:11px;background:#152238;box-shadow:0 10px 28px #02061750}
+      #${FAB_ID}:hover{background:#23344d}
+      #${MODAL_ID} button:focus-visible,#${MODAL_ID} input:focus-visible,#${FAB_ID}:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+      #${MODAL_ID} .auto-info{color:#93a6c1}
+      @media(max-width:680px){#${MODAL_ID} header{padding-right:14px}#${MODAL_ID} h2{font-size:13px;max-width:45%}#${MODAL_ID} .header-actions{gap:5px}}
       @media(max-width:680px){#${MODAL_ID}{max-height:calc(100vh - 130px)}}
       #${FAB_ID}{position:fixed;right:16px;bottom:16px;z-index:999999;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#f8fafc;font:700 12px Arial,sans-serif;cursor:pointer}
     `;
@@ -497,7 +513,12 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       .reason-head b{color:#fbbf24;white-space:nowrap}.bar{height:8px;background:#334155;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:#f59e0b;border-radius:99px}
       input{width:100%;padding:12px;border-radius:9px;background:#0e1828;border:1px solid #40516a;color:white;margin-bottom:12px;font:inherit}
       .table-wrap{overflow:auto;max-height:65vh}table{border-collapse:collapse;width:100%;text-align:left;min-width:630px}th,td{padding:12px 9px;border-bottom:1px solid #304057}th{color:#94a3b8;position:sticky;top:0;background:#152135}
-      @media(max-width:820px){.panels{grid-template-columns:1fr}.grid{gap:8px}.card{padding:13px}.card strong{font-size:23px}main{padding:18px 12px}}
+      body{background:#0b1220;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;line-height:1.5}
+      .card,.panel{background:#152238;border-color:#334155;border-radius:14px}
+      .reason{background:#1b2b43;border-radius:11px}
+      button{background:#23344d;border:1px solid #3b4a60;border-radius:9px}
+      button:hover{background:#30445d}button:focus-visible,input:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+            @media(max-width:820px){.panels{grid-template-columns:1fr}.grid{gap:8px}.card{padding:13px}.card strong{font-size:23px}main{padding:18px 12px}}
       </style></head><body><main><header><div><h1>Relatório On Hold</h1><p>${day} · Registros deste navegador</p></div><button id="export">Exportar CSV</button></header>
       <div class="grid"><div class="card"><span>Pedidos consultados</span><strong>${records.length}</strong></div><div class="card"><span>Pedidos com On Hold</span><strong style="color:#fbbf24">${rows.length}</strong></div><div class="card"><span>Tentativas registradas</span><strong>${totalAttempts}</strong></div></div>
       <div class="panels"><section class="panel"><h2>Motivos On Hold</h2>${reasonHtml || '<p>Nenhum registro encontrado.</p>'}</section>

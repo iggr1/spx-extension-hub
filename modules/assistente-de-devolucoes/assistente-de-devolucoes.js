@@ -836,7 +836,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
 
   function stop(){
  clearTimeout(debounceId);if(monitorId)clearInterval(monitorId);
- monitorId=null;requestVersion+=1;historyBusy=false;removeAutoAddToast();
+ monitorId=null;requestVersion+=1;historyBusy=false;
  document.removeEventListener('input',shipmentChanged,true);
  document.removeEventListener('change',shipmentChanged,true);
  document.removeEventListener('keydown',shipmentChanged,true);
@@ -923,14 +923,11 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  if(!shipmentId||!isTargetRoute()||!hasRuntimeAccess())return;
  clearTimeout(debounceId);
  const version=++requestVersion;
- const scanUnix=Math.floor(Date.now()/1000);
- removeAutoAddToast();
- lastShipmentId=shipmentId;historyBusy=true;
+  lastShipmentId=shipmentId;historyBusy=true;
  showModal(shipmentId,'<div class="message" role="status"><span class="spinner" aria-hidden="true"></span><strong>Consultando pedido</strong>Buscando histórico de tentativas...</div>');
  debounceId=setTimeout(()=>{
   if(!isCurrent(version))return;
   void loadHistory(shipmentId,version);
-  void fetchAutoAddInfo(shipmentId,scanUnix,version).then(result=>{if(isCurrent(version)){showAutoAddToast(result);positionToggle();}});
  },delay);
 }
 

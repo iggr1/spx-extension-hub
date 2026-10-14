@@ -86,8 +86,8 @@
     {
       "id": "spx-dock-flow-autoadd",
       "name": "Assistênte de AutoAdd",
-      "description": "Acompanha os pedidos AutoAdd na tela de conferência e mostra quais ainda estão pendentes de carregamento.",
-      "version": "1.1.2",
+      "description": "Acompanha AutoAdd em ATs e VTs e notifica AutoAdd no recebimento.",
+      "version": "1.1.3",
       "enabled": true,
       "type": "user_script",
       "permissions": [
@@ -115,14 +115,25 @@
           "runAt": "document_idle",
           "world": "MAIN",
           "allFrames": false
+        },
+        {
+          "id": "spx-autoadd-recebimento",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-autoadd/autoadd-recebimento.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
         }
       ]
     },
     {
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
-      "description": "Histórico de tentativas, orientação do pedido, identificação de AutoAdd e tratativa de endereço no recebimento.",
-      "version": "3.0.1",
+      "description": "Histórico de tentativas e tratativa de endereço no recebimento.",
+      "version": "3.0.2",
       "enabled": true,
       "type": "user_script",
       "permissions": [

@@ -179,6 +179,24 @@
         .shipment{min-width:0;font:700 11px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.state{font-size:10px;font-weight:800}.pending .state{color:#c2410c}.done .state{color:#15803d}
         .message{padding:18px 14px;color:#64748b;font-size:11px;line-height:1.45;text-align:center}.message.error{color:#b91c1c;background:#fef2f2}
         .footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid #eef2f7;color:#94a3b8;font-size:9px}.retry{border:0;background:transparent;color:#ea580c;font:800 10px Arial,sans-serif;cursor:pointer;padding:2px 0}
+
+        :host{font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#f8fafc}
+        .panel{background:#0f172a;border:1px solid #334155;border-radius:14px;box-shadow:0 18px 55px rgba(2,6,23,.42)}
+        .header{background:linear-gradient(120deg,#18263d,#111827);color:#f8fafc;padding:12px 14px;min-height:59px}
+        .header:hover{background:#1e293b}
+        .icon{background:#2563eb30;border:1px solid #3b82f680;color:#93c5fd}
+        .title small{color:#94a3b8}.badge{background:#7c2d1236;color:#fdba74}.badge.done{background:#14532d66;color:#86efac}
+        .chevron{color:#94a3b8}.body{border-color:#334155}
+        .summary{background:#152238;padding:12px 14px}.summary span{color:#94a3b8}.summary strong{color:#f8fafc}
+        .progress{background:#334155;height:6px}
+        .list{padding:9px}.row{padding:10px;border:1px solid transparent;border-radius:10px}
+        .row.pending{background:#37281766;border-color:#92400e55}.row.done{background:#1e293b;border-color:#334155}
+        .pending .status{background:#78350f;color:#fbbf24}.done .status{background:#14532d;color:#86efac}
+        .shipment{color:#f8fafc}.pending .state{color:#fbbf24}.done .state{color:#86efac}
+        .message{color:#94a3b8}.message.error{color:#fca5a5;background:#7f1d1d20}
+        .footer{border-color:#334155;background:#111c2e;color:#94a3b8;padding:10px 14px}
+        .retry{color:#93c5fd;font:750 11px Inter,system-ui,sans-serif;border-radius:7px;padding:5px 8px}.retry:hover{background:#26354a}
+        button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
         @media(max-width:620px){:host{right:10px;bottom:10px}.panel{width:min(340px,calc(100vw - 20px))}}
       </style>
       <section class="panel" aria-label="Assistênte de AutoAdd">
@@ -400,6 +418,14 @@
         #${OVERVIEW_ID} .ov-route-percent{font-size:16px;font-weight:900}
         #${OVERVIEW_ID} .ov-route-meta{font-size:10px;color:#94a3b8;margin:9px 0}
         #${OVERVIEW_ID} .ov-footer{padding:10px 16px;border-top:1px solid #334155;color:#94a3b8;font-size:10px}
+        #${OVERVIEW_ID}{font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif!important;border-radius:14px!important;background:#0f172a!important}
+        #${OVERVIEW_ID} .ov-header{min-height:62px;padding:12px 14px}
+        #${OVERVIEW_ID} .ov-action{border-radius:9px;padding:8px 10px;font-weight:700}
+        #${OVERVIEW_ID} .ov-action:hover{background:#30445d}
+        #${OVERVIEW_ID} .ov-action:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+        #${OVERVIEW_ID} .ov-metric,#${OVERVIEW_ID} .ov-route{border-radius:11px}
+        #${OVERVIEW_ID} .ov-report-button{background:#1d4ed835;color:#bfdbfe;border-color:#3b82f680}
+
       </style>
       <div class="ov-header" data-toggle role="button" tabindex="0" aria-expanded="false">
         <div class="ov-icon">AA</div><div class="ov-heading"><strong>AutoAdd · Visão geral da VT</strong><small data-status>Buscando pedidos...</small></div>
@@ -518,7 +544,11 @@
         .offender{display:flex;align-items:center;gap:12px;border-top:1px solid #31415b;padding:12px 0}.offender>div{flex:1}.offender small{display:block;color:#93a6c1}.offender b{color:#fda4af}.rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#3f2636;color:#fda4af;font-weight:850}
         .opportunity{padding:12px;border-left:3px solid #f59e0b;background:#1d2b40;border-radius:6px;margin:11px 0}.opportunity p{color:#9fb0c9;font-size:12px}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.route{background:#192a42;border:1px solid #304664;border-radius:11px;padding:13px}.route-title{display:grid;grid-template-columns:1fr auto;gap:0 8px}.route-title strong{font-size:15px}.route-title small{grid-column:1;color:#93a6c1}.route-title b{grid-column:2;grid-row:1/3;font-size:17px}.bar{height:8px;border-radius:99px;overflow:hidden;background:#34455f;margin:10px 0}.bar i{display:block;height:100%;border-radius:99px}.route-meta{display:flex;justify-content:space-between;font-size:11px;color:#a6b8d0}.route-meta strong{color:#f8fafc}.section-header span{color:#94a3b8;font-size:11px}
         footer{color:#91a5c0;font-size:11px;margin-top:20px;padding-bottom:25px} @media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.route-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){main{padding:16px}.metrics{grid-template-columns:repeat(2,1fr)}.charts,.sections,.route-grid{grid-template-columns:1fr}.donut{width:145px;height:145px}.donut>div{width:100px;height:100px}}
-        @media print{body{background:white;color:#172033}.panel,.metric,.route{background:white;color:#172033;border-color:#d0d7e0}button{display:none}.notice{color:#172033;background:white}.muted,footer{color:#475569}}
+        body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#0b1220}main{max-width:1260px}
+        .panel,.metric{border-radius:14px;background:#152238;border-color:#334155}button{background:#23344d;border:1px solid #3b4a60;border-radius:9px}button:hover{background:#30445d}
+        button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+        .route{border-radius:11px;background:#1b2b43}.eyebrow{color:#93c5fd}
+                @media print{body{background:white;color:#172033}.panel,.metric,.route{background:white;color:#172033;border-color:#d0d7e0}button{display:none}.notice{color:#172033;background:white}.muted,footer{color:#475569}}
       </style></head><body><main id="spx-report-content"></main></body></html>`);
       tab.document.close();
     }

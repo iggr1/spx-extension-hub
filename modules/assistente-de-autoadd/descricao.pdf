@@ -1,0 +1,63 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2213 >>
+stream
+0.10 0.16 0.26 rg
+50 795 495 3 re f
+0 0 0 rg
+BT /F1 18 Tf 50 760 Td (ASSISTENTE DE AUTOADD) Tj ET
+BT /F1 10 Tf 50 725 Td (Controle do reaproveitamento de pedidos) Tj ET
+BT /F1 10 Tf 50 710 Td () Tj ET
+BT /F1 10 Tf 50 695 Td (Acompanha os pedidos AutoAdd nas rotas e VTs, destacando o que foi carregado e o que ainda) Tj ET
+BT /F1 10 Tf 50 680 Td (esta pendente.) Tj ET
+BT /F1 10 Tf 50 665 Td () Tj ET
+BT /F1 10 Tf 50 650 Td (FUNCIONALIDADES) Tj ET
+BT /F1 10 Tf 50 635 Td (- Painel por rota: Identifica pedidos AutoAdd planejados na AT e cruza com as leituras de) Tj ET
+BT /F1 10 Tf 50 620 Td (carregamento.) Tj ET
+BT /F1 10 Tf 50 605 Td (- Pendencias visiveis: Mostra pedidos encontrados, ja bipados e faltantes, com progresso de) Tj ET
+BT /F1 10 Tf 50 590 Td (carregamento.) Tj ET
+BT /F1 10 Tf 50 575 Td (- Visao geral da VT: Consolida as ATs da VT e informa desempenho por rota.) Tj ET
+BT /F1 10 Tf 50 560 Td (- Relatorio de desempenho: Apresenta taxa de carregamento, pedidos pendentes, comparativos) Tj ET
+BT /F1 10 Tf 50 545 Td (e graficos de qualidade por rota.) Tj ET
+BT /F1 10 Tf 50 530 Td (- Notificacao no recebimento: Ao ler um pedido, informa quando houver identificacao de) Tj ET
+BT /F1 10 Tf 50 515 Td (AutoAdd e a rota ou proximo ciclo.) Tj ET
+BT /F1 10 Tf 50 500 Td (- Atualizacao dinamica: Permite recarregar consultas e acompanhar evolucao da rota na tela) Tj ET
+BT /F1 10 Tf 50 485 Td (do SPX.) Tj ET
+BT /F1 10 Tf 50 470 Td () Tj ET
+BT /F1 10 Tf 50 455 Td (COMO UTILIZAR) Tj ET
+BT /F1 10 Tf 50 440 Td (1. Ative o modulo no catalogo do Extension Hub.) Tj ET
+BT /F1 10 Tf 50 425 Td (2. Abra ou atualize paginas SPX compativeis de AT, VT ou recebimento.) Tj ET
+BT /F1 10 Tf 50 410 Td (3. Observe o painel de AutoAdd durante o carregamento.) Tj ET
+BT /F1 10 Tf 50 395 Td (4. Na visao geral da VT, abra Relatorio para conferir as pendencias por rota.) Tj ET
+BT /F1 10 Tf 50 380 Td () Tj ET
+BT /F1 10 Tf 50 365 Td (OBSERVACOES) Tj ET
+BT /F1 10 Tf 50 350 Td (A meta operacional e carregar 100% dos pedidos AutoAdd identificados. Resultados parciais) Tj ET
+BT /F1 10 Tf 50 335 Td (podem refletir ATs ainda nao consultadas ou falhas de rede.) Tj ET
+BT /F1 9 Tf 50 34 Td (SPX Extension Hub  |  1/1) Tj ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+5 0 obj
+<< /Type /Catalog /Pages 4 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000002344 00000 n 
+0000002470 00000 n 
+0000002527 00000 n 
+trailer
+<< /Size 6 /Root 5 0 R >>
+startxref
+2576
+%%EOF

@@ -236,7 +236,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       #${MODAL_ID} .address-actions button{border-radius:9px;font-family:inherit}
       #${FAB_ID}{font:750 12px Inter,system-ui,Arial,sans-serif;border:1px solid #334155;border-radius:11px;background:#152238;box-shadow:0 10px 28px #02061750}
       #${FAB_ID}:hover{background:#23344d}
-      .receive-cell #${FAB_ID}{position:relative;inset:auto;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;flex:0 0 38px;width:38px;height:34px;min-width:38px;margin:0 8px 0 0;padding:7px;border:1px solid #a78bfa;border-radius:9px;background:linear-gradient(135deg,#5b21b6,#3730a3);color:#fff;box-shadow:0 2px 9px #4c1d9544;cursor:pointer;transition:background .18s,box-shadow .18s}
+      .receive-cell #${FAB_ID}{position:relative;inset:auto;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;flex:0 0 auto;width:auto;height:34px;min-width:unset;margin:0 8px 0 0;padding:7px 13px;font:750 12px Inter,system-ui,Arial,sans-serif;white-space:nowrap;border:1px solid #a78bfa;border-radius:9px;background:linear-gradient(135deg,#5b21b6,#3730a3);color:#fff;box-shadow:0 2px 9px #4c1d9544;cursor:pointer;transition:background .18s,box-shadow .18s}
       .receive-cell #${FAB_ID}:hover{background:linear-gradient(135deg,#6d28d9,#4338ca);box-shadow:0 3px 13px #4c1d9566}
       .receive-cell #${FAB_ID}[aria-expanded="true"]{border-color:#c4b5fd;box-shadow:0 0 0 2px #a78bfa44}
       .receive-cell #${FAB_ID} .icon{width:19px;height:19px}
@@ -875,7 +875,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
     toggle = document.createElement('button');
     toggle.id = FAB_ID;
     toggle.type = 'button';
-    toggle.innerHTML = icon('package');
+    toggle.textContent = 'Assistente de Devoluções';
     toggle.title = 'Histórico de tentativas · Assistente SPX';
     toggle.setAttribute('aria-label', 'Abrir histórico de tentativas');
     toggle.setAttribute('aria-controls', MODAL_ID);
@@ -895,6 +895,10 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   }
   const cell = completed.closest('.receive-cell');
   if (!cell) return;
+  for (const button of [...document.querySelectorAll('button')]) {
+    if (button === toggle || button === completed) continue;
+    if (button.id === FAB_ID || (button.closest('.receive-cell-group') && (button.title === 'Histórico de tentativas · Assistente SPX' || button.getAttribute('aria-controls') === MODAL_ID))) button.remove();
+  }
   if (toggle.parentElement !== cell || toggle.nextElementSibling !== completed) cell.insertBefore(toggle, completed);
   toggle.setAttribute('aria-expanded', String(!collapsed));
   toggle.setAttribute('aria-label', (collapsed ? 'Abrir' : 'Recolher') + ' histórico de tentativas');

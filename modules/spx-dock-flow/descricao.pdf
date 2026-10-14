@@ -3,61 +3,166 @@
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<< /Length 2220 >>
-stream
-0.10 0.16 0.26 rg
-50 795 495 3 re f
-0 0 0 rg
-BT /F1 18 Tf 50 760 Td (SPX DOCK FLOW) Tj ET
-BT /F1 10 Tf 50 725 Td (Gestao de docas e expedicao) Tj ET
-BT /F1 10 Tf 50 710 Td () Tj ET
-BT /F1 10 Tf 50 695 Td (Visibilidade operacional das mesas, filas, motoristas, rotas e carregamentos em tempo real.) Tj ET
-BT /F1 10 Tf 50 680 Td () Tj ET
-BT /F1 10 Tf 50 665 Td (FUNCIONALIDADES) Tj ET
-BT /F1 10 Tf 50 650 Td (- Painel em tempo real: Exibe mesas disponiveis e ocupadas, motoristas, rotas, fila de) Tj ET
-BT /F1 10 Tf 50 635 Td (espera e situacao de cada doca.) Tj ET
-BT /F1 10 Tf 50 620 Td (- Indicadores de ocupacao: Consolida mesas totais, ocupadas, proximas e disponiveis, com) Tj ET
-BT /F1 10 Tf 50 605 Td (percentual de carregamento.) Tj ET
-BT /F1 10 Tf 50 590 Td (- Tempos e alertas: Apresenta duracao de ocupacao, media por rota e situacoes que) Tj ET
-BT /F1 10 Tf 50 575 Td (ultrapassam os limites configurados.) Tj ET
-BT /F1 10 Tf 50 560 Td (- Visibilidade dos pedidos: Permite acompanhar dados de carregamento e quantidades) Tj ET
-BT /F1 10 Tf 50 545 Td (vinculadas as rotas e ATs.) Tj ET
-BT /F1 10 Tf 50 530 Td (- Ajustes de operacao: Configura atualizacao automatica, limites, periodo de calculo,) Tj ET
-BT /F1 10 Tf 50 515 Td (tamanho do cabecalho, tema e zoom.) Tj ET
-BT /F1 10 Tf 50 500 Td (- Uso em telas grandes: Layout adaptado para monitoramento continuo de mesas e operacao do) Tj ET
-BT /F1 10 Tf 50 485 Td (HUB.) Tj ET
-BT /F1 10 Tf 50 470 Td () Tj ET
-BT /F1 10 Tf 50 455 Td (COMO UTILIZAR) Tj ET
-BT /F1 10 Tf 50 440 Td (1. Abra o modulo pelo botao Abrir no catalogo.) Tj ET
-BT /F1 10 Tf 50 425 Td (2. Mantenha a sessao SPX ativa para consultar os dados operacionais.) Tj ET
-BT /F1 10 Tf 50 410 Td (3. Acompanhe a fila, distribuicao das mesas, ocupacao e avanco dos carregamentos.) Tj ET
-BT /F1 10 Tf 50 395 Td (4. Ajuste zoom, atualizacao e alertas em Configuracoes.) Tj ET
-BT /F1 10 Tf 50 380 Td () Tj ET
-BT /F1 10 Tf 50 365 Td (OBSERVACOES) Tj ET
-BT /F1 10 Tf 50 350 Td (Os indicadores dependem de dados e permissoes disponiveis na sessao SPX. O painel nao) Tj ET
-BT /F1 10 Tf 50 335 Td (substitui a confirmacao operacional na plataforma.) Tj ET
-BT /F1 9 Tf 50 34 Td (SPX Extension Hub  |  1/1) Tj ET
-endstream
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+<< /Length 1805 >>
+stream
+0.027 0.110 0.141 rg 0 0 595 842 re f
+0.067 0.176 0.231 rg 0 728 595 114 re f
+0.204 0.827 0.600 rg 44 773 8 25 re f
+0.973 0.980 0.988 rg BT /F2 12 Tf 65 783 Td (SPX   /   EXTENSION HUB) Tj ET
+0.204 0.827 0.600 rg BT /F2 12 Tf 44 710 Td (DOCUMENTACAO OPERACIONAL) Tj ET
+0.973 0.980 0.988 rg BT /F2 42 Tf 44 632 Td (DOCK FLOW) Tj ET
+0.851 0.902 0.937 rg BT /F1 21 Tf 46 586 Td (Controle visual da expedicao em tempo) Tj ET
+0.851 0.902 0.937 rg BT /F1 21 Tf 46 558 Td (real) Tj ET
+0.204 0.827 0.600 rg 45 483 216.5 26 re f
+0.027 0.110 0.141 rg BT /F2 9 Tf 58 491 Td (DOCAS - FILAS - CARREGAMENTOS) Tj ET
+0.204 0.827 0.600 RG 3 w
+440 610 65 65 re S
+450 622 45 14 re S
+450 648 45 14 re S
+0.094 0.208 0.286 rg 45 246 505 166 re f
+0.973 0.980 0.988 rg BT /F2 17 Tf 67 384 Td (VISIBILIDADE. CONTROLE. DECISAO.) Tj ET
+0.773 0.831 0.882 rg BT /F1 12 Tf 67 348 Td (Ferramenta operacional integrada ao SPX Extension Hub, com) Tj ET
+0.773 0.831 0.882 rg BT /F1 12 Tf 67 328 Td (informacoes organizadas para acelerar a leitura do cenario e) Tj ET
+0.773 0.831 0.882 rg BT /F1 12 Tf 67 308 Td (apoiar a tomada de decisao.) Tj ET
+0.129 0.235 0.306 rg 45 132 160 78 re f
+0.204 0.827 0.600 rg BT /F2 15 Tf 60 168 Td (TEMPO REAL) Tj ET
+0.655 0.722 0.784 rg BT /F1 8 Tf 60 148 Td (FOCO OPERACIONAL) Tj ET
+0.129 0.235 0.306 rg 215 132 160 78 re f
+0.204 0.827 0.600 rg BT /F2 15 Tf 230 168 Td (DOCAS) Tj ET
+0.655 0.722 0.784 rg BT /F1 8 Tf 230 148 Td (VISUALIZACAO) Tj ET
+0.129 0.235 0.306 rg 385 132 160 78 re f
+0.204 0.827 0.600 rg BT /F2 15 Tf 400 168 Td (ROTAS) Tj ET
+0.655 0.722 0.784 rg BT /F1 8 Tf 400 148 Td (ACOMPANHAMENTO) Tj ET
+0.235 0.314 0.384 RG 1 w 44 57 m 551 57 l S
+0.655 0.722 0.784 rg BT /F2 8 Tf 44 38 Td (SPX EXTENSION HUB  /  GUIA DE MODULO) Tj ET
+0.204 0.827 0.600 rg BT /F2 9 Tf 496 38 Td (01 / 03) Tj ET
+endstream
 endobj
 4 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
 endobj
 5 0 obj
-<< /Type /Catalog /Pages 4 0 R >>
+<< /Length 2938 >>
+stream
+0.957 0.969 0.980 rg 0 0 595 842 re f
+0.027 0.110 0.141 rg 0 744 595 98 re f
+0.204 0.827 0.600 rg BT /F2 11 Tf 44 798 Td (02  /  CAPACIDADES) Tj ET
+0.973 0.980 0.988 rg BT /F2 24 Tf 44 767 Td (O QUE O MODULO ENTREGA) Tj ET
+0.973 0.980 0.988 rg 44 554 247 186 re f
+0.204 0.827 0.600 rg 44 734 247 6 re f
+0.204 0.827 0.600 rg 61 679 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 73 690 Td (01) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 661 Td (Painel de docas) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 618 Td (Ocupacao, mesas livres, proximas) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 603 Td (chamadas e estado da operacao.) Tj ET
+0.973 0.980 0.988 rg 304 554 247 186 re f
+0.204 0.827 0.600 rg 304 734 247 6 re f
+0.204 0.827 0.600 rg 321 679 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 333 690 Td (02) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 321 661 Td (Fila e motoristas) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 618 Td (Acompanhamento da ordem de) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 603 Td (atendimento, motorista e rota) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 588 Td (vinculada.) Tj ET
+0.973 0.980 0.988 rg 44 346 247 186 re f
+0.204 0.827 0.600 rg 44 526 247 6 re f
+0.204 0.827 0.600 rg 61 471 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 73 482 Td (03) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 453 Td (Carregamento) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 410 Td (Progresso de carregamento e) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 395 Td (informacoes de pedidos por rota.) Tj ET
+0.973 0.980 0.988 rg 304 346 247 186 re f
+0.204 0.827 0.600 rg 304 526 247 6 re f
+0.204 0.827 0.600 rg 321 471 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 333 482 Td (04) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 321 453 Td (Tempos operacionais) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 410 Td (Tempo de ocupacao, media por rota e) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 395 Td (alertas de excesso.) Tj ET
+0.973 0.980 0.988 rg 44 138 247 186 re f
+0.204 0.827 0.600 rg 44 318 247 6 re f
+0.204 0.827 0.600 rg 61 263 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 73 274 Td (05) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 245 Td (Visibilidade por AT) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 202 Td (Acompanhamento de detalhes) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 187 Td (operacionais das rotas e pedidos.) Tj ET
+0.973 0.980 0.988 rg 304 138 247 186 re f
+0.204 0.827 0.600 rg 304 318 247 6 re f
+0.204 0.827 0.600 rg 321 263 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 333 274 Td (06) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 321 245 Td (Personalizacao) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 202 Td (Tema, zoom, atualizacao, limites e) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 187 Td (ajustes de visualizacao.) Tj ET
+0.235 0.314 0.384 RG 1 w 44 57 m 551 57 l S
+0.655 0.722 0.784 rg BT /F2 8 Tf 44 38 Td (SPX EXTENSION HUB  /  GUIA DE MODULO) Tj ET
+0.204 0.827 0.600 rg BT /F2 9 Tf 496 38 Td (02 / 03) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 1800 >>
+stream
+0.957 0.969 0.980 rg 0 0 595 842 re f
+0.027 0.110 0.141 rg 0 730 595 112 re f
+0.204 0.827 0.600 rg BT /F2 11 Tf 44 791 Td (03  /  GUIA PRATICO) Tj ET
+0.973 0.980 0.988 rg BT /F2 27 Tf 44 756 Td (COMO UTILIZAR) Tj ET
+0.973 0.980 0.988 rg 44 628 507 111 re f
+0.204 0.827 0.600 rg 44 628 8 111 re f
+0.204 0.827 0.600 rg 66 671 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 78 682 Td (01) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 700 Td (Abra o Dock Flow pelo catalogo.) Tj ET
+0.973 0.980 0.988 rg 44 500 507 111 re f
+0.204 0.827 0.600 rg 44 500 8 111 re f
+0.204 0.827 0.600 rg 66 543 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 78 554 Td (02) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 572 Td (Valide a sessao SPX e carregue as mesas.) Tj ET
+0.973 0.980 0.988 rg 44 372 507 111 re f
+0.204 0.827 0.600 rg 44 372 8 111 re f
+0.204 0.827 0.600 rg 66 415 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 78 426 Td (03) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 444 Td (Monitore filas, rotas e tempos.) Tj ET
+0.973 0.980 0.988 rg 44 244 507 111 re f
+0.204 0.827 0.600 rg 44 244 8 111 re f
+0.204 0.827 0.600 rg 66 287 38 38 re f
+0.027 0.110 0.141 rg BT /F2 13 Tf 78 298 Td (04) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 316 Td (Use os alertas para priorizar gargalos.) Tj ET
+0.890 0.922 0.941 rg 44 84 507 83 re f
+0.204 0.827 0.600 rg 44 84 6 83 re f
+0.086 0.145 0.212 rg BT /F2 11 Tf 64 140 Td (IMPORTANTE) Tj ET
+0.263 0.365 0.447 rg BT /F1 10 Tf 64 121 Td (As metricas dependem de acesso e atualizacao dos dados SPX; valide eventos) Tj ET
+0.263 0.365 0.447 rg BT /F1 10 Tf 64 106 Td (criticos na plataforma.) Tj ET
+0.235 0.314 0.384 RG 1 w 44 57 m 551 57 l S
+0.655 0.722 0.784 rg BT /F2 8 Tf 44 38 Td (SPX EXTENSION HUB  /  GUIA DE MODULO) Tj ET
+0.204 0.827 0.600 rg BT /F2 9 Tf 496 38 Td (03 / 03) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+10 0 obj
+<< /Type /Catalog /Pages 9 0 R >>
 endobj
 xref
-0 6
+0 11
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
-0000002351 00000 n 
-0000002477 00000 n 
-0000002534 00000 n 
+0000000154 00000 n 
+0000002011 00000 n 
+0000002147 00000 n 
+0000005137 00000 n 
+0000005273 00000 n 
+0000007125 00000 n 
+0000007261 00000 n 
+0000007330 00000 n 
 trailer
-<< /Size 6 /Root 5 0 R >>
+<< /Root 10 0 R /Size 11 >>
 startxref
-2583
+7380
 %%EOF

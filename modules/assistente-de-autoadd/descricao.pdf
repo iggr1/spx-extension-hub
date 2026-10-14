@@ -3,61 +3,168 @@
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<< /Length 2213 >>
-stream
-0.10 0.16 0.26 rg
-50 795 495 3 re f
-0 0 0 rg
-BT /F1 18 Tf 50 760 Td (ASSISTENTE DE AUTOADD) Tj ET
-BT /F1 10 Tf 50 725 Td (Controle do reaproveitamento de pedidos) Tj ET
-BT /F1 10 Tf 50 710 Td () Tj ET
-BT /F1 10 Tf 50 695 Td (Acompanha os pedidos AutoAdd nas rotas e VTs, destacando o que foi carregado e o que ainda) Tj ET
-BT /F1 10 Tf 50 680 Td (esta pendente.) Tj ET
-BT /F1 10 Tf 50 665 Td () Tj ET
-BT /F1 10 Tf 50 650 Td (FUNCIONALIDADES) Tj ET
-BT /F1 10 Tf 50 635 Td (- Painel por rota: Identifica pedidos AutoAdd planejados na AT e cruza com as leituras de) Tj ET
-BT /F1 10 Tf 50 620 Td (carregamento.) Tj ET
-BT /F1 10 Tf 50 605 Td (- Pendencias visiveis: Mostra pedidos encontrados, ja bipados e faltantes, com progresso de) Tj ET
-BT /F1 10 Tf 50 590 Td (carregamento.) Tj ET
-BT /F1 10 Tf 50 575 Td (- Visao geral da VT: Consolida as ATs da VT e informa desempenho por rota.) Tj ET
-BT /F1 10 Tf 50 560 Td (- Relatorio de desempenho: Apresenta taxa de carregamento, pedidos pendentes, comparativos) Tj ET
-BT /F1 10 Tf 50 545 Td (e graficos de qualidade por rota.) Tj ET
-BT /F1 10 Tf 50 530 Td (- Notificacao no recebimento: Ao ler um pedido, informa quando houver identificacao de) Tj ET
-BT /F1 10 Tf 50 515 Td (AutoAdd e a rota ou proximo ciclo.) Tj ET
-BT /F1 10 Tf 50 500 Td (- Atualizacao dinamica: Permite recarregar consultas e acompanhar evolucao da rota na tela) Tj ET
-BT /F1 10 Tf 50 485 Td (do SPX.) Tj ET
-BT /F1 10 Tf 50 470 Td () Tj ET
-BT /F1 10 Tf 50 455 Td (COMO UTILIZAR) Tj ET
-BT /F1 10 Tf 50 440 Td (1. Ative o modulo no catalogo do Extension Hub.) Tj ET
-BT /F1 10 Tf 50 425 Td (2. Abra ou atualize paginas SPX compativeis de AT, VT ou recebimento.) Tj ET
-BT /F1 10 Tf 50 410 Td (3. Observe o painel de AutoAdd durante o carregamento.) Tj ET
-BT /F1 10 Tf 50 395 Td (4. Na visao geral da VT, abra Relatorio para conferir as pendencias por rota.) Tj ET
-BT /F1 10 Tf 50 380 Td () Tj ET
-BT /F1 10 Tf 50 365 Td (OBSERVACOES) Tj ET
-BT /F1 10 Tf 50 350 Td (A meta operacional e carregar 100% dos pedidos AutoAdd identificados. Resultados parciais) Tj ET
-BT /F1 10 Tf 50 335 Td (podem refletir ATs ainda nao consultadas ou falhas de rede.) Tj ET
-BT /F1 9 Tf 50 34 Td (SPX Extension Hub  |  1/1) Tj ET
-endstream
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+<< /Length 1822 >>
+stream
+0.063 0.102 0.200 rg 0 0 595 842 re f
+0.067 0.176 0.231 rg 0 728 595 114 re f
+0.376 0.647 0.980 rg 44 773 8 25 re f
+0.973 0.980 0.988 rg BT /F2 12 Tf 65 783 Td (SPX   /   EXTENSION HUB) Tj ET
+0.376 0.647 0.980 rg BT /F2 12 Tf 44 710 Td (DOCUMENTACAO OPERACIONAL) Tj ET
+0.973 0.980 0.988 rg BT /F2 42 Tf 44 632 Td (AUTOADD) Tj ET
+0.851 0.902 0.937 rg BT /F1 21 Tf 46 586 Td (Mais visibilidade aos pedidos) Tj ET
+0.851 0.902 0.937 rg BT /F1 21 Tf 46 558 Td (realocados automaticamente) Tj ET
+0.376 0.647 0.980 rg 45 483 138.5 26 re f
+0.063 0.102 0.200 rg BT /F2 9 Tf 58 491 Td (AUTOADD - VT - AT) Tj ET
+0.376 0.647 0.980 RG 3 w
+440 630 m 505 630 l S
+484 652 m 505 630 l 484 608 l S
+448 658 18 18 re S
+0.094 0.208 0.286 rg 45 246 505 166 re f
+0.973 0.980 0.988 rg BT /F2 17 Tf 67 384 Td (VISIBILIDADE. CONTROLE. DECISAO.) Tj ET
+0.773 0.831 0.882 rg BT /F1 12 Tf 67 348 Td (Ferramenta operacional integrada ao SPX Extension Hub, com) Tj ET
+0.773 0.831 0.882 rg BT /F1 12 Tf 67 328 Td (informacoes organizadas para acelerar a leitura do cenario e) Tj ET
+0.773 0.831 0.882 rg BT /F1 12 Tf 67 308 Td (apoiar a tomada de decisao.) Tj ET
+0.129 0.235 0.306 rg 45 132 160 78 re f
+0.376 0.647 0.980 rg BT /F2 15 Tf 60 168 Td (100%) Tj ET
+0.655 0.722 0.784 rg BT /F1 8 Tf 60 148 Td (FOCO OPERACIONAL) Tj ET
+0.129 0.235 0.306 rg 215 132 160 78 re f
+0.376 0.647 0.980 rg BT /F2 15 Tf 230 168 Td (VT + AT) Tj ET
+0.655 0.722 0.784 rg BT /F1 8 Tf 230 148 Td (VISUALIZACAO) Tj ET
+0.129 0.235 0.306 rg 385 132 160 78 re f
+0.376 0.647 0.980 rg BT /F2 15 Tf 400 168 Td (PENDENCIAS) Tj ET
+0.655 0.722 0.784 rg BT /F1 8 Tf 400 148 Td (ACOMPANHAMENTO) Tj ET
+0.235 0.314 0.384 RG 1 w 44 57 m 551 57 l S
+0.655 0.722 0.784 rg BT /F2 8 Tf 44 38 Td (SPX EXTENSION HUB  /  GUIA DE MODULO) Tj ET
+0.376 0.647 0.980 rg BT /F2 9 Tf 496 38 Td (01 / 03) Tj ET
+endstream
 endobj
 4 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
 endobj
 5 0 obj
-<< /Type /Catalog /Pages 4 0 R >>
+<< /Length 3011 >>
+stream
+0.957 0.969 0.980 rg 0 0 595 842 re f
+0.063 0.102 0.200 rg 0 744 595 98 re f
+0.376 0.647 0.980 rg BT /F2 11 Tf 44 798 Td (02  /  CAPACIDADES) Tj ET
+0.973 0.980 0.988 rg BT /F2 24 Tf 44 767 Td (O QUE O MODULO ENTREGA) Tj ET
+0.973 0.980 0.988 rg 44 554 247 186 re f
+0.376 0.647 0.980 rg 44 734 247 6 re f
+0.376 0.647 0.980 rg 61 679 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 73 690 Td (01) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 661 Td (Controle por rota) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 618 Td (Identifica AutoAdd na AT e cruza) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 603 Td (pedidos com leituras do) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 588 Td (carregamento.) Tj ET
+0.973 0.980 0.988 rg 304 554 247 186 re f
+0.376 0.647 0.980 rg 304 734 247 6 re f
+0.376 0.647 0.980 rg 321 679 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 333 690 Td (02) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 321 661 Td (Progresso em tempo real) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 618 Td (Contagem e percentual dos pedidos) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 603 Td (carregados e pendentes.) Tj ET
+0.973 0.980 0.988 rg 44 346 247 186 re f
+0.376 0.647 0.980 rg 44 526 247 6 re f
+0.376 0.647 0.980 rg 61 471 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 73 482 Td (03) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 453 Td (Consolidado da VT) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 410 Td (Reune o acompanhamento das ATs em) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 395 Td (uma visao operacional.) Tj ET
+0.973 0.980 0.988 rg 304 346 247 186 re f
+0.376 0.647 0.980 rg 304 526 247 6 re f
+0.376 0.647 0.980 rg 321 471 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 333 482 Td (04) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 321 453 Td (Relatorio da VT) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 410 Td (Apresenta indicadores, graficos e) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 395 Td (prioridades de carregamento.) Tj ET
+0.973 0.980 0.988 rg 44 138 247 186 re f
+0.376 0.647 0.980 rg 44 318 247 6 re f
+0.376 0.647 0.980 rg 61 263 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 73 274 Td (05) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 245 Td (Notificacoes no) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 61 228 Td (recebimento) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 202 Td (Indica rota ou proximo ciclo quando) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 61 187 Td (a leitura identifica AutoAdd.) Tj ET
+0.973 0.980 0.988 rg 304 138 247 186 re f
+0.376 0.647 0.980 rg 304 318 247 6 re f
+0.376 0.647 0.980 rg 321 263 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 333 274 Td (06) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 321 245 Td (Priorizacao) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 202 Td (Destaca rotas com pendencias para) Tj ET
+0.337 0.420 0.486 rg BT /F1 10 Tf 321 187 Td (apoiar a expedicao completa.) Tj ET
+0.235 0.314 0.384 RG 1 w 44 57 m 551 57 l S
+0.655 0.722 0.784 rg BT /F2 8 Tf 44 38 Td (SPX EXTENSION HUB  /  GUIA DE MODULO) Tj ET
+0.376 0.647 0.980 rg BT /F2 9 Tf 496 38 Td (02 / 03) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 1917 >>
+stream
+0.957 0.969 0.980 rg 0 0 595 842 re f
+0.063 0.102 0.200 rg 0 730 595 112 re f
+0.376 0.647 0.980 rg BT /F2 11 Tf 44 791 Td (03  /  GUIA PRATICO) Tj ET
+0.973 0.980 0.988 rg BT /F2 27 Tf 44 756 Td (COMO UTILIZAR) Tj ET
+0.973 0.980 0.988 rg 44 628 507 111 re f
+0.376 0.647 0.980 rg 44 628 8 111 re f
+0.376 0.647 0.980 rg 66 671 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 78 682 Td (01) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 700 Td (Ative o Assistente de AutoAdd no catalogo.) Tj ET
+0.973 0.980 0.988 rg 44 500 507 111 re f
+0.376 0.647 0.980 rg 44 500 8 111 re f
+0.376 0.647 0.980 rg 66 543 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 78 554 Td (02) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 572 Td (Acesse a VT, a AT ou a tela de recebimento) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 552 Td (compativel.) Tj ET
+0.973 0.980 0.988 rg 44 372 507 111 re f
+0.376 0.647 0.980 rg 44 372 8 111 re f
+0.376 0.647 0.980 rg 66 415 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 78 426 Td (03) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 444 Td (Acompanhe pendencias e percentual carregado.) Tj ET
+0.973 0.980 0.988 rg 44 244 507 111 re f
+0.376 0.647 0.980 rg 44 244 8 111 re f
+0.376 0.647 0.980 rg 66 287 38 38 re f
+0.063 0.102 0.200 rg BT /F2 13 Tf 78 298 Td (04) Tj ET
+0.086 0.145 0.212 rg BT /F2 14 Tf 128 316 Td (Abra o relatorio da VT para visualizar ofensores.) Tj ET
+0.890 0.922 0.941 rg 44 84 507 83 re f
+0.376 0.647 0.980 rg 44 84 6 83 re f
+0.086 0.145 0.212 rg BT /F2 11 Tf 64 140 Td (IMPORTANTE) Tj ET
+0.263 0.365 0.447 rg BT /F1 10 Tf 64 121 Td (O alvo operacional e carregar 100% dos pedidos AutoAdd identificados; dados) Tj ET
+0.263 0.365 0.447 rg BT /F1 10 Tf 64 106 Td (parciais dependem das ATs consultadas.) Tj ET
+0.235 0.314 0.384 RG 1 w 44 57 m 551 57 l S
+0.655 0.722 0.784 rg BT /F2 8 Tf 44 38 Td (SPX EXTENSION HUB  /  GUIA DE MODULO) Tj ET
+0.376 0.647 0.980 rg BT /F2 9 Tf 496 38 Td (03 / 03) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+10 0 obj
+<< /Type /Catalog /Pages 9 0 R >>
 endobj
 xref
-0 6
+0 11
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
-0000002344 00000 n 
-0000002470 00000 n 
-0000002527 00000 n 
+0000000154 00000 n 
+0000002028 00000 n 
+0000002164 00000 n 
+0000005227 00000 n 
+0000005363 00000 n 
+0000007332 00000 n 
+0000007468 00000 n 
+0000007537 00000 n 
 trailer
-<< /Size 6 /Root 5 0 R >>
+<< /Root 10 0 R /Size 11 >>
 startxref
-2576
+7587
 %%EOF

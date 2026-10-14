@@ -133,7 +133,7 @@
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
       "description": "Histórico de tentativas e tratativa de endereço no recebimento.",
-      "version": "3.0.2",
+      "version": "3.0.3",
       "enabled": true,
       "type": "user_script",
       "permissions": [
@@ -168,6 +168,17 @@
         {
           "id": "recebimento-access-notice",
           "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/access-notice.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
+        },
+        {
+          "id": "recebimento-onhold-report",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/onhold-report.js",
           "matches": [
             "https://spx.shopee.com.br/*"
           ],

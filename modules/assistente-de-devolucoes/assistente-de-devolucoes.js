@@ -356,9 +356,9 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  }
  modal.querySelector('[data-auto-address]').checked=autoAddressEnabled;
  modal.dataset.shipmentId=shipmentId;
- modal.querySelector('.shipment strong').textContent=shipmentId;
+ modal.querySelector('.shipment strong').textContent=shipmentId || 'Aguardando leitura';
  modal.querySelector('.body').innerHTML=html;
- modal.querySelector('[data-refresh]').disabled=historyBusy||pendingActions.has(shipmentId);
+ modal.querySelector('[data-refresh]').disabled=!shipmentId||historyBusy||pendingActions.has(shipmentId);
  setCollapsed(collapsed);
  positionToggle();
 }
@@ -879,7 +879,10 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
     toggle.title = 'Histórico de tentativas · Assistente SPX';
     toggle.setAttribute('aria-label', 'Abrir histórico de tentativas');
     toggle.setAttribute('aria-controls', MODAL_ID);
-    toggle.onclick = () => setCollapsed(!collapsed);
+    toggle.onclick = () => {
+      if (!document.getElementById(MODAL_ID)) showModal(lastShipmentId, '<div class="message" role="status"><strong>Aguardando leitura</strong>Escaneie um pedido para consultar o histórico de tentativas.</div>');
+      setCollapsed(!collapsed);
+    };
   }
   let completed = null;
   for (const group of document.querySelectorAll('.receive-cell-group')) {
@@ -887,6 +890,9 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
     if (completed) break;
   }
   if (!completed) { toggle.remove(); return; }
+  if (!lastShipmentId && !document.getElementById(MODAL_ID)) {
+    showModal('', '<div class="message" role="status"><strong>Nenhum pedido consultado</strong>Escaneie um BR para visualizar o histórico de tentativas.</div>');
+  }
   const cell = completed.closest('.receive-cell');
   if (!cell) return;
   if (toggle.parentElement !== cell || toggle.nextElementSibling !== completed) cell.insertBefore(toggle, completed);

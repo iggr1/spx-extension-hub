@@ -463,7 +463,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       }
       const latest = attempts.slice().sort((a, b) => Number(a.ctime) - Number(b.ctime)).at(-1);
       all[today] ||= {};
-      all[today][id] = { id, reason: latest ? translateReason(latest.on_hold_reason__desc) : '', driver: String(latest?.driver_name || ''), attempts: attempts.length, checkedAt: Date.now() };
+      all[today][id] = { id, reason: latest ? translateReason(latest.on_hold_reason__desc) : '', driver: String(latest?.driver_name || ''), attempts: attempts.length, checkedAt: Date.now(), suggestion: recommendation(attempts, '').text, attemptDetails: attempts.map(item => ({ reason: translateReason(item.on_hold_reason__desc), driver: String(item.driver_name || ''), at: Number(item.ctime || 0) })) };
       localStorage.setItem(key, JSON.stringify(all));
     } catch (error) { console.warn('[SPX OnHold]', error); }
   }
@@ -485,6 +485,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
 
 
   function showDailyOnHold() {
+    if (typeof window.spxOnHoldReportOpen === 'function') return window.spxOnHoldReportOpen();
     const tab = window.open('', '_blank');
     if (!tab) { alert('Permita pop-ups para abrir o relatório On Hold.'); return; }
     const day = new Date().toLocaleDateString('sv-SE');

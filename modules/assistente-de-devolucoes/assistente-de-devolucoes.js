@@ -26,6 +26,7 @@
     'office closed': 'Comércio Fechado',
     'parcel damaged, cannot attempt': 'Item Danificado',
     'parcel lost': 'Item Perdido',
+    'oversized parcel': 'Pacote fora do Padrão',
     'recipient change location': 'Mudança de endereço',
     'recipient reject': 'Recusado por terceiros',
     'recipient unavailable for parcel': 'Ausente',
@@ -50,7 +51,7 @@
   let requestVersion = 0;
   let monitorId = null;
   let debounceId = null;
-  let collapsed = false;
+  let collapsed = true;
   let observedInput = '';
   let historyBusy = false;
   const pendingActions = new Set();
@@ -235,6 +236,10 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       #${MODAL_ID} .address-actions button{border-radius:9px;font-family:inherit}
       #${FAB_ID}{font:750 12px Inter,system-ui,Arial,sans-serif;border:1px solid #334155;border-radius:11px;background:#152238;box-shadow:0 10px 28px #02061750}
       #${FAB_ID}:hover{background:#23344d}
+      .receive-cell #${FAB_ID}{position:relative;inset:auto;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;flex:0 0 38px;width:38px;height:34px;min-width:38px;margin:0 8px 0 0;padding:7px;border:1px solid #a78bfa;border-radius:9px;background:linear-gradient(135deg,#5b21b6,#3730a3);color:#fff;box-shadow:0 2px 9px #4c1d9544;cursor:pointer;transition:background .18s,box-shadow .18s}
+      .receive-cell #${FAB_ID}:hover{background:linear-gradient(135deg,#6d28d9,#4338ca);box-shadow:0 3px 13px #4c1d9566}
+      .receive-cell #${FAB_ID}[aria-expanded="true"]{border-color:#c4b5fd;box-shadow:0 0 0 2px #a78bfa44}
+      .receive-cell #${FAB_ID} .icon{width:19px;height:19px}
       #${MODAL_ID} button:focus-visible,#${MODAL_ID} input:focus-visible,#${FAB_ID}:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
       #${MODAL_ID} .auto-info{color:#93a6c1}
       @media(max-width:680px){#${MODAL_ID} header{padding-right:14px}#${MODAL_ID} h2{font-size:13px;max-width:45%}#${MODAL_ID} .header-actions{gap:5px}}
@@ -348,9 +353,6 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   modal.setAttribute('aria-label','Assistente de devoluções');
   modal.innerHTML=`<header><h2>Histórico de tentativas</h2><div class="shipment"><span>Shipment ID:</span> <strong></strong></div><div class="header-actions"><label class="auto-address" title="Ativar tratativa automática"><input type="checkbox" data-auto-address aria-label="Tratativa automática de endereço"><span class="switch" aria-hidden="true"></span></label><span class="auto-info" tabindex="0" role="note" aria-label="Automação: confirma com 2 ou mais tentativas de endereço não encontrado e cancela com 1. Somente se houver exceção pendente." title="Automação de endereço: 2 ou mais tentativas confirmam; 1 tentativa cancela. Só age com exceção pendente. Continua processando mesmo após escanear outro BR."><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 11v5M12 7h.01"/></svg></span><button class="icon-button" type="button" data-onhold-report aria-label="Abrir relatório On Hold do dia" title="Abrir relatório On Hold em nova aba">On Hold</button><button class="icon-button" type="button" data-refresh aria-label="Atualizar pedido" title="Atualizar pedido">${icon('refresh')}</button><button class="icon-button" type="button" data-collapse aria-label="Recolher painel" title="Recolher painel">${icon('chevron')}</button></div></header><div class="body"></div>`;
   modal.onclick=handleModalClick;modal.querySelector('[data-auto-address]').addEventListener('change', event => { autoAddressEnabled = event.target.checked; try { localStorage.setItem(AUTO_ADDRESS_KEY, autoAddressEnabled ? '1' : '0'); } catch {} if(autoAddressEnabled && !historyBusy && lastShipmentId) startShipment(lastShipmentId,0); });document.body.appendChild(modal);
-  const toggle=document.createElement('button');toggle.id=FAB_ID;toggle.type='button';
-  toggle.innerHTML=icon('package')+' Devoluções';toggle.setAttribute('aria-controls',MODAL_ID);
-  toggle.onclick=()=>setCollapsed(!collapsed);document.body.appendChild(toggle);
  }
  modal.querySelector('[data-auto-address]').checked=autoAddressEnabled;
  modal.dataset.shipmentId=shipmentId;
@@ -862,30 +864,39 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  document.removeEventListener('change',shipmentChanged,true);
  document.removeEventListener('keydown',shipmentChanged,true);
  document.getElementById('spx-onhold-report-window')?.remove();
- lastShipmentId='';observedInput='';collapsed=false;removeUi();
+ lastShipmentId='';observedInput='';collapsed=true;removeUi();
 }
 
   function positionToggle() {
- const toggle=document.getElementById(FAB_ID);
- if(!toggle)return;
- const margin=16,gap=12;
- let bottom=margin;
- const toast=document.getElementById('spx-autoadd-toast');
- if(toast&&!toast.hidden){
-  const rect=toast.getBoundingClientRect();
-  const width=toggle.offsetWidth,height=toggle.offsetHeight;
-  const left=window.innerWidth-margin-width;
-  const top=window.innerHeight-margin-height;
-  if(rect.width>0&&rect.height>0&&rect.right>left-gap&&rect.left<window.innerWidth-margin+gap&&rect.bottom>top-gap&&rect.top<window.innerHeight){
-   bottom=Math.min(window.innerHeight-rect.top+gap,Math.max(margin,window.innerHeight-height-margin));
+  if (!isTargetRoute() || !hasRuntimeAccess()) return;
+  let toggle = document.getElementById(FAB_ID);
+  if (!toggle) {
+    ensureStyle();
+    toggle = document.createElement('button');
+    toggle.id = FAB_ID;
+    toggle.type = 'button';
+    toggle.innerHTML = icon('package');
+    toggle.title = 'Histórico de tentativas · Assistente SPX';
+    toggle.setAttribute('aria-label', 'Abrir histórico de tentativas');
+    toggle.setAttribute('aria-controls', MODAL_ID);
+    toggle.onclick = () => setCollapsed(!collapsed);
   }
- }
- toggle.style.bottom=bottom+'px';
+  let completed = null;
+  for (const group of document.querySelectorAll('.receive-cell-group')) {
+    completed = [...group.querySelectorAll('.receive-cell button')].find(button => button.textContent.trim().toLocaleLowerCase('pt-BR') === 'concluído');
+    if (completed) break;
+  }
+  if (!completed) { toggle.remove(); return; }
+  const cell = completed.closest('.receive-cell');
+  if (!cell) return;
+  if (toggle.parentElement !== cell || toggle.nextElementSibling !== completed) cell.insertBefore(toggle, completed);
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+  toggle.setAttribute('aria-label', (collapsed ? 'Abrir' : 'Recolher') + ' histórico de tentativas');
 }
 
-  function checkRoute(){
+    function checkRoute(){
  positionToggle();
- if(!isTargetRoute()){if(monitorId||lastShipmentId)stop();document.getElementById(ACCESS_NOTICE_ID)?.remove();return;}
+ if(!isTargetRoute()){if(monitorId||lastShipmentId||document.getElementById(FAB_ID))stop();document.getElementById(ACCESS_NOTICE_ID)?.remove();return;}
  if(hasRuntimeAccess() && !runtimePending && Date.now()-runtimeCheckedAt>=30000)void verifyRuntimeAccess(true);
  if(!hasRuntimeAccess()){
   if(!runtimePending && (runtimeIdentity!==sessionFingerprint() || Date.now()-runtimeCheckedAt>=30000))void verifyRuntimeAccess();
@@ -912,7 +923,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
  return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.package)+'</svg>';
 }
 
-  function setCollapsed(value){collapsed=value;const modal=document.getElementById(MODAL_ID);if(modal)modal.hidden=collapsed;document.getElementById(FAB_ID)?.setAttribute('aria-expanded',String(!collapsed));}
+  function setCollapsed(value){collapsed=value;const modal=document.getElementById(MODAL_ID);if(modal)modal.hidden=collapsed;const toggle=document.getElementById(FAB_ID);if(toggle){toggle.setAttribute('aria-expanded',String(!collapsed));toggle.setAttribute('aria-label',(collapsed?'Abrir':'Recolher')+' histórico de tentativas');}}
 
   function validAttemptDays(attempts){
  return new Set(attempts.filter(item=>validReasons.has(normalize(translateReason(item.on_hold_reason__desc)))).map(item=>attemptDay(item.ctime)).filter(Boolean)).size;

@@ -91,7 +91,8 @@
     const candidates=[...document.querySelectorAll('input')].filter(el=>{
       const box=el.getBoundingClientRect();return !el.disabled&&!el.readOnly&&box.width>0&&box.height>0;
     });
-    return candidates.find(el=>/shipment|pedido|código|codigo|barcode|scan|rastreio|waybill|br code/i.test([el.placeholder,el.getAttribute('aria-label'),el.outerHTML.slice(0,400)].join(' ')))
+    return candidates.find(el=>el.matches('.ssc-input input[placeholder="Por favor, insira"]'))
+      || candidates.find(el=>/shipment|pedido|código|codigo|barcode|scan|rastreio|waybill|br code/i.test([el.placeholder,el.getAttribute('aria-label'),el.outerHTML.slice(0,400)].join(' ')))
       ||candidates.find(el=>/^BR[0-9A-Z]{13}$/i.test(el.value.trim()))||null;
   }
   function onInput(event){

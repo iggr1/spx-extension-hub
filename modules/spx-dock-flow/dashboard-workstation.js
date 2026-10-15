@@ -1,11 +1,14 @@
 (() => {
   const STORAGE_KEY = 'spxDockFlowWorkstationV1';
+  const BULKY_STORAGE_KEY = 'spxDockFlowBulkyDocksV1';
 
   let selectedDockName = loadSelectedDockName();
+  const bulkyDockNames = loadBulkyDockNames();
   let lastObservedStatus = null;
   let selectedDockWasPresent = false;
   let refreshTimer = 0;
   let audioContext = null;
+  let lastAlarmTime = 0;
   let detailsDialog = null;
   let detailsDockId = 0;
   let detailsTimer = 0;
@@ -65,7 +68,13 @@
         <header><div><small>DETALHES DA ROTA</small><h2 id="dockDetailsTitle"></h2></div>
           <button type="button" data-close aria-label="Fechar detalhes" autofocus>×</button></header>
         <div class="dock-details-body"></div>
-        <footer><button type="button" data-mark></button><button type="button" data-close>Fechar</button></footer>`;
+        <footer>
+          <div class="dock-details-flags">
+            <label class="dock-details-flag"><span>Marcar doca</span><input type="checkbox" data-mark aria-label="Marcar doca para destaque e alarme sonoro"></label>
+            <label class="dock-details-flag bulky-flag"><span>Doca de Volumosos</span><input type="checkbox" data-bulky aria-label="Destacar como doca de volumosos"></label>
+          </div>
+          <button type="button" data-close>Fechar</button>
+        </footer>`;
       document.body.appendChild(detailsDialog);
       detailsDialog.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => detailsDialog.close()));
       detailsDialog.addEventListener('click', event => {
@@ -73,8 +82,12 @@
         const rect = detailsDialog.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) detailsDialog.close();
       });
-      detailsDialog.querySelector('[data-mark]').addEventListener('click', () => {
+      detailsDialog.querySelector('[data-mark]').addEventListener('change', () => {
         toggleDockCardSelection({ dataset: { dockId: String(detailsDockId) } });
+        renderDockDetails();
+      });
+      detailsDialog.querySelector('[data-bulky]').addEventListener('change', event => {
+        toggleBulkyDock(detailsDockId, event.target.checked);
         renderDockDetails();
       });
       detailsDialog.addEventListener('close', () => {
@@ -93,7 +106,9 @@
     const dock = state.docks.find(item => numberOrZero(item.dock_id) === detailsDockId);
     const body = detailsDialog.querySelector('.dock-details-body');
     const mark = detailsDialog.querySelector('[data-mark]');
+    const bulky = detailsDialog.querySelector('[data-bulky]');
     mark.disabled = !dock;
+    bulky.disabled = !dock;
     if (!dock) {
       detailsDialog.querySelector('h2').textContent = 'Mesa indisponível';
       body.textContent = 'Esta mesa não está mais disponível nos dados atuais.';
@@ -110,8 +125,8 @@
     const details = (!assignmentId || assignmentId === routeState?.assignmentTaskId) ? routeState?.details || {} : {};
     const stats = state.assignmentStats[assignmentId];
     const selected = normalizeDockName(selectedDockName) === normalizeDockName(dock.dock_name);
-    mark.textContent = selected ? 'Desmarcar rota' : 'Marcar rota';
-    mark.setAttribute('aria-pressed', String(selected));
+    mark.checked = selected;
+    bulky.checked = bulkyDockNames.has(normalizeDockName(dock.dock_name));
     detailsDialog.querySelector('h2').textContent = `${dock.dock_name} · ${route.value}`;
     const number = value => value == null || value === '' ? '—' : Number(value).toLocaleString('pt-BR');
     const date = value => Number(value) > 0 ? new Date(Number(value) * 1000).toLocaleString('pt-BR') : '—';
@@ -137,7 +152,7 @@
     ];
     const html = `${renderSizeBreakdown(stats, assignmentId)}${state.routesLoading ? '<p>Atualizando informações da rota…</p>' : routeState?.ok === false ? '<p>Detalhes da AT indisponíveis nesta atualização.</p>' : ''}
       <dl>${fields.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value == null || value === '' ? '—' : String(value))}</dd></div>`).join('')}</dl>
-      <p class="dock-details-note">A marcação acompanha esta mesa e mantém os alertas de mudança de situação.</p>`;
+      <p class="dock-details-note">Marcar doca mantém o destaque e dispara um alarme curto quando a situação operacional mudar. Doca de Volumosos usa destaque e alertas visuais amarelos; as duas opções são independentes.</p>`;
     if (body.innerHTML !== html) body.innerHTML = html;
   }
 
@@ -193,8 +208,35 @@
     selectedDockName = dockName;
     saveSelectedDockName(dockName);
     selectedDockWasPresent = true;
-    lastObservedStatus = getDockOperationalStatus(dock);
+    lastObservedStatus = getDockSnapshot(dock);
     applyHighlight();
+  }
+
+  function toggleBulkyDock(dockId, enabled) {
+    const dock = state.docks.find(item => numberOrZero(item?.dock_id) === numberOrZero(dockId));
+    const dockName = normalizeDockName(dock?.dock_name);
+    if (!dockName) return;
+    if (enabled) bulkyDockNames.add(dockName);
+    else bulkyDockNames.delete(dockName);
+    saveBulkyDockNames();
+    applyHighlight();
+  }
+
+  function loadBulkyDockNames() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(BULKY_STORAGE_KEY) || '[]');
+      return new Set(Array.isArray(saved) ? saved.map(normalizeDockName).filter(Boolean) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveBulkyDockNames() {
+    try {
+      localStorage.setItem(BULKY_STORAGE_KEY, JSON.stringify([...bulkyDockNames]));
+    } catch (error) {
+      console.warn('[Dock Flow] Não foi possível guardar as docas de volumosos:', error);
+    }
   }
 
   function clearSelectedDock() {
@@ -227,15 +269,25 @@
     document.querySelectorAll('.dock-card[data-dock-id]').forEach(card => {
       const dockId = numberOrZero(card.dataset.dockId);
       const dock = state.docks.find(item => numberOrZero(item?.dock_id) === dockId);
-      const isSelected = Boolean(normalizedSelected)
-        && normalizeDockName(dock?.dock_name) === normalizedSelected;
+      const dockName = normalizeDockName(dock?.dock_name);
+      const isSelected = Boolean(normalizedSelected) && dockName === normalizedSelected;
+      const isBulky = bulkyDockNames.has(dockName);
 
       card.classList.toggle('workstation-dock', isSelected);
+      card.classList.toggle('workstation-bulky', isBulky);
+      const nameBlock = card.querySelector('.dock-name-block');
+      let bulkyTag = nameBlock?.querySelector('.workstation-bulky-label');
+      if (isBulky && nameBlock && !bulkyTag) {
+        bulkyTag = document.createElement('span');
+        bulkyTag.className = 'workstation-bulky-label';
+        bulkyTag.textContent = 'Volumoso';
+        nameBlock.appendChild(bulkyTag);
+      } else if (!isBulky && bulkyTag) bulkyTag.remove();
       card.setAttribute('role', 'button');
       card.setAttribute('aria-haspopup', 'dialog');
       card.setAttribute('tabindex', '0');
       card.removeAttribute('aria-checked');
-      card.setAttribute('aria-label', `Ver detalhes de ${String(dock?.dock_name || 'doca')}${isSelected ? ' · marcada' : ''}`);
+      card.setAttribute('aria-label', `Ver detalhes de ${String(dock?.dock_name || 'doca')}${isSelected ? ' · doca marcada com alarme' : ''}${isBulky ? ' · volumosos' : ''}`);
 
       if (isSelected) card.setAttribute('aria-current', 'true');
       else card.removeAttribute('aria-current');
@@ -254,7 +306,7 @@
       return;
     }
 
-    const currentStatus = getDockOperationalStatus(dock);
+    const currentStatus = getDockSnapshot(dock);
 
     if (!selectedDockWasPresent || !lastObservedStatus) {
       selectedDockWasPresent = true;
@@ -266,6 +318,24 @@
 
     lastObservedStatus = currentStatus;
     playStatusChangeSound();
+  }
+
+  function getDockSnapshot(dock) {
+    const occupied = isDockOccupied(dock);
+    const nextDriver = occupied ? null : getNextDriver(dock);
+    const driverId = numberOrZero(occupied ? dock.occupied_driver_id : nextDriver?.driver_id);
+    const displayStatus = getDisplayStatus(dock, nextDriver);
+    const route = getRouteDisplay(dock, driverId, nextDriver, displayStatus);
+    return JSON.stringify([
+      getDockOperationalStatus(dock),
+      driverId,
+      occupied ? dock.operation_task_id : nextDriver?.assignment_task_id,
+      occupied ? dock.occupied_vehicle_number : nextDriver?.vehicle_number,
+      occupied ? dock.occupied_queue_number : nextDriver?.queue_number,
+      nextDriver?.queue_sequence,
+      route.kind,
+      route.value
+    ]);
   }
 
   function getDockOperationalStatus(dock) {
@@ -295,12 +365,16 @@
   }
 
   function playStatusChangeSound() {
-    if (!audioContext) return;
+    if (!audioContext || Date.now() - lastAlarmTime < 2800) return;
+    lastAlarmTime = Date.now();
 
     const play = () => {
-      const startAt = audioContext.currentTime + 0.015;
-      playTone(740, startAt, 0.14);
-      playTone(980, startAt + 0.18, 0.17);
+      const startAt = audioContext.currentTime + 0.04;
+      for (let i = 0; i < 3; i += 1) {
+        const pulse = startAt + i * 0.78;
+        playTone(830, pulse, 0.56, 0.30);
+        playTone(1040, pulse + 0.08, 0.48, 0.14);
+      }
     };
 
     if (audioContext.state === 'suspended') {
@@ -310,16 +384,15 @@
     }
   }
 
-  function playTone(frequency, startAt, duration) {
+  function playTone(frequency, startAt, duration, volume) {
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
-
-    oscillator.type = 'sine';
+    oscillator.type = 'square';
     oscillator.frequency.setValueAtTime(frequency, startAt);
     gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(0.16, startAt + 0.02);
+    gain.gain.linearRampToValueAtTime(volume, startAt + 0.025);
+    gain.gain.setValueAtTime(volume, startAt + duration - 0.08);
     gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-
     oscillator.connect(gain);
     gain.connect(audioContext.destination);
     oscillator.start(startAt);
@@ -373,7 +446,14 @@
       .dock-details-dialog dd { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
       .dock-details-dialog button { cursor: pointer; border: 1px solid var(--line); border-radius: 9px; padding: 10px 16px; background: var(--surface-soft); color: var(--ink); font: inherit; }
       .dock-details-dialog button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
-      .dock-details-dialog [data-mark] { background: var(--orange); color: #fff; border-color: var(--orange); }
+      .dock-details-flags { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+      .dock-details-flag { display:inline-flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-soft); cursor:pointer; font-weight:750; font-size:13px; }
+      .dock-details-flag input { width:18px; height:18px; margin:0; accent-color:var(--orange); cursor:pointer; }
+      .dock-details-flag:has(input:checked) { border-color:var(--orange); background:color-mix(in srgb, var(--orange) 10%, var(--surface)); }
+      .dock-details-flag.bulky-flag input { accent-color:#eab308; }
+      .dock-details-flag.bulky-flag:has(input:checked) { border-color:#eab308; background:color-mix(in srgb, #eab308 12%, var(--surface)); }
+      .dock-details-dialog footer { flex-wrap:wrap; }
+      @media(max-width:600px) { .dock-details-flags { width:100%; } .dock-details-flag { flex:1; justify-content:space-between; } }
       .dock-details-dialog footer { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
       .dock-size-summary { margin: 20px 0; padding: 18px; border: 1px solid var(--orange); border-radius: 14px; background: var(--orange-soft); }
       .dock-size-summary h3 { margin: 0 0 14px; font-size: 18px; }
@@ -468,6 +548,47 @@
 
       .dock-card.workstation-dock .dock-selection-checkbox svg {
         stroke-dashoffset: 0;
+      }
+
+      .dock-card.workstation-bulky {
+        --danger:#eab308;
+        --danger-dark:#ca8a04;
+        --danger-soft:rgba(234,179,8,.18);
+        --danger-glow:rgba(234,179,8,.40);
+        --selection-accent:#facc15;
+        z-index:4;
+        outline:3px solid #facc15;
+        outline-offset:2px;
+        border-color:#eab308;
+        box-shadow:0 0 0 5px rgba(234,179,8,.14), 0 13px 32px rgba(234,179,8,.12), var(--card-shadow);
+      }
+      .dock-card.workstation-bulky .workstation-bulky-label {
+        display:inline-flex; align-items:center; align-self:flex-start;
+        padding:3px 7px; margin-top:4px; border-radius:6px;
+        font-size:10px; font-weight:850; line-height:1.2;
+        text-transform:uppercase; letter-spacing:.04em;
+        color:#422006; background:#fde047; border:1px solid #facc15;
+      }
+      .dock-card.workstation-bulky.occupied.overdue {
+        border-color:#eab308;
+        outline-color:#facc15;
+        animation:dock-bulky-alert 1.3s ease-in-out infinite;
+      }
+      .dock-card.workstation-bulky.waiting-overdue .waiting-time {
+        background:rgba(234,179,8,.16);
+        border-color:#eab308;
+        box-shadow:inset 3px 0 0 #eab308;
+      }
+      .dock-card.workstation-bulky.waiting-overdue .waiting-time strong,
+      .dock-card.workstation-bulky.waiting-overdue .status-badge.next { color:#eab308; }
+      .dock-card.workstation-bulky.waiting-overdue .status-badge.next { background:rgba(234,179,8,.16); }
+      .dock-card.workstation-bulky.waiting-overdue .alert-icon { background:#eab308; box-shadow:0 0 0 0 rgba(234,179,8,.38); }
+      @keyframes dock-bulky-alert {
+        0%, 100% { box-shadow:0 0 0 0 rgba(234,179,8,0), var(--card-shadow); }
+        50% { box-shadow:0 0 0 4px rgba(234,179,8,.60), 0 0 24px 4px rgba(234,179,8,.26); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dock-card.workstation-bulky.occupied.overdue { animation:none; }
       }
 
       @media (prefers-reduced-motion: reduce) {

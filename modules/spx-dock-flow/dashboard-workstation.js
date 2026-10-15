@@ -14,8 +14,31 @@
   let detailsTimer = 0;
   let detailsTrigger = null;
   const renderDockGroupsWithoutWorkstationState = renderDockGroups;
+  const renderDockCardWithoutWorkstationState = renderDockCard;
 
   installStyles();
+  renderDockCard = function renderDockCardWithWorkstationState(dock, ...args) {
+    let html = renderDockCardWithoutWorkstationState.call(this, dock, ...args);
+    const dockName = normalizeDockName(dock?.dock_name);
+    const marked = Boolean(dockName) && normalizeDockName(selectedDockName) === dockName;
+    const bulky = Boolean(dockName) && bulkyDockNames.has(dockName);
+    if (!marked && !bulky) return html;
+
+    html = html.replace(/(<article\b[^>]*\bclass=")([^"]*)(")/, (_, start, classes, end) =>
+      start + classes + (marked ? ' workstation-dock' : '') + (bulky ? ' workstation-bulky' : '') + end
+    );
+
+    if (marked && !html.includes('class="dock-selection-checkbox"')) {
+      const check = '<span class="dock-selection-checkbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></span>';
+      html = html.replace(/(<article\b[^>]*>)/, '$1' + check);
+    }
+    if (bulky && !html.includes('workstation-bulky-label')) {
+      const start = html.indexOf('<div class="dock-name-block">');
+      const end = start < 0 ? -1 : html.indexOf('</strong>', start);
+      if (end >= 0) html = html.slice(0, end + 9) + '<span class="workstation-bulky-label">Volumoso</span>' + html.slice(end + 9);
+    }
+    return html;
+  };
   renderDockGroups = function renderDockGroupsWithWorkstationState(...args) {
     const result = renderDockGroupsWithoutWorkstationState.apply(this, args);
     applyHighlight();
@@ -269,7 +292,7 @@
     document.querySelectorAll('.dock-card[data-dock-id]').forEach(card => {
       const dockId = numberOrZero(card.dataset.dockId);
       const dock = state.docks.find(item => numberOrZero(item?.dock_id) === dockId);
-      const dockName = normalizeDockName(dock?.dock_name);
+      const dockName = normalizeDockName(dock?.dock_name || card.dataset.workstationDockName);
       const isSelected = Boolean(normalizedSelected) && dockName === normalizedSelected;
       const isBulky = bulkyDockNames.has(dockName);
 
@@ -277,6 +300,13 @@
       card.classList.toggle('workstation-bulky', isBulky);
       const nameBlock = card.querySelector('.dock-name-block');
       let bulkyTag = nameBlock?.querySelector('.workstation-bulky-label');
+      if (isSelected && !card.querySelector('.dock-selection-checkbox')) {
+        const check = document.createElement('span');
+        check.className = 'dock-selection-checkbox';
+        check.setAttribute('aria-hidden', 'true');
+        check.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg>';
+        card.prepend(check);
+      }
       if (isBulky && nameBlock && !bulkyTag) {
         bulkyTag = document.createElement('span');
         bulkyTag.className = 'workstation-bulky-label';

@@ -549,6 +549,7 @@
         }
       }
     });
+    window.__spxDockFlowEvaluateMarkedOverdue?.();
   }
 
   function configuredSyncLoadingHistory() {

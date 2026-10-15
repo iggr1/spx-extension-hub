@@ -1,8 +1,9 @@
 (() => {
   'use strict';
-  const VERSION = '1.9.5';
+  const VERSION = '1.9.6';
   const KEY = 'spxDockFlowChangelogSeenV1';
   const changes = [
+    ['15/10/2026', 'Marcações preservadas', 'Docas marcadas e docas de volumosos mantêm seus destaques visuais em atualizações automáticas e troca de páginas.'],
     ['15/10/2026', 'Docas em destaque', 'Marcar doca ativa um alarme curto em mudanças operacionais. Doca de Volumosos destaca a mesa em amarelo e diferencia seus alertas.'],
     ['13/10/2026', 'Aviso de atualizações', 'Resumo das melhorias importantes exibido uma vez por versão.'],
     ['12/10/2026', 'Recuperação de conexão', 'Limite de espera e proteção contra requisições presas, preservando os últimos dados.'],

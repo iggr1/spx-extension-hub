@@ -562,6 +562,9 @@
         border-color:#eab308;
         box-shadow:0 0 0 5px rgba(234,179,8,.14), 0 13px 32px rgba(234,179,8,.12), var(--card-shadow);
       }
+      .dock-card.workstation-bulky.available .dock-name-block,
+      .dock-card.workstation-bulky.inactive,
+      .dock-card.workstation-bulky.unknown { opacity:1; filter:none; }
       .dock-card.workstation-bulky .workstation-bulky-label {
         display:inline-flex; align-items:center; align-self:flex-start;
         padding:3px 7px; margin-top:4px; border-radius:6px;

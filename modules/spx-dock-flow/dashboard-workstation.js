@@ -1,6 +1,8 @@
 (() => {
   const STORAGE_KEY = 'spxDockFlowWorkstationV1';
   const BULKY_STORAGE_KEY = 'spxDockFlowBulkyDocksV1';
+  const SHARED_ALARM_KEY = 'spxDockFlowLastAlarmV1';
+  const ALARM_COOLDOWN_MS = 3000;
 
   let selectedDockName = loadSelectedDockName();
   const bulkyDockNames = loadBulkyDockNames();
@@ -409,15 +411,47 @@
   }
 
   function playStatusChangeSound() {
-    if (!audioContext || Date.now() - lastAlarmTime < 2800) return;
-    lastAlarmTime = Date.now();
+    if (!audioContext) return;
+
+    const now = Date.now();
+    if (now - lastAlarmTime < ALARM_COOLDOWN_MS) return;
+
+    try {
+      const lastSharedAlarm = Number(localStorage.getItem(SHARED_ALARM_KEY) || 0);
+      if (lastSharedAlarm > 0 && now - lastSharedAlarm >= 0 && now - lastSharedAlarm < ALARM_COOLDOWN_MS) return;
+      localStorage.setItem(SHARED_ALARM_KEY, String(now));
+    } catch {}
+
+    lastAlarmTime = now;
 
     const play = () => {
-      const startAt = audioContext.currentTime + 0.04;
-      for (let i = 0; i < 3; i += 1) {
-        const pulse = startAt + i * 0.78;
-        playTone(830, pulse, 0.56, 0.30);
-        playTone(1040, pulse + 0.08, 0.48, 0.14);
+      try {
+        const startAt = audioContext.currentTime + 0.04;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = 'square';
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        gain.gain.setValueAtTime(0.0001, startAt);
+
+        for (let i = 0; i < 3; i += 1) {
+          const pulse = startAt + i * 0.75;
+          oscillator.frequency.setValueAtTime(830, pulse);
+          oscillator.frequency.setValueAtTime(990, pulse + 0.28);
+          gain.gain.linearRampToValueAtTime(0.22, pulse + 0.03);
+          gain.gain.setValueAtTime(0.22, pulse + 0.40);
+          gain.gain.exponentialRampToValueAtTime(0.0001, pulse + 0.54);
+        }
+
+        oscillator.start(startAt);
+        oscillator.stop(startAt + 2.08);
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          gain.disconnect();
+        };
+      } catch (error) {
+        console.warn('[Dock Flow] Não foi possível reproduzir o alarme:', error);
       }
     };
 
@@ -426,21 +460,6 @@
     } else {
       play();
     }
-  }
-
-  function playTone(frequency, startAt, duration, volume) {
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = 'square';
-    oscillator.frequency.setValueAtTime(frequency, startAt);
-    gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.linearRampToValueAtTime(volume, startAt + 0.025);
-    gain.gain.setValueAtTime(volume, startAt + duration - 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-    oscillator.start(startAt);
-    oscillator.stop(startAt + duration + 0.02);
   }
 
   function loadSelectedDockName() {

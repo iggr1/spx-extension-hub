@@ -13,38 +13,49 @@
   let detailsDockId = 0;
   let detailsTimer = 0;
   let detailsTrigger = null;
-  const renderDockGroupsWithoutWorkstationState = renderDockGroups;
-  const renderDockCardWithoutWorkstationState = renderDockCard;
-
   installStyles();
-  renderDockCard = function renderDockCardWithWorkstationState(dock, ...args) {
-    let html = renderDockCardWithoutWorkstationState.call(this, dock, ...args);
-    const dockName = normalizeDockName(dock?.dock_name);
-    const marked = Boolean(dockName) && normalizeDockName(selectedDockName) === dockName;
-    const bulky = Boolean(dockName) && bulkyDockNames.has(dockName);
-    if (!marked && !bulky) return html;
 
-    html = html.replace(/(<article\b[^>]*\bclass=")([^"]*)(")/, (_, start, classes, end) =>
-      start + classes + (marked ? ' workstation-dock' : '') + (bulky ? ' workstation-bulky' : '') + end
-    );
+  // dashboard-settings.js aplica os overrides no DOMContentLoaded. Instalar os
+  // decorators depois evita que as funções marcadas sejam sobrescritas.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installWorkstation, { once: true });
+  } else {
+    installWorkstation();
+  }
 
-    if (marked && !html.includes('class="dock-selection-checkbox"')) {
-      const check = '<span class="dock-selection-checkbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></span>';
-      html = html.replace(/(<article\b[^>]*>)/, '$1' + check);
-    }
-    if (bulky && !html.includes('workstation-bulky-label')) {
-      const start = html.indexOf('<div class="dock-name-block">');
-      const end = start < 0 ? -1 : html.indexOf('</strong>', start);
-      if (end >= 0) html = html.slice(0, end + 9) + '<span class="workstation-bulky-label">Volumoso</span>' + html.slice(end + 9);
-    }
-    return html;
-  };
-  renderDockGroups = function renderDockGroupsWithWorkstationState(...args) {
-    const result = renderDockGroupsWithoutWorkstationState.apply(this, args);
-    applyHighlight();
-    return result;
-  };
-  initialize();
+  function installWorkstation() {
+    const renderDockGroupsWithoutWorkstationState = renderDockGroups;
+    const renderDockCardWithoutWorkstationState = renderDockCard;
+    renderDockCard = function renderDockCardWithWorkstationState(dock, ...args) {
+      let html = renderDockCardWithoutWorkstationState.call(this, dock, ...args);
+      const dockName = normalizeDockName(dock?.dock_name);
+      const marked = Boolean(dockName) && normalizeDockName(selectedDockName) === dockName;
+      const bulky = Boolean(dockName) && bulkyDockNames.has(dockName);
+      if (!marked && !bulky) return html;
+
+      html = html.replace(/(<article\b[^>]*\bclass=")([^"]*)(")/, (_, start, classes, end) =>
+        start + classes + (marked ? ' workstation-dock' : '') + (bulky ? ' workstation-bulky' : '') + end
+      );
+
+      if (marked && !html.includes('class="dock-selection-checkbox"')) {
+        const check = '<span class="dock-selection-checkbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></span>';
+        html = html.replace(/(<article\b[^>]*>)/, '$1' + check);
+      }
+      if (bulky && !html.includes('workstation-bulky-label')) {
+        const start = html.indexOf('<div class="dock-name-block">');
+        const end = start < 0 ? -1 : html.indexOf('</strong>', start);
+        if (end >= 0) html = html.slice(0, end + 9) + '<span class="workstation-bulky-label">Volumoso</span>' + html.slice(end + 9);
+      }
+      return html;
+    };
+    renderDockGroups = function renderDockGroupsWithWorkstationState(...args) {
+      const result = renderDockGroupsWithoutWorkstationState.apply(this, args);
+      applyHighlight();
+      return result;
+    };
+    initialize();
+
+  }
 
   function initialize() {
     const dockGroups = document.getElementById('dockGroups');
@@ -53,7 +64,10 @@
     dockGroups?.addEventListener('keydown', handleDockKeydown);
 
     if (dockGroups && 'MutationObserver' in window) {
-      const observer = new MutationObserver(scheduleRefresh);
+      const observer = new MutationObserver(() => {
+        applyHighlight();
+        scheduleRefresh();
+      });
       observer.observe(dockGroups, { childList: true, subtree: true });
     }
 

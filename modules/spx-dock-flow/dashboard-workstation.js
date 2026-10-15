@@ -6,8 +6,8 @@
 
   let selectedDockName = loadSelectedDockName();
   const bulkyDockNames = loadBulkyDockNames();
-  let lastObservedStatus = null;
-  let selectedDockWasPresent = false;
+  let markedOverdueState = null;
+  let markedDockOperationKey = '';
   let refreshTimer = 0;
   let audioContext = null;
   let lastAlarmTime = 0;
@@ -53,8 +53,10 @@
     renderDockGroups = function renderDockGroupsWithWorkstationState(...args) {
       const result = renderDockGroupsWithoutWorkstationState.apply(this, args);
       applyHighlight();
+      observeMarkedDockOverdue();
       return result;
     };
+    window.__spxDockFlowEvaluateMarkedOverdue = observeMarkedDockOverdue;
     initialize();
 
   }
@@ -68,6 +70,7 @@
     if (dockGroups && 'MutationObserver' in window) {
       const observer = new MutationObserver(() => {
         applyHighlight();
+        observeMarkedDockOverdue();
         scheduleRefresh();
       });
       observer.observe(dockGroups, { childList: true, subtree: true });
@@ -246,9 +249,10 @@
 
     selectedDockName = dockName;
     saveSelectedDockName(dockName);
-    selectedDockWasPresent = true;
-    lastObservedStatus = getDockSnapshot(dock);
+    markedDockOperationKey = '';
+    markedOverdueState = null;
     applyHighlight();
+    observeMarkedDockOverdue();
   }
 
   function toggleBulkyDock(dockId, enabled) {
@@ -280,8 +284,8 @@
 
   function clearSelectedDock() {
     selectedDockName = '';
-    selectedDockWasPresent = false;
-    lastObservedStatus = null;
+    markedOverdueState = null;
+    markedDockOperationKey = '';
     localStorage.removeItem(STORAGE_KEY);
     applyHighlight();
   }
@@ -294,12 +298,7 @@
   function refreshState() {
     applyHighlight();
 
-    if (state.loading) {
-      refreshTimer = window.setTimeout(refreshState, 220);
-      return;
-    }
-
-    observeSelectedDockStatus();
+    observeMarkedDockOverdue();
   }
 
   function applyHighlight() {
@@ -340,62 +339,37 @@
     });
   }
 
-  function observeSelectedDockStatus() {
+  function observeMarkedDockOverdue() {
     if (!selectedDockName) return;
 
-    const normalizedSelected = normalizeDockName(selectedDockName);
-    const dock = state.docks.find(item => normalizeDockName(item?.dock_name) === normalizedSelected);
-
+    const name = normalizeDockName(selectedDockName);
+    const dock = state.docks.find(item => normalizeDockName(item?.dock_name) === name);
     if (!dock) {
-      selectedDockWasPresent = false;
-      lastObservedStatus = null;
+      markedDockOperationKey = '';
+      markedOverdueState = null;
       return;
     }
 
-    const currentStatus = getDockSnapshot(dock);
+    const card = [...document.querySelectorAll('.dock-card[data-dock-id]')]
+      .find(item => numberOrZero(item.dataset.dockId) === numberOrZero(dock.dock_id));
+    if (!card) return;
 
-    if (!selectedDockWasPresent || !lastObservedStatus) {
-      selectedDockWasPresent = true;
-      lastObservedStatus = currentStatus;
+    const operationKey = [name, numberOrZero(dock.occupied_driver_id), card.dataset.assignmentTaskId || dock.operation_task_id || ''].join('|');
+    const overdue = card.classList.contains('occupied')
+      && card.classList.contains('overdue')
+      && !card.classList.contains('loading-finished');
+
+    if (operationKey !== markedDockOperationKey || markedOverdueState === null) {
+      markedDockOperationKey = operationKey;
+      markedOverdueState = overdue;
       return;
     }
 
-    if (currentStatus === lastObservedStatus) return;
+    const justBecameOverdue = !markedOverdueState && overdue;
+    markedOverdueState = overdue;
 
-    lastObservedStatus = currentStatus;
-    playStatusChangeSound();
-  }
-
-  function getDockSnapshot(dock) {
-    const occupied = isDockOccupied(dock);
-    const nextDriver = occupied ? null : getNextDriver(dock);
-    const driverId = numberOrZero(occupied ? dock.occupied_driver_id : nextDriver?.driver_id);
-    const displayStatus = getDisplayStatus(dock, nextDriver);
-    const route = getRouteDisplay(dock, driverId, nextDriver, displayStatus);
-    return JSON.stringify([
-      getDockOperationalStatus(dock),
-      driverId,
-      occupied ? dock.operation_task_id : nextDriver?.assignment_task_id,
-      occupied ? dock.occupied_vehicle_number : nextDriver?.vehicle_number,
-      occupied ? dock.occupied_queue_number : nextDriver?.queue_number,
-      nextDriver?.queue_sequence,
-      route.kind,
-      route.value
-    ]);
-  }
-
-  function getDockOperationalStatus(dock) {
-    const occupied = isDockOccupied(dock);
-    const nextDriver = occupied ? null : getNextDriver(dock);
-    const displayStatus = getDisplayStatus(dock, nextDriver);
-
-    if (displayStatus.key === 'occupied') {
-      const driverId = numberOrZero(dock?.occupied_driver_id);
-      const route = getRouteDisplay(dock, driverId, nextDriver, displayStatus);
-      if (route?.kind === 'route-finished') return 'finished';
-    }
-
-    return displayStatus.key || 'unknown';
+    if (justBecameOverdue && card.classList.contains('workstation-dock')
+      && !card.classList.contains('workstation-bulky')) playStatusChangeSound();
   }
 
   function unlockAudio() {

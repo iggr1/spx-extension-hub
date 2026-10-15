@@ -228,6 +228,9 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       #${MODAL_ID} header{background:linear-gradient(120deg,#18263d,#111827);padding:13px 14px;border-bottom:1px solid #334155;min-height:64px}
       #${MODAL_ID} h2{font-size:15px;font-weight:800;letter-spacing:-.2px}
       #${MODAL_ID} .body{background:#0f172a;padding:11px}
+      #${MODAL_ID} .history-summary{display:flex;align-items:center;gap:9px;white-space:nowrap;overflow-x:auto;margin-bottom:10px;padding:10px 12px;border:1px solid #334155;border-radius:10px;background:#18263a;color:#cbd5e1;font-size:11px;font-weight:600}
+      #${MODAL_ID} .history-summary strong{color:#f8fafc;font-size:13px;font-weight:800}
+      #${MODAL_ID} .history-summary .separator{color:#64748b;font-weight:400}
       #${MODAL_ID} .attempt{background:#18263a;border:1px solid #334155;border-radius:11px;padding:11px;gap:10px}
       #${MODAL_ID} .index{background:#26354a;color:#bfdbfe}
       #${MODAL_ID} .decision{border-radius:11px;padding:12px}
@@ -412,7 +415,10 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
   }
 
   function renderHistory(attempts, address) {
-    if (!attempts.length) return '<div class="message">Nenhuma tentativa On Hold encontrada.</div>';
+    const validCount = attempts.filter(item => validReasons.has(normalize(translateReason(item.on_hold_reason__desc)))).length;
+    const dayCount = validAttemptDays(attempts);
+    const summary = `<div class="history-summary" aria-label="Resumo do histórico"><span><strong>${attempts.length}</strong> OnHold</span><span class="separator" aria-hidden="true">|</span><span><strong>${validCount}</strong> ${validCount === 1 ? 'válido' : 'válidos'}</span><span class="separator" aria-hidden="true">|</span><span><strong>${dayCount}</strong> ${dayCount === 1 ? 'dia' : 'dias'}</span></div>`;
+    if (!attempts.length) return summary + '<div class="message">Nenhuma tentativa On Hold encontrada.</div>';
     const ordered = attempts.slice().sort((a, b) => Number(a.ctime) - Number(b.ctime));
     const cards = ordered.map((attempt, index) => {
       const reason = translateReason(attempt.on_hold_reason__desc);
@@ -423,7 +429,7 @@ function createSpxAccessChecker(read, fingerprint = () => '') {
       return `<article class="attempt"><span class="index">${index + 1}</span><div><span class="reason ${className}">${escapeHtml(reason)}</span><div class="driver"><b>Motorista:</b> ${escapeHtml(attempt.driver_name || '-')}</div>${photo ? `<a class="photo-link" href="${escapeHtml(photo)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(photo)}" loading="lazy" referrerpolicy="no-referrer" alt="Foto da tentativa"></a>` : ''}${showAddressActions ? `<div class="address-actions" data-reason-id="${escapeHtml(address.reasonId)}" data-local-lang="${escapeHtml(address.localLang)}"><button class="confirm" data-address-action="confirm">Confirmar</button><button class="cancel" data-address-action="cancel">Cancelar</button><div class="action-status"></div></div>` : ''}</div><time>${escapeHtml(formatDate(attempt.ctime))}</time></article>`;
     }).join('');
     const decision = recommendation(ordered, address?.state);
-    return `${cards}<div class="decision ${decision.className}"><strong>${escapeHtml(decision.text)}</strong></div>`;
+    return `${summary}${cards}<div class="decision ${decision.className}"><strong>${escapeHtml(decision.text)}</strong></div>`;
   }
 
   async function loadHistory(shipmentId,version){

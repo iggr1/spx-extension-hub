@@ -1,8 +1,9 @@
 (() => {
   'use strict';
-  const VERSION = '1.9.8';
+  const VERSION = '1.9.9';
   const KEY = 'spxDockFlowChangelogSeenV1';
   const changes = [
+    ['15/10/2026', 'Alarme por atraso na doca', 'O som toca apenas quando a doca marcada ultrapassa o tempo de carregamento e inicia o alerta vermelho; outros eventos e docas não disparam áudio.'],
     ['15/10/2026', 'Alarme sonoro único', 'Removida a sobreposição de frequências e adicionada proteção contra alarmes duplicados entre abas do Dock Flow.'],
     ['15/10/2026', 'Correção definitiva das marcações', 'As funções de marcação agora são registradas após a inicialização das configurações e mantidas na renderização e troca de página.'],
     ['15/10/2026', 'Marcações preservadas', 'Docas marcadas e docas de volumosos mantêm seus destaques visuais em atualizações automáticas e troca de páginas.'],

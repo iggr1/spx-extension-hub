@@ -59,7 +59,7 @@
     const orange=!!info.nextCycle;
     const el=document.createElement('div');
     el.id=TOAST_ID;el.setAttribute('role','status');
-    el.style.cssText='position:fixed;right:20px;bottom:65px;z-index:2147483645;display:flex;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 14px;border-radius:11px;background:#152238;border:1px solid #334155;border-left:4px solid '+(orange?'#f59e0b':'#22c55e')+';color:'+(orange?'#fef3c7':'#dcfce7')+';font:750 12px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;pointer-events:none;box-shadow:0 12px 32px #02061766';
+    el.style.cssText='position:fixed;right:20px;bottom:20px;z-index:2147483645;display:flex;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 14px;border-radius:11px;background:#152238;border:1px solid #334155;border-left:4px solid '+(orange?'#f59e0b':'#22c55e')+';color:'+(orange?'#fef3c7':'#dcfce7')+';font:750 12px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;pointer-events:none;box-shadow:0 12px 32px #02061766';
     const badge=document.createElement('span');badge.textContent=orange?'↻':'✓';
     badge.style.cssText='display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:99px;background:#ffffff18';
     const span=document.createElement('span');span.textContent=msg;

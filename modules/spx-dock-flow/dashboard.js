@@ -848,7 +848,11 @@ async function loadDriverRoutes() {
       payload: {
         driverIds,
         stationId: STATION_ID,
-        validationTaskId: state.validationProgress.stale ? '' : state.validationProgress.taskId
+        validationTaskId: state.validationProgress.stale ? '' : state.validationProgress.taskId,
+        dockAssignments: Object.fromEntries(state.docks
+          .filter(isDockOccupied)
+          .map(dock => [numberOrZero(dock.occupied_driver_id), String(dock.operation_task_id || '')])
+          .filter(([driverId, taskId]) => driverId > 0 && /^AT[A-Z0-9]+$/i.test(taskId)))
       }
     });
 

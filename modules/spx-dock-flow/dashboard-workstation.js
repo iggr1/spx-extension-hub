@@ -57,6 +57,7 @@
       return result;
     };
     window.__spxDockFlowEvaluateMarkedOverdue = observeMarkedDockOverdue;
+    window.__spxDockFlowPlayAlarm = playStatusChangeSound;
     initialize();
 
   }
@@ -368,8 +369,8 @@
     const justBecameOverdue = !markedOverdueState && overdue;
     markedOverdueState = overdue;
 
-    if (justBecameOverdue && card.classList.contains('workstation-dock')
-      && !card.classList.contains('workstation-bulky')) playStatusChangeSound();
+    // O monitor independente é a única rotina autorizada a tocar o alarme.
+    // Esta função mantém somente o estado visual, sem reproduzir áudio.
   }
 
   function unlockAudio() {

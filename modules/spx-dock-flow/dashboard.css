@@ -644,7 +644,7 @@ html.is-fullscreen .fullscreen-exit {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 8px;
   min-height: 0;
   overflow: hidden;
@@ -717,6 +717,11 @@ html.is-fullscreen .fullscreen-exit {
 .summary-card.next {
   color: var(--blue);
   border-left-color: var(--blue);
+}
+
+.summary-card.queue {
+  color: color-mix(in srgb, var(--blue) 55%, var(--green));
+  border-left-color: color-mix(in srgb, var(--blue) 55%, var(--green));
 }
 
 .summary-card.available {
@@ -1563,7 +1568,7 @@ body {
 }
 
 .summary-grid {
-  grid-template-columns: 0.75fr 0.88fr 0.82fr 0.72fr 1.15fr 1.1fr 1.22fr;
+  grid-template-columns: 0.72fr 0.86fr 0.76fr 0.68fr 0.7fr 1.17fr 1.12fr 1.25fr;
   gap: 8px;
 }
 
@@ -1956,7 +1961,7 @@ body {
   }
 
   .summary-grid {
-    grid-template-columns: 0.72fr 0.86fr 0.8fr 0.7fr 1.18fr 1.08fr 1.2fr;
+    grid-template-columns: 0.7fr 0.82fr 0.72fr 0.65fr 0.65fr 1.15fr 1.08fr 1.22fr;
   }
 }
 

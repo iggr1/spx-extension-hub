@@ -206,7 +206,10 @@ async function fetchDriverRoutes(payload) {
     console.warn('[Dock Flow] A lista de ATs da VT não está disponível; usando consulta por motorista:', error);
     return null;
   }) : null;
-  const vtIds = new Set((vt?.assignments || []).map(item => item.id));
+  const vtById = new Map((vt?.assignments || []).map(item => [item.id, item]));
+  const vtIds = new Set(vtById.keys());
+  const directAssignments = payload.dockAssignments && typeof payload.dockAssignments === 'object'
+    ? payload.dockAssignments : {};
   const vtByRoute = new Map();
   for (const item of vt?.assignments || []) {
     const key = normalizeRouteBinding(item.route);
@@ -233,18 +236,23 @@ async function fetchDriverRoutes(payload) {
     }
 
     const list = Array.isArray(result.data?.data?.list) ? result.data.data.list : [];
+    const dockTaskId = normalizeAssignmentTaskId(directAssignments[driverId]);
+    const dockVtMatch = vtById.get(dockTaskId);
     const matches = vtIds.size ? list.filter(item => vtIds.has(extractAssignmentTaskId(item))) : [];
-    const latest = selectLatestAssignment(matches.length ? matches : list);
+    const latest = selectLatestAssignment(dockVtMatch
+      ? list.filter(item => extractAssignmentTaskId(item) === dockTaskId)
+      : matches.length ? matches : list) || (dockVtMatch ? null : selectLatestAssignment(list));
     const rawTaskId = extractAssignmentTaskId(latest);
-    const route = String(latest?.corridor_cage || latest?.route || '').trim();
-    const candidates = vtByRoute.get(normalizeRouteBinding(route)) || [];
+    const driverRoute = String(latest?.corridor_cage || latest?.route || '').trim();
+    const candidates = vtByRoute.get(normalizeRouteBinding(driverRoute)) || [];
     const uniqueMatch = candidates.length === 1 ? candidates[0] : null;
-    const assignmentTaskId = matches.length ? rawTaskId
-      : uniqueMatch?.id || rawTaskId;
+    const assignmentTaskId = dockVtMatch?.id || (matches.length ? rawTaskId : uniqueMatch?.id || rawTaskId);
+    const route = dockVtMatch?.route || (vtById.get(assignmentTaskId)?.route || driverRoute);
+    const assignmentSource = dockVtMatch ? 'vt-dock' : matches.length ? 'vt' : uniqueMatch ? 'vt-route' : 'driver';
 
     routes[driverId] = {
       ok: true,
-      route: route || (matches.length ? (vt?.assignments || []).find(item => item.id === assignmentTaskId)?.route : '') || '',
+      route,
       assignmentTaskId,
       driverAssignedTime: numberOrZero(latest?.driver_assigned_time),
       driverName: latest?.driver_name || '',
@@ -253,8 +261,8 @@ async function fetchDriverRoutes(payload) {
         'vehicle_name', 'vehicle_type', 'planned_vehicle_type', 'agency',
         'station_name', 'stops_number', 'total_distance', 'ctime', 'driver_assigned_time'
       ].map(key => [key, latest[key]])) : null,
-      assignmentSource: matches.length ? 'vt' : uniqueMatch ? 'vt-route' : 'driver',
-      found: Boolean(latest),
+      assignmentSource,
+      found: Boolean(latest || dockVtMatch),
       error: null
     };
   }

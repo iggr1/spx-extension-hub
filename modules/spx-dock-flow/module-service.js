@@ -231,7 +231,22 @@ async function fetchDriverRoutes(payload) {
   for (const driverId of driverIds) {
     const result = batch.results[String(driverId)];
     if (!result?.ok) {
-      routes[driverId] = { ok: false, route: '', error: result?.error || 'Não foi possível consultar a rota do motorista.' };
+      const dockMatch = vtById.get(normalizeAssignmentTaskId(directAssignments[driverId]));
+      if (dockMatch) {
+        routes[driverId] = {
+          ok: true,
+          route: dockMatch.route,
+          assignmentTaskId: dockMatch.id,
+          driverAssignedTime: 0,
+          driverName: '',
+          details: null,
+          assignmentSource: 'vt-dock',
+          found: true,
+          error: null
+        };
+      } else {
+        routes[driverId] = { ok: false, route: '', error: result?.error || 'Não foi possível consultar a rota do motorista.' };
+      }
       continue;
     }
 

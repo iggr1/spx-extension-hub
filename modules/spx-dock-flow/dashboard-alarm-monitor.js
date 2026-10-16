@@ -13,6 +13,8 @@
   let lastFetchAt = 0;
   let lastError = '';
   let fetching = false;
+  let backgroundAvailable = false;
+  let connecting = false;
   let pollTimer = 0;
   let tickTimer = 0;
   let previousScope = '';
@@ -121,6 +123,7 @@
   }
 
   function checkForOverdue() {
+    if (backgroundAvailable) return;
     const now = Date.now();
     if (!lastFetchAt || now - lastFetchAt > MAX_SAMPLE_AGE_MS) return;
 
@@ -152,7 +155,7 @@
   }
 
   async function poll() {
-    if (fetching) return;
+    if (backgroundAvailable || fetching) return;
     fetching = true;
     let timeout;
     try {
@@ -183,37 +186,76 @@
 
   function schedulePoll() {
     clearTimeout(pollTimer);
-    pollTimer = setTimeout(poll, POLL_MS);
+    if (!backgroundAvailable) pollTimer = setTimeout(poll, POLL_MS);
+  }
+
+  function currentThresholds() {
+    const output = {};
+    for (const [id, item] of Object.entries(state.assignmentStats || {})) {
+      if (item?.status !== 'ready') continue;
+      const orders = number(item.totalOrders);
+      if (orders > 0) output[id] = Math.max(2, Math.ceil(orders * 7 / 100)) * 60;
+    }
+    return output;
+  }
+
+  async function connectBackground() {
+    if (connecting) return;
+    connecting = true;
+    try {
+      const response = await LoaderBridge.request('dockAlarm.configure', {
+        scope: settings().scope,
+        dockName: markedDock(),
+        thresholds: currentThresholds()
+      });
+      backgroundAvailable = response?.ok === true && response?.background === true;
+      if (backgroundAvailable) clearTimeout(pollTimer);
+    } catch {
+      backgroundAvailable = false;
+    } finally {
+      connecting = false;
+      updateMonitorStatus();
+    }
+    if (!backgroundAvailable && !lastFetchAt) void poll();
   }
 
   function updateMonitorStatus() {
     const element = document.getElementById('dockAlarmMonitorStatus');
     if (!element) return;
     const selection = settings().scope === 'all' ? 'todas as docas' : 'apenas a doca marcada';
-    element.textContent = lastError
-      ? 'Monitor: aguardando resposta da SPX (' + lastError + '). Nenhum alarme será disparado com dados desatualizados.'
-      : 'Monitor de atrasos ativo: ' + selection + ' · consulta independente a cada 15 segundos.'
-        + (document.hidden ? ' A execução em abas ocultas pode ser limitada pelo Chrome.' : '');
-    element.dataset.state = lastError ? 'warning' : 'active';
+    element.textContent = backgroundAvailable
+      ? 'Monitor ativo no SPX Extension Loader: ' + selection + ' · continua verificando com a dashboard em segundo plano ou fechada.'
+      : lastError
+        ? 'Monitor local: aguardando a SPX (' + lastError + '). Dados desatualizados não disparam alarme.'
+        : 'Monitor local: ' + selection + '. Para continuar com a dashboard fechada, instale o SPX Extension Loader 1.2.0.'
+          + (document.hidden ? ' O Chrome pode atrasar verificações em abas ocultas.' : '');
+    element.dataset.state = lastError && !backgroundAvailable ? 'warning' : 'active';
   }
 
   function start() {
     window.addEventListener('storage', event => {
       if (event.key !== MARKED_KEY && event.key !== SETTINGS_KEY) return;
       checkForOverdue();
-      updateMonitorStatus();
+      void connectBackground();
     });
     window.addEventListener('spx-dock-alarm-settings-changed', () => {
       checkForOverdue();
-      updateMonitorStatus();
+      void connectBackground();
+    });
+    window.addEventListener('spx-dock-markings-changed', () => {
+      checkForOverdue();
+      void connectBackground();
     });
     document.addEventListener('visibilitychange', () => {
       updateMonitorStatus();
-      if (!document.hidden) void poll();
+      if (!document.hidden && !backgroundAvailable) void poll();
     });
-    window.addEventListener('focus', () => { if (Date.now() - lastFetchAt > POLL_MS) void poll(); });
+    window.addEventListener('focus', () => {
+      if (!backgroundAvailable && Date.now() - lastFetchAt > POLL_MS) void poll();
+    });
     tickTimer = setInterval(checkForOverdue, CHECK_MS);
-    void poll();
+    setInterval(() => { if (backgroundAvailable) void connectBackground(); }, 60000);
+    void connectBackground();
     updateMonitorStatus();
   }
 

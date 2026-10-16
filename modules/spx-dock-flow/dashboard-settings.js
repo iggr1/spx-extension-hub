@@ -8,7 +8,8 @@
     autoRefreshEnabled: true,
     refreshIntervalSeconds: 10,
     historyWindowHours: 2.5,
-    zoomPercent: 100
+    zoomPercent: 100,
+    alarmScope: 'marked'
   });
 
   let settings = loadSettings();
@@ -68,7 +69,8 @@
       autoRefreshEnabled: value.autoRefreshEnabled !== false,
       refreshIntervalSeconds: clampNumber(value.refreshIntervalSeconds, 10, 120, DEFAULT_SETTINGS.refreshIntervalSeconds),
       historyWindowHours: clampNumber(value.historyWindowHours, 1, 24, DEFAULT_SETTINGS.historyWindowHours),
-      zoomPercent: roundZoom(value.zoomPercent)
+      zoomPercent: roundZoom(value.zoomPercent),
+      alarmScope: value.alarmScope === 'all' ? 'all' : 'marked'
     };
   }
 
@@ -157,6 +159,7 @@
     setInputValue('settingRefreshInterval', settings.refreshIntervalSeconds);
     setInputValue('settingHistoryWindow', settings.historyWindowHours);
     setInputValue('settingZoomPercent', settings.zoomPercent);
+    setInputValue('settingAlarmScope', settings.alarmScope);
 
     const zoomValue = document.getElementById('settingZoomValue');
     if (zoomValue) zoomValue.textContent = `${settings.zoomPercent}%`;
@@ -176,10 +179,12 @@
       autoRefreshEnabled: document.getElementById('settingAutoRefresh')?.checked,
       refreshIntervalSeconds: document.getElementById('settingRefreshInterval')?.value,
       historyWindowHours: document.getElementById('settingHistoryWindow')?.value,
-      zoomPercent: document.getElementById('settingZoomPercent')?.value
+      zoomPercent: document.getElementById('settingZoomPercent')?.value,
+      alarmScope: document.getElementById('settingAlarmScope')?.value
     });
 
     saveSettings();
+    window.dispatchEvent(new Event('spx-dock-alarm-settings-changed'));
     applySettingsToDashboard(true);
     closeSettingsModal();
   }
@@ -187,6 +192,7 @@
   function resetSettings() {
     settings = { ...DEFAULT_SETTINGS };
     saveSettings();
+    window.dispatchEvent(new Event('spx-dock-alarm-settings-changed'));
     fillSettingsForm();
     applySettingsToDashboard(true);
   }
@@ -511,6 +517,8 @@
       </article>
     `;
   }
+
+  window.__spxDockFlowLoadingLimitSeconds = getLoadingAlertSeconds;
 
   function configuredUpdateLiveTimes() {
     const waitingThreshold = getWaitingAlertSeconds();

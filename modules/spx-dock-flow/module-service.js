@@ -4,6 +4,11 @@ const ASSIGNMENT_API_URL = 'https://spx.shopee.com.br/spx_delivery/admin/assignm
 const ASSIGNMENT_ORDERS_API_URL = 'https://spx.shopee.com.br/spx_delivery/admin/assignment/assignment_task/detail/order/search';
 const ORDER_TRACKING_API_URL = 'https://spx.shopee.com.br/api/fleet_order/order/tracking_list/search';
 const VALIDATION_TASK_API_URL = 'https://spx.shopee.com.br/api/in-station/lmhub/audit/task/list';
+const VALIDATION_TARGET_API_URL = 'https://spx.shopee.com.br/api/in-station/lmhub/audit/target/list';
+const VT_ASSIGNMENTS_CACHE_KEY = 'spxDockFlowVtAssignmentsV1';
+const VT_ASSIGNMENTS_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const VT_ASSIGNMENTS_PAGE_SIZE = 100;
+const VT_ASSIGNMENTS_MAX_PAGES = 60;
 const SPX_HOME = 'https://spx.shopee.com.br/';
 const ASSIGNMENT_STATS_CACHE_KEY = 'spxAssignmentStatsCacheV2';
 const ASSIGNMENT_STATS_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -13,6 +18,9 @@ const ORDER_TRACKING_PAGE_SIZE = 50;
 
 const assignmentStatsInFlight = new Map();
 let assignmentStatsCachePromise = null;
+let vtAssignmentsCachePromise = null;
+const vtAssignmentsInFlight = new Map();
+const vtAssignmentsFailedUntil = new Map();
 
 async function handleModuleMessage(message) {
   if (!message?.type) return { ok: false, error: 'Mensagem inválida.' };
@@ -191,45 +199,53 @@ async function fetchDockQueues(payload) {
 
 async function fetchDriverRoutes(payload) {
   const driverIds = uniquePositiveIntegers(payload.driverIds);
+  if (!driverIds.length) return { ok: true, source: 'none', routes: {} };
 
-  if (!driverIds.length) {
-    return { ok: true, source: 'none', routes: {} };
+  const validationTaskId = normalizeValidationTaskId(payload.validationTaskId);
+  const vt = validationTaskId ? await getVtAssignments(validationTaskId).catch(error => {
+    console.warn('[Dock Flow] A lista de ATs da VT não está disponível; usando consulta por motorista:', error);
+    return null;
+  }) : null;
+  const vtIds = new Set((vt?.assignments || []).map(item => item.id));
+  const vtByRoute = new Map();
+  for (const item of vt?.assignments || []) {
+    const key = normalizeRouteBinding(item.route);
+    if (!key) continue;
+    const existing = vtByRoute.get(key) || [];
+    existing.push(item);
+    vtByRoute.set(key, existing);
   }
 
   const requests = driverIds.map(driverId => ({
     key: String(driverId),
     url: ASSIGNMENT_API_URL,
     method: 'POST',
-    body: {
-      driver_id: driverId,
-      pageno: 1,
-      count: 20,
-      search_type: 0
-    }
+    body: { driver_id: driverId, pageno: 1, count: 20, search_type: 0 }
   }));
-
   const batch = await fetchBatch(requests);
   const routes = {};
 
   for (const driverId of driverIds) {
     const result = batch.results[String(driverId)];
-
     if (!result?.ok) {
-      routes[driverId] = {
-        ok: false,
-        route: '',
-        error: result?.error || 'Não foi possível consultar a rota do motorista.'
-      };
+      routes[driverId] = { ok: false, route: '', error: result?.error || 'Não foi possível consultar a rota do motorista.' };
       continue;
     }
 
     const list = Array.isArray(result.data?.data?.list) ? result.data.data.list : [];
-    const latest = selectLatestAssignment(list);
+    const matches = vtIds.size ? list.filter(item => vtIds.has(extractAssignmentTaskId(item))) : [];
+    const latest = selectLatestAssignment(matches.length ? matches : list);
+    const rawTaskId = extractAssignmentTaskId(latest);
+    const route = String(latest?.corridor_cage || latest?.route || '').trim();
+    const candidates = vtByRoute.get(normalizeRouteBinding(route)) || [];
+    const uniqueMatch = candidates.length === 1 ? candidates[0] : null;
+    const assignmentTaskId = matches.length ? rawTaskId
+      : uniqueMatch?.id || rawTaskId;
 
     routes[driverId] = {
       ok: true,
-      route: String(latest?.corridor_cage || latest?.route || '').trim(),
-      assignmentTaskId: extractAssignmentTaskId(latest),
+      route: route || (matches.length ? (vt?.assignments || []).find(item => item.id === assignmentTaskId)?.route : '') || '',
+      assignmentTaskId,
       driverAssignedTime: numberOrZero(latest?.driver_assigned_time),
       driverName: latest?.driver_name || '',
       details: latest ? Object.fromEntries([
@@ -237,19 +253,138 @@ async function fetchDriverRoutes(payload) {
         'vehicle_name', 'vehicle_type', 'planned_vehicle_type', 'agency',
         'station_name', 'stops_number', 'total_distance', 'ctime', 'driver_assigned_time'
       ].map(key => [key, latest[key]])) : null,
+      assignmentSource: matches.length ? 'vt' : uniqueMatch ? 'vt-route' : 'driver',
       found: Boolean(latest),
       error: null
     };
   }
 
   const successful = Object.values(routes).filter(item => item?.ok).length;
-
   return {
     ok: successful > 0,
     partial: successful < driverIds.length,
     source: batch.source,
+    validationTaskId: vt?.validationTaskId || '',
+    vtAssignmentsCount: vt?.assignments?.length || 0,
+    vtCacheHit: Boolean(vt?.cached),
     routes
   };
+}
+
+function normalizeValidationTaskId(value) {
+  const id = String(value || '').trim();
+  return /^VT[A-Z0-9]+$/i.test(id) && id.length <= 128 ? id : '';
+}
+
+function normalizeRouteBinding(value) {
+  return String(value || '').trim().replace(/\s+/g, '').toLocaleUpperCase('pt-BR');
+}
+
+async function getVtAssignments(validationTaskId) {
+  const cache = await loadVtAssignmentsCache();
+  const saved = cache[validationTaskId];
+  if (saved?.complete === true && Array.isArray(saved.assignments)
+      && saved.assignments.length > 0 && numberOrZero(saved.fetchedAt) >= Date.now() - VT_ASSIGNMENTS_MAX_AGE_MS) {
+    return { ...saved, cached: true };
+  }
+
+  if (vtAssignmentsInFlight.has(validationTaskId)) return vtAssignmentsInFlight.get(validationTaskId);
+  if (Date.now() < numberOrZero(vtAssignmentsFailedUntil.get(validationTaskId))) return null;
+
+  const pending = fetchVtAssignments(validationTaskId)
+    .then(async assignments => {
+      if (!assignments.length) throw new Error('A VT ainda não retornou ATs; não foi armazenada no cache.');
+      const record = { validationTaskId, assignments, complete: true, fetchedAt: Date.now() };
+      cache[validationTaskId] = record;
+      await persistVtAssignmentsCache(cache);
+      vtAssignmentsFailedUntil.delete(validationTaskId);
+      return { ...record, cached: false };
+    })
+    .catch(error => {
+      vtAssignmentsFailedUntil.set(validationTaskId, Date.now() + 60000);
+      throw error;
+    })
+    .finally(() => vtAssignmentsInFlight.delete(validationTaskId));
+  vtAssignmentsInFlight.set(validationTaskId, pending);
+  return pending;
+}
+
+async function fetchVtAssignments(validationTaskId) {
+  const assignments = new Map();
+  const pagesSeen = new Set();
+  let expectedTotal = 0;
+  let rowsReceived = 0;
+  let completed = false;
+
+  for (let page = 1; page <= VT_ASSIGNMENTS_MAX_PAGES; page++) {
+    const url = `${VALIDATION_TARGET_API_URL}?task_id=${encodeURIComponent(validationTaskId)}&page_no=${page}&count=${VT_ASSIGNMENTS_PAGE_SIZE}`;
+    const response = await fetchSingleRequest({ key: 'vt-targets', url, method: 'GET' });
+    const data = response.data;
+    if (data?.retcode !== 0) throw new Error(data?.message || 'Não foi possível consultar ATs da VT.');
+
+    const body = data?.data || {};
+    const rows = Array.isArray(body.list) ? body.list
+      : Array.isArray(body.target_list) ? body.target_list
+      : Array.isArray(body.items) ? body.items
+      : Array.isArray(body.rows) ? body.rows : null;
+    if (!rows) throw new Error('Estrutura da lista de ATs da VT não reconhecida.');
+
+    const total = numberOrZero(body.total ?? body.total_count ?? body.total_cnt);
+    expectedTotal = Math.max(expectedTotal, total);
+    const signature = rows.map(item => String(item?.target_id ?? item?.assignment_task_id ?? '')).join('|');
+    if (signature && pagesSeen.has(signature)) throw new Error('A paginação da VT retornou uma página repetida.');
+    if (signature) pagesSeen.add(signature);
+    rowsReceived += rows.length;
+
+    for (const item of rows) {
+      const id = normalizeAssignmentTaskId(item?.target_id || item?.assignment_task_id);
+      if (!/^AT[A-Z0-9]+$/i.test(id)) continue;
+      assignments.set(id, {
+        id,
+        route: String(item?.binding_entity || item?.corridor_cage || item?.route || '').trim()
+      });
+    }
+
+    if (expectedTotal > 0 && rowsReceived >= expectedTotal) {
+      completed = true;
+      break;
+    }
+    if (rows.length < VT_ASSIGNMENTS_PAGE_SIZE) {
+      completed = true;
+      break;
+    }
+  }
+
+  if (!completed || (expectedTotal > 0 && rowsReceived < expectedTotal)) {
+    throw new Error('Lista de ATs da VT incompleta; cache não será gravado.');
+  }
+  return [...assignments.values()];
+}
+
+async function loadVtAssignmentsCache() {
+  if (!vtAssignmentsCachePromise) {
+    vtAssignmentsCachePromise = LoaderBridge.request('storage.get', { keys: [VT_ASSIGNMENTS_CACHE_KEY] })
+      .then(response => {
+        if (!response?.ok) throw new Error(response?.error || 'Não foi possível ler o cache da VT.');
+        const data = response.values?.[VT_ASSIGNMENTS_CACHE_KEY];
+        return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+      })
+      .catch(error => {
+        vtAssignmentsCachePromise = null;
+        console.warn('[Dock Flow] Cache da VT indisponível:', error);
+        return {};
+      });
+  }
+  return vtAssignmentsCachePromise;
+}
+
+async function persistVtAssignmentsCache(cache) {
+  const cutoff = Date.now() - VT_ASSIGNMENTS_MAX_AGE_MS;
+  for (const [id, record] of Object.entries(cache)) {
+    if (numberOrZero(record?.fetchedAt) < cutoff) delete cache[id];
+  }
+  const response = await LoaderBridge.request('storage.set', { items: { [VT_ASSIGNMENTS_CACHE_KEY]: cache } });
+  if (!response?.ok) throw new Error(response?.error || 'Não foi possível salvar o cache das ATs da VT.');
 }
 
 async function getAssignmentStats(payload) {

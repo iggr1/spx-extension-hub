@@ -1,8 +1,16 @@
-# SPX Extension Loader 1.1.0
+# SPX Extension Loader 1.2.0
 
 Loader modular para ferramentas operacionais publicadas no repositório `iggr1/spx-extension-hub`.
 
-## Novidades da versão 1.1.0
+## Novidades da versão 1.2.0
+
+- Monitor de atrasos do Dock Flow no service worker, sem depender da dashboard aberta.
+- Escolha entre apenas doca marcada (padrão) e todas as docas atrasadas.
+- Alarmes `chrome.alarms`, verificação autenticada das docas e som em documento `chrome.offscreen`.
+- O áudio é disparado uma vez por operação que entra em atraso. O Chrome pode atrasar os alarmes durante suspensão do navegador ou do computador.
+- A versão 1.2.0 exige substituir/recarregar a extensão instalada para ativar o monitor em segundo plano.
+
+## Recursos existentes da versão 1.1.0
 
 - Suporte genérico a módulos do tipo `user_script` com switch ligado/desligado no catálogo.
 - Estado do switch persistido no Chrome.

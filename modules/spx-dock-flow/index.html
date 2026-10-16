@@ -220,6 +220,21 @@
         </section>
 
         <section class="settings-section">
+          <h3 class="settings-section-title">Alertas sonoros de carregamento</h3>
+          <div class="settings-grid">
+            <label class="settings-field full-width">
+              <span class="settings-field-label">Tocar alarme quando houver atraso em</span>
+              <select id="settingAlarmScope">
+                <option value="marked">Apenas docas marcadas em "Marcar doca"</option>
+                <option value="all">Todas as docas atrasadas</option>
+              </select>
+              <small>O alarme toca uma vez quando um carregamento entra em atraso. A opção Doca de Volumosos permanece somente visual.</small>
+            </label>
+            <p class="dock-alarm-monitor-status" id="dockAlarmMonitorStatus" role="status">Monitor de atrasos: inicializando…</p>
+          </div>
+        </section>
+
+        <section class="settings-section">
           <h3 class="settings-section-title">Visualização</h3>
           <div class="settings-grid">
             <label class="settings-field full-width">
@@ -305,6 +320,7 @@
   <script src="dashboard.js"></script>
   <script src="dashboard-transitions.js"></script>
   <script src="dashboard-workstation.js?v=1.9.9"></script>
+  <script src="dashboard-alarm-monitor.js?v=1.10.0"></script>
   <script src="dashboard-order-visibility.js"></script>
   <script src="dashboard-changelog.js?v=1.9.9"></script>
 </body>

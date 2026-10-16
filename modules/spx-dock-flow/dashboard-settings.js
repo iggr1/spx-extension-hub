@@ -647,6 +647,7 @@
     elements.totalDocks.textContent = summary.total;
     elements.occupiedDocks.textContent = summary.occupied;
     elements.nextDocks.textContent = summary.next;
+    elements.waitingVehicles.textContent = summary.waitingVehicles ?? '—';
     elements.availableDocks.textContent = summary.available;
     elements.validationRoutes.textContent = formatValidationRouteCount(state.validationProgress);
     elements.validationPercentage.textContent = formatValidationPercentage(state.validationProgress);

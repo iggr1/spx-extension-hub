@@ -364,6 +364,10 @@ async function handleBridgeRequest(message, sender) {
       return networkConnectionStatus(module, payload.profileId);
     case 'network.clearAuth':
       return clearAuthProfile(module, payload.profileId);
+    case 'dockAlarm.configure':
+      return self.spxDockAlarm.configure(payload);
+    case 'dockAlarm.status':
+      return self.spxDockAlarm.status();
     case 'userscripts.sync':
       return setUserScriptsEnabled(module, true);
     case 'userscripts.status':
@@ -872,3 +876,5 @@ function normalizeError(error) {
 }
 
 refreshCatalog({ force: false }).catch(() => {});
+
+importScripts('dock-alarm-background.js');

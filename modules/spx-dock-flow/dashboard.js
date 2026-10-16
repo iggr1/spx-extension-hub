@@ -24,6 +24,7 @@ const state = {
   demo: false,
   dockQueues: {},
   queueLoading: false,
+  waitingVehicles: null,
   driverRoutes: {},
   routesLoading: false,
   assignmentStats: {},
@@ -53,6 +54,7 @@ const elements = {
   totalDocks: document.getElementById('totalDocks'),
   occupiedDocks: document.getElementById('occupiedDocks'),
   nextDocks: document.getElementById('nextDocks'),
+  waitingVehicles: document.getElementById('waitingVehicles'),
   availableDocks: document.getElementById('availableDocks'),
   validationRoutes: document.getElementById('validationRoutes'),
   validationPercentage: document.getElementById('validationPercentage'),
@@ -339,6 +341,7 @@ async function loadDocks(manual = false) {
     state.docks = result.data.data.dock_list;
     state.fetchedAt = Date.now();
     state.dockQueues = {};
+    state.waitingVehicles = null;
     pruneDockRouteMemory();
     state.driverRoutes = {};
     state.routesLoading = true;
@@ -394,6 +397,7 @@ function renderSummary() {
   elements.totalDocks.textContent = summary.total;
   elements.occupiedDocks.textContent = summary.occupied;
   elements.nextDocks.textContent = summary.next;
+  elements.waitingVehicles.textContent = summary.waitingVehicles ?? '—';
   elements.availableDocks.textContent = summary.available;
   elements.validationRoutes.textContent = formatValidationRouteCount(state.validationProgress);
   elements.validationPercentage.textContent = formatValidationPercentage(state.validationProgress);
@@ -774,12 +778,20 @@ function getFilteredDocks() {
 }
 
 async function loadVacantDockQueues() {
-  const dockIds = state.docks
-    .filter(dock => numberOrZero(dock.dock_active_status) === 1 && !isDockOccupied(dock))
+  const activeDocks = state.docks.filter(dock => numberOrZero(dock.dock_active_status) === 1);
+  const dockIds = activeDocks
+    .filter(dock => !isDockOccupied(dock))
     .map(dock => Number(dock.dock_id))
     .filter(dockId => Number.isInteger(dockId) && dockId > 0);
+  const queueRequestIds = dockIds.length
+    ? dockIds
+    : activeDocks.map(dock => Number(dock.dock_id))
+      .filter(dockId => Number.isInteger(dockId) && dockId > 0)
+      .slice(0, 1);
 
-  if (!dockIds.length) {
+  state.waitingVehicles = null;
+
+  if (!queueRequestIds.length) {
     state.dockQueues = {};
     state.queueLoading = false;
     return;
@@ -791,22 +803,26 @@ async function loadVacantDockQueues() {
   try {
     const result = await sendMessage({
       type: 'FETCH_DOCK_QUEUES',
-      payload: { dockIds }
+      payload: { dockIds: queueRequestIds }
     });
 
     const nextQueues = {};
+    let sharedWaitingCount = null;
 
-    for (const dockId of dockIds) {
+    for (const dockId of queueRequestIds) {
       const item = result?.queues?.[dockId];
       const list = item?.data?.data?.queue_sequence_list;
 
       if (item?.ok && Array.isArray(list)) {
-        nextQueues[dockId] = {
-          items: list,
-          total: numberOrZero(item.data?.data?.total ?? list.length),
-          error: null
-        };
-      } else {
+        if (sharedWaitingCount === null) sharedWaitingCount = list.length;
+        if (dockIds.includes(dockId)) {
+          nextQueues[dockId] = {
+            items: list,
+            total: numberOrZero(item.data?.data?.total ?? list.length),
+            error: null
+          };
+        }
+      } else if (dockIds.includes(dockId)) {
         nextQueues[dockId] = {
           items: [],
           total: 0,
@@ -815,6 +831,9 @@ async function loadVacantDockQueues() {
       }
     }
 
+    // A queue_sequence_list é a mesma fila global replicada por doca.
+    // A leitura de uma resposta válida evita somar veículos repetidos.
+    state.waitingVehicles = sharedWaitingCount;
     state.dockQueues = nextQueues;
   } catch (error) {
     state.dockQueues = Object.fromEntries(dockIds.map(dockId => [dockId, {
@@ -822,11 +841,11 @@ async function loadVacantDockQueues() {
       total: 0,
       error: error.message || String(error)
     }]));
+    state.waitingVehicles = null;
   } finally {
     state.queueLoading = false;
   }
 }
-
 async function loadDriverRoutes() {
   const driverIds = [...new Set(state.docks.map(dock => {
     if (isDockOccupied(dock)) return numberOrZero(dock.occupied_driver_id);
@@ -929,6 +948,7 @@ function calculateSummary() {
     total: state.docks.length,
     occupied: statuses.filter(status => status === 'occupied').length,
     next: statuses.filter(status => status === 'next').length,
+    waitingVehicles: state.waitingVehicles,
     available: statuses.filter(status => status === 'available').length,
     averageOccupation: loadingAverage.seconds,
     averageOccupationCount: loadingAverage.count
@@ -1142,6 +1162,7 @@ function loadDemoData() {
   state.demo = true;
   state.docks = createDemoDocks();
   state.dockQueues = createDemoQueues();
+  state.waitingVehicles = Object.values(state.dockQueues).find(queue => !queue.error && Array.isArray(queue.items))?.items.length ?? null;
   state.driverRoutes = createDemoRoutes();
   state.validationProgress = {
     available: true,

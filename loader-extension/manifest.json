@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "SPX Extension Loader",
+  "description": "Carregador modular de ferramentas operacionais publicadas em um repositório GitHub.",
+  "version": "1.1.0",
+  "minimum_chrome_version": "138",
+  "permissions": [
+    "storage",
+    "cookies",
+    "scripting",
+    "tabs",
+    "webRequest",
+    "userScripts"
+  ],
+  "optional_permissions": [
+    "alarms",
+    "clipboardRead",
+    "clipboardWrite",
+    "contextMenus",
+    "downloads",
+    "notifications",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://raw.githubusercontent.com/*",
+    "https://spx.shopee.com.br/*",
+    "https://docs.google.com/*",
+    "https://drive.google.com/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Abrir SPX Extension Loader"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https:;"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

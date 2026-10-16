@@ -253,6 +253,7 @@
     markedDockOperationKey = '';
     markedOverdueState = null;
     applyHighlight();
+    window.dispatchEvent(new Event('spx-dock-markings-changed'));
     observeMarkedDockOverdue();
   }
 
@@ -289,6 +290,7 @@
     markedDockOperationKey = '';
     localStorage.removeItem(STORAGE_KEY);
     applyHighlight();
+    window.dispatchEvent(new Event('spx-dock-markings-changed'));
   }
 
   function scheduleRefresh() {

@@ -1,8 +1,9 @@
 (() => {
   'use strict';
-  const VERSION = '1.10.1';
+  const VERSION = '1.10.2';
   const KEY = 'spxDockFlowChangelogSeenV1';
   const changes = [
+    ['16/10/2026', 'Chamados e veículos na fila', 'Resumo renomeado para Chamados e novo card Na fila com a quantidade da queue_sequence_list compartilhada, sem somar docas; consulta também quando todas estão ocupadas.'],
     ['16/10/2026', 'Cache de ATs por VT', 'A primeira consulta carrega e guarda todas as ATs da VT ativa, com paginação e cache persistente. As próximas atualizações reutilizam a lista e priorizam as ATs da VT na busca pelo motorista.'],
     ['16/10/2026', 'Monitor de docas independente', 'Alertas para apenas a doca marcada (padrão) ou todas as docas atrasadas, com execução em segundo plano pelo Loader 1.2.0.'],
     ['15/10/2026', 'Alarme por atraso na doca', 'O som toca apenas quando a doca marcada ultrapassa o tempo de carregamento e inicia o alerta vermelho; outros eventos e docas não disparam áudio.'],

@@ -845,7 +845,11 @@ async function loadDriverRoutes() {
   try {
     const result = await sendMessage({
       type: 'FETCH_DRIVER_ROUTES',
-      payload: { driverIds, stationId: STATION_ID }
+      payload: {
+        driverIds,
+        stationId: STATION_ID,
+        validationTaskId: state.validationProgress.stale ? '' : state.validationProgress.taskId
+      }
     });
 
     const routes = {};

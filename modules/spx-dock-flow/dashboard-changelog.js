@@ -1,8 +1,9 @@
 (() => {
   'use strict';
-  const VERSION = '1.10.0';
+  const VERSION = '1.10.1';
   const KEY = 'spxDockFlowChangelogSeenV1';
   const changes = [
+    ['16/10/2026', 'Cache de ATs por VT', 'A primeira consulta carrega e guarda todas as ATs da VT ativa, com paginação e cache persistente. As próximas atualizações reutilizam a lista e priorizam as ATs da VT na busca pelo motorista.'],
     ['16/10/2026', 'Monitor de docas independente', 'Alertas para apenas a doca marcada (padrão) ou todas as docas atrasadas, com execução em segundo plano pelo Loader 1.2.0.'],
     ['15/10/2026', 'Alarme por atraso na doca', 'O som toca apenas quando a doca marcada ultrapassa o tempo de carregamento e inicia o alerta vermelho; outros eventos e docas não disparam áudio.'],
     ['15/10/2026', 'Alarme sonoro único', 'Removida a sobreposição de frequências e adicionada proteção contra alarmes duplicados entre abas do Dock Flow.'],

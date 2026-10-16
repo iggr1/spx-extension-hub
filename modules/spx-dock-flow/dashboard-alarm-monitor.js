@@ -15,6 +15,7 @@
   let fetching = false;
   let backgroundAvailable = false;
   let connecting = false;
+  let pendingConfigure = false;
   let pollTimer = 0;
   let tickTimer = 0;
   let previousScope = '';
@@ -200,7 +201,10 @@
   }
 
   async function connectBackground() {
-    if (connecting) return;
+    if (connecting) {
+      pendingConfigure = true;
+      return;
+    }
     connecting = true;
     try {
       const response = await LoaderBridge.request('dockAlarm.configure', {
@@ -215,6 +219,10 @@
     } finally {
       connecting = false;
       updateMonitorStatus();
+    }
+    if (pendingConfigure) {
+      pendingConfigure = false;
+      void connectBackground();
     }
     if (!backgroundAvailable && !lastFetchAt) void poll();
   }

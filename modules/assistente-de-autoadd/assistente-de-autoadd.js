@@ -383,6 +383,8 @@
   let overviewReportRows = [];
   let overviewReportProgress = { done: 0, total: 0, failed: 0 };
   let overviewReportWindow = null;
+  const overviewReasons = new Map();
+  let overviewReasonBusy = 0;
   let overviewValidatedOnly = loadOverviewValidatedOnly();
 
   function overviewContext() {

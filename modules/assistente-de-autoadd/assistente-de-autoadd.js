@@ -533,11 +533,14 @@
         <div class="route-meta"><span>${item.scanned} de ${item.planned} carregados</span><strong>${item.pending} pendentes</strong></div></article>`).join('');
       const qualityPie = `conic-gradient(#ef4444 0 ${redPercent}%,#f59e0b ${redPercent}% ${redPercent+yellowPercent}%,#22c55e ${redPercent+yellowPercent}% 100%)`;
       const loadedPie = `conic-gradient(#22c55e 0 ${data.percent}%,#ef4444 ${data.percent}% 100%)`;
-      const missingDetails = data.missing.map(item =>
-        '<tr><td>' + reportEscape(item.shipmentId) + '</td><td>' +
-        reportEscape(item.at) + '<small>' + reportEscape(item.route) + '</small></td>' +
-        '<td>A classificar</td></tr>'
-      ).join('');
+      const missingDetails = data.missing.map(item => {
+        const state = overviewReasons.get(overviewKey + '|' + item.shipmentId + '|' + item.at);
+        return '<tr><td>' + reportEscape(item.shipmentId) + '</td><td>' +
+          reportEscape(item.at) + '<small>' + reportEscape(item.route) + '</small></td>' +
+          '<td>' + reportEscape(state?.reason || 'Aguardando consulta...') +
+          (state?.destinationAt ? '<small>Nova AT: ' + reportEscape(state.destinationAt) + '</small>' : '') +
+          '</td></tr>';
+      }).join('');
       doc.getElementById('spx-report-content').innerHTML = `
         <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')} · ${overviewValidatedOnly ? 'Apenas rotas validadas' : 'Todas as rotas'}</p></div>
         <div class="report-actions"><button type="button" data-csv>Exportar CSV</button><button type="button" data-print>Imprimir / PDF</button></div></div>

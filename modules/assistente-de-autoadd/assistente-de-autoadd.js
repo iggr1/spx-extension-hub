@@ -385,7 +385,14 @@
   let overviewReportWindow = null;
   const overviewReasons = new Map();
   let overviewReasonBusy = 0;
-  let overviewValidatedOnly = loadOverviewValidatedOnly();
+  let overviewValidatedOnly = true;
+  const overviewTrackingCache = new Map();
+  const overviewAtStatsCache = new Map();
+  const OVERVIEW_TRACK_CACHE_MS = 20 * 60 * 1000;
+  const OVERVIEW_STATS_CACHE_MS = 3 * 60 * 1000;
+  const OVERVIEW_REASON_CACHE_MS = 20 * 60 * 1000;
+  let overviewReasonNextRequestAt = 0;
+  let overviewLastManualRefreshAt = 0;
 
   function overviewContext() {
     if (location.origin !== 'https://spx.shopee.com.br' || !location.hash.startsWith('#/mercadao/audit-list/vt-detail')) return null;
@@ -454,10 +461,7 @@
       <div class="ov-summary">
         <div class="ov-summary-line"><span data-brief>Carregamento AutoAdd</span><strong data-percent>—</strong></div>
         <div class="ov-bar"><i data-progress></i></div>
-        <label class="ov-filter" title="Desmarque para incluir todas as ATs da VT, mesmo as não validadas">
-          <input type="checkbox" data-overview-validated-only ${overviewValidatedOnly ? 'checked' : ''}>
-          <span>Apenas rotas validadas</span>
-        </label>
+        <div class="ov-filter"><span>Somente ATs validadas até o momento</span></div>
       </div>
       <div class="ov-details"><div class="ov-body" data-overview-body>Carregando...</div><div class="ov-footer">Atualização automática a cada 2 minutos</div></div>`;
     host.dataset.collapsed = 'true';
@@ -474,11 +478,6 @@
     host.querySelector('[data-expand]').addEventListener('click', event => { event.stopPropagation(); toggle(); });
     host.querySelector('[data-overview-report]').onclick = () => openOverviewReport();
     host.querySelector('[data-overview-refresh]').onclick = () => void refreshOverview(overviewKey, true);
-    host.querySelector('[data-overview-validated-only]').addEventListener('change', event => {
-      overviewValidatedOnly = event.currentTarget.checked;
-      saveOverviewValidatedOnly(overviewValidatedOnly);
-      if (overviewKey) void refreshOverview(overviewKey, true);
-    });
     document.documentElement.appendChild(host);
     return host;
   }
@@ -494,7 +493,7 @@
   }
 
   function reportData() {
-    const rows = overviewReportRows.filter(item => Number.isFinite(item.planned) && Number.isFinite(item.scanned));
+    const rows = overviewReportRows.filter(item => item.validated === true && Number.isFinite(item.planned) && Number.isFinite(item.scanned));
     const active = rows.filter(item => item.planned > 0).map(item => ({
       ...item, pending: Math.max(0, item.planned - item.scanned),
       pct: Math.round(Math.min(100, item.scanned / item.planned * 100))
@@ -511,41 +510,118 @@
       green: active.filter(item=>item.pct>=90).length };
   }
 
-  function queueOverviewReasonLookup() {
-    if (!overviewReportWindow || overviewReportWindow.closed || overviewReasonBusy >= 3) return;
-    for (const item of reportData().missing) {
-      if (overviewReasonBusy >= 3) break;
-      const key = overviewKey + '|' + item.shipmentId + '|' + item.at;
-      if (overviewReasons.has(key)) continue;
-      overviewReasons.set(key, { reason: 'Consultando...' });
-      overviewReasonBusy++;
-      const url = TRACKING_URL + '?' + new URLSearchParams({ shipment_id: item.shipmentId });
-      fetchJson(url, { method: 'GET' }).then(result => {
-        const events = [];
-        const pending = [...(result.data?.tracking_list || [])];
-        while (pending.length) {
-          const event = pending.pop();
-          events.push(event);
-          pending.push(...(event.children || []), ...(event.event_children || []));
-        }
-        events.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
-        const ids = event => String(event.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
-        const target = item.at.toUpperCase();
-        let start = events.findIndex(e => ids(e).includes(target) && /polygon|auto.?add/i.test(e.operator || ''));
-        if (start < 0) start = events.findIndex(e => ids(e).includes(target));
-        const moved = start < 0 ? null : events.slice(start + 1).find(e =>
-          Number(e.status) === 50 && ids(e).some(id => id !== target));
-        const destinationAt = moved ? ids(moved).find(id => id !== target) : '';
-        overviewReasons.set(key, {
-          reason: moved ? 'Realocado para outra AT/rota' : 'A classificar',
-          destinationAt
+  function classifyAutoAddHistory(events, assignmentTaskId) {
+    const at = String(assignmentTaskId || '').toUpperCase();
+    const getAts = event => String(event?.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
+    const includesAt = (event, id) => getAts(event).includes(id);
+    const isPolygon = event => /polygon|auto\s*add/i.test(String(event?.operator || ''));
+    const isManual = event => Number(event?.status) === 49 && !/admin\(|polygon|auto\s*add|dynamic\s*routing/i.test(String(event?.operator || ''));
+    const sorted = [...(events || [])].sort((a,b) => Number(a.timestamp) - Number(b.timestamp));
+    const index = sorted.findIndex(event => Number(event.status) === 49 && includesAt(event, at) && isPolygon(event));
+    const origin = index >= 0 ? sorted[index] : null;
+    const unknown = (details, after = []) => ({ code: 'UNMAPPED', reason: 'A classificar', confidence: 'unknown', details, originEvent: origin, evidenceEvent: null, destinationAt: '', elapsedMinutes: null, eventsAfterOrigin: after });
+    if (!origin) return unknown('AutoAdd (Polygon) na AT informada não localizado no histórico.');
+    const after = sorted.slice(index + 1);
+    const localTime = ts => new Date(Number(ts)*1000).toLocaleDateString('en-CA', {timeZone:'America/Sao_Paulo'});
+    const build = (code, reason, evidence, confidence = 'confirmed', destinationAt = '') => ({
+      code, reason, confidence, details: String(evidence?.message || ''), originEvent: origin,
+      evidenceEvent: evidence, destinationAt,
+      elapsedMinutes: Math.max(0, Math.round((Number(evidence?.timestamp) - Number(origin.timestamp)) / 60 * 10) / 10),
+      eventsAfterOrigin: after
+    });
+    for (let i = 0; i < after.length; i++) {
+      const event = after[i];
+      const status = Number(event.status);
+      const message = String(event.message || '');
+      if (status === 581 || /order marked as missing/i.test(message)) {
+        const minutes = (Number(event.timestamp) - Number(origin.timestamp)) / 60;
+        return build(minutes <= 30 ? 'MISSING_DEVOLUCOES' : 'MISSING_SEPARACAO',
+          minutes <= 30 ? 'Não transportado da bancada até a gaiola' : 'Perda/desvio na separação', event, 'probable');
+      }
+      if (/pacote n[aã]o coube no ve[ií]culo/i.test(message)) return build('CAPACIDADE', 'Não coube no veículo — capacidade insuficiente', event);
+      if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada — encaminhado ao EHA', event);
+      const mentioned = getAts(event);
+      if (status === 49 && mentioned.includes(at) && !isPolygon(event) && localTime(event.timestamp) !== localTime(origin.timestamp)) {
+        const nextNewRoute = after.slice(i + 1).findIndex(item => Number(item.status) === 49 && getAts(item).some(x => x !== at));
+        const window = nextNewRoute === -1 ? after.slice(i + 1) : after.slice(i + 1, i + 1 + nextNewRoute);
+        const revalidated = window.some(item => Number(item.status) === 50 && includesAt(item, at));
+        return build(revalidated ? 'NO_SHOW_REVALIDADA' : 'NO_SHOW_REMOVIDA',
+          revalidated ? 'Rota No-show — revalidada no dia seguinte' : 'Rota No-show — removido ou faltante na rota', event);
+      }
+      if (status === 49 && mentioned.some(x => x !== at)) {
+        const destinationAt = mentioned.find(x => x !== at) || '';
+        if (isPolygon(event)) return build('NOVO_AUTOADD', 'Removido da AT e novo AutoAdd em outra AT', event, 'confirmed', destinationAt);
+        if (isManual(event)) return build('MANUAL', 'Removido e realocado manualmente em outra AT', event, 'confirmed', destinationAt);
+        return unknown('Nova roteirização automática sem causa anterior comprovada.', after);
+      }
+      if (status === 50 && mentioned.some(x => x !== at)) return unknown('Vinculado a outra AT sem novo processamento registrado; verificar se houve realocação direta.', after);
+    }
+    return unknown('Nenhuma causa conclusiva após o AutoAdd original.', after);
+  }
+
+  function flattenOverviewTracking(list) {
+    const output = [], seen = new Set();
+    const stack = [...(Array.isArray(list) ? list : [])];
+    while (stack.length) {
+      const e = stack.pop();
+      if (!e || typeof e !== 'object') continue;
+      const k = String(e.id) + '|' + String(e.timestamp) + '|' + String(e.message);
+      if (!seen.has(k)) {
+        seen.add(k);
+        output.push({
+          id: e.id ?? null, timestamp: Number(e.timestamp) || 0, status: e.status ?? null,
+          station_id: e.station_id ?? null, station_name: e.station_name || '',
+          message: e.message || '', operator: e.operator || '',
+          on_hold_reason: e.on_hold_reason || '', tags: e.tags || null
         });
-      }).catch(() => overviewReasons.set(key, { reason: 'Consulta indisponível' }))
-        .finally(() => {
-          overviewReasonBusy--;
+      }
+      stack.push(...(e.children || []), ...(e.event_children || []));
+    }
+    return output.sort((a,b) => a.timestamp - b.timestamp);
+  }
+
+  function overviewTrackingFor(shipmentId) {
+    const current = overviewTrackingCache.get(shipmentId);
+    if (current && current.expiresAt > Date.now()) return current.promise;
+    const url = TRACKING_URL + '?' + new URLSearchParams({ shipment_id: shipmentId });
+    const promise = fetchJson(url, { method: 'GET' }).then(result => {
+      if (!Array.isArray(result.data?.tracking_list)) throw new Error('Histórico de rastreio indisponível.');
+      return flattenOverviewTracking(result.data.tracking_list);
+    }).catch(error => { overviewTrackingCache.delete(shipmentId); throw error; });
+    overviewTrackingCache.set(shipmentId, { promise, expiresAt: Date.now() + OVERVIEW_TRACK_CACHE_MS });
+    if (overviewTrackingCache.size > 600) overviewTrackingCache.delete(overviewTrackingCache.keys().next().value);
+    return promise;
+  }
+
+  function queueOverviewReasonLookup() {
+    if (!overviewReportWindow || overviewReportWindow.closed || overviewReasonBusy >= 2) return;
+    const vt = overviewKey;
+    for (const item of reportData().missing) {
+      if (overviewReasonBusy >= 2) break;
+      const key = item.shipmentId + '|' + item.at;
+      const current = overviewReasons.get(key);
+      if (current && (current.loading || current.expiresAt > Date.now())) continue;
+      overviewReasons.set(key, { reason: 'Consultando histórico...', loading: true, expiresAt: Date.now() + 60000 });
+      overviewReasonBusy++;
+      const now = Date.now();
+      const delay = Math.max(0, overviewReasonNextRequestAt - now);
+      overviewReasonNextRequestAt = Math.max(now, overviewReasonNextRequestAt) + 900;
+      (async () => {
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+        if (vt !== overviewKey || !overviewReportWindow || overviewReportWindow.closed) return;
+        const events = await overviewTrackingFor(item.shipmentId);
+        const classified = classifyAutoAddHistory(events, item.at);
+        overviewReasons.set(key, { ...classified, loading: false, analyzedAt: Date.now(), expiresAt: Date.now() + OVERVIEW_REASON_CACHE_MS });
+      })().catch(error => overviewReasons.set(key, {
+        reason: 'Consulta indisponível', code: 'FETCH_ERROR', confidence: 'unknown',
+        details: String(error?.message || error), loading: false, expiresAt: Date.now() + 2 * 60 * 1000
+      })).finally(() => {
+        overviewReasonBusy--;
+        if (vt === overviewKey) {
           renderOverviewReport();
           queueOverviewReasonLookup();
-        });
+        }
+      });
     }
   }
 
@@ -651,9 +727,16 @@
     return [...items.values()];
   }
 
-  async function overviewAtStats(vt, at, signal) {
+  async function overviewAtStats(vt, at, signal, force = false) {
+    const cacheKey = vt + '|' + at;
+    const existing = overviewAtStatsCache.get(cacheKey);
+    if (!force && existing && existing.expiresAt > Date.now()) return existing.data;
     const planned = await fetchPlannedAutoAdd({ assignmentTaskId: at, validationTaskId: vt }, signal);
-    if (!planned.length) return { planned: 0, scanned: 0, missingIds: [] };
+    if (!planned.length) {
+      const empty = { planned: 0, scanned: 0, missingIds: [] };
+      overviewAtStatsCache.set(cacheKey, { data: empty, expiresAt: Date.now() + OVERVIEW_STATS_CACHE_MS });
+      return empty;
+    }
 
     const params = new URLSearchParams({ validation_task_id: vt, target_id: at, audit_target_type: '2', page_no: '1', count: '999', parcel_scan_status: '2', shipment_id: '' });
     const scanned = new Set();
@@ -662,20 +745,21 @@
       const data = await fetchJson(SCANNED_URL + '?' + params, {}, signal);
       const list = Array.isArray(data?.data?.list) ? data.data.list : [];
       for (const item of list) scanned.add(String(item.shipment_id || '').toUpperCase());
-      if (!list.length || (Number(data?.data?.total || 0) > 0 && scanned.size >= Number(data.data.total)) || list.length < 24) break;
+      if (!list.length || (Number(data?.data?.total || 0) > 0 && scanned.size >= Number(data.data.total)) ) break;
     }
 
     const missingIds = planned.map(item => item.shipmentId).filter(id => !scanned.has(id));
-    return {
-      planned: planned.length,
-      scanned: planned.length - missingIds.length,
-      missingIds
-    };
+    const result = { planned: planned.length, scanned: planned.length - missingIds.length, missingIds };
+    overviewAtStatsCache.set(cacheKey, { data: result, expiresAt: Date.now() + OVERVIEW_STATS_CACHE_MS });
+    if (overviewAtStatsCache.size > 1000) overviewAtStatsCache.delete(overviewAtStatsCache.keys().next().value);
+    return result;
   }
 
 
   async function refreshOverview(vt, force = false) {
     if (!vt || overviewKey !== vt) return;
+    if (force && Date.now() - overviewLastManualRefreshAt < 30000) return;
+    if (force) overviewLastManualRefreshAt = Date.now();
     if (overviewController) {
       if (!force) return;
       overviewController.abort();
@@ -686,7 +770,7 @@
     try {
       const allAts = await fetchOverviewTargets(vt, controller.signal);
       if (controller.signal.aborted || overviewKey !== vt) return;
-      const ats = overviewValidatedOnly ? allAts.filter(item => item.validated) : allAts;
+      const ats = allAts.filter(item => item.validated === true);
       const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
       overviewReportRows = rows;
       overviewReportProgress = { done: 0, total: ats.length, failed: 0 };
@@ -723,7 +807,7 @@
         while (index < rows.length && !controller.signal.aborted) {
           const item = rows[index++];
           try {
-            const stats = await overviewAtStats(vt, item.at, controller.signal);
+            const stats = await overviewAtStats(vt, item.at, controller.signal, force);
             item.planned = stats.planned;
             item.scanned = stats.scanned;
             item.missingIds = stats.missingIds;

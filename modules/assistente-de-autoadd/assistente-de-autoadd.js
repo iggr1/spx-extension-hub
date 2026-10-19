@@ -511,6 +511,44 @@
       green: active.filter(item=>item.pct>=90).length };
   }
 
+  function queueOverviewReasonLookup() {
+    if (!overviewReportWindow || overviewReportWindow.closed || overviewReasonBusy >= 3) return;
+    for (const item of reportData().missing) {
+      if (overviewReasonBusy >= 3) break;
+      const key = overviewKey + '|' + item.shipmentId + '|' + item.at;
+      if (overviewReasons.has(key)) continue;
+      overviewReasons.set(key, { reason: 'Consultando...' });
+      overviewReasonBusy++;
+      const url = TRACKING_URL + '?' + new URLSearchParams({ shipment_id: item.shipmentId });
+      fetchJson(url, { method: 'GET' }).then(result => {
+        const events = [];
+        const pending = [...(result.data?.tracking_list || [])];
+        while (pending.length) {
+          const event = pending.pop();
+          events.push(event);
+          pending.push(...(event.children || []), ...(event.event_children || []));
+        }
+        events.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+        const ids = event => String(event.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
+        const target = item.at.toUpperCase();
+        let start = events.findIndex(e => ids(e).includes(target) && /polygon|auto.?add/i.test(e.operator || ''));
+        if (start < 0) start = events.findIndex(e => ids(e).includes(target));
+        const moved = start < 0 ? null : events.slice(start + 1).find(e =>
+          Number(e.status) === 50 && ids(e).some(id => id !== target));
+        const destinationAt = moved ? ids(moved).find(id => id !== target) : '';
+        overviewReasons.set(key, {
+          reason: moved ? 'Realocado para outra AT/rota' : 'A classificar',
+          destinationAt
+        });
+      }).catch(() => overviewReasons.set(key, { reason: 'Consulta indisponível' }))
+        .finally(() => {
+          overviewReasonBusy--;
+          renderOverviewReport();
+          queueOverviewReasonLookup();
+        });
+    }
+  }
+
   function renderOverviewReport() {
     const tab = overviewReportWindow;
     if (!tab || tab.closed || !overviewKey) return;

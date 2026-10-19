@@ -625,6 +625,69 @@
     }
   }
 
+
+  function overviewDate(timestamp) {
+    const time = Number(timestamp);
+    return time ? new Date(time * 1000).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo', hour12:false}) : '';
+  }
+
+  function downloadOverviewMissing(doc, vt, rows, format) {
+    const records = rows.map(item => {
+      const state = item.state || {};
+      return {
+        vt, shipmentId: item.shipmentId, at: item.at, route: item.route,
+        validated: true, reason: state.reason || 'Aguardando consulta',
+        reasonCode: state.code || 'PENDING', confidence: state.confidence || 'unknown',
+        explanation: state.details || '', generatedAt: new Date().toISOString(),
+        autoAddTimestamp: state.originEvent?.timestamp || null,
+        autoAddDateTime: overviewDate(state.originEvent?.timestamp),
+        causeTimestamp: state.evidenceEvent?.timestamp || null,
+        causeDateTime: overviewDate(state.evidenceEvent?.timestamp),
+        elapsedMinutes: state.elapsedMinutes ?? null,
+        operator: state.evidenceEvent?.operator || '', eventStatus: state.evidenceEvent?.status ?? '',
+        eventMessage: state.evidenceEvent?.message || '',
+        onHoldReason: state.evidenceEvent?.on_hold_reason || '',
+        stationId: state.evidenceEvent?.station_id ?? '',
+        stationName: state.evidenceEvent?.station_name || '',
+        destinationAt: state.destinationAt || '',
+        analysisDateTime: state.analyzedAt ? new Date(state.analyzedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : '',
+        subsequentEvents: state.eventsAfterOrigin || [],
+        originalAutoAddEvent: state.originEvent || null,
+        causeEvent: state.evidenceEvent || null
+      };
+    });
+    const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+    const filename = 'autoadd-faltantes-' + vt + '-' + timestamp;
+    let content, type, extension;
+    if (format === 'json') {
+      content = JSON.stringify({
+        schema:'spx-autoadd-vt-missing-v3', exportedAt:new Date().toISOString(),
+        timezone:'America/Sao_Paulo', validatedATsOnly:true, vt,
+        total:records.length, records
+      },null,2);
+      type = 'application/json;charset=utf-8'; extension = 'json';
+    } else {
+      const cols = [
+        ['vt','VT'], ['shipmentId','BR'], ['at','AT original'], ['route','Rota'],
+        ['validated','AT validada'], ['reason','Motivo principal'], ['reasonCode','Código motivo'],
+        ['confidence','Confiança'], ['autoAddDateTime','AutoAdd data/hora'], ['causeDateTime','Causa data/hora'],
+        ['elapsedMinutes','Intervalo minutos'], ['operator','Operador do evento'],
+        ['eventStatus','Status'], ['eventMessage','Evento principal'],
+        ['onHoldReason','Motivo on-hold'], ['stationId','ID hub'], ['stationName','Hub'],
+        ['destinationAt','AT posterior'], ['analysisDateTime','Consulta data/hora'],
+        ['explanation','Observações'], ['subsequentEvents','Linha do tempo completa']
+      ];
+      const lines = [cols.map(c=>c[1]),...records.map(r=>cols.map(c=>c[0] === 'subsequentEvents' ?
+        r.subsequentEvents.map(e=>overviewDate(e.timestamp)+' [status '+e.status+'] '+e.message+' ('+e.operator+')').join(' | ') : r[c[0]]))];
+      content = '\uFEFF' + lines.map(line=>line.map(value=>'"'+String(value ?? '').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+      type = 'text/csv;charset=utf-8'; extension = 'csv';
+    }
+    const url = URL.createObjectURL(new Blob([content], {type}));
+    const a = doc.createElement('a');
+    a.href=url; a.download=filename+'.'+extension; doc.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
+
   function renderOverviewReport() {
     const tab = overviewReportWindow;
     if (!tab || tab.closed || !overviewKey) return;
@@ -647,34 +710,47 @@
         <div class="route-meta"><span>${item.scanned} de ${item.planned} carregados</span><strong>${item.pending} pendentes</strong></div></article>`).join('');
       const qualityPie = `conic-gradient(#ef4444 0 ${redPercent}%,#f59e0b ${redPercent}% ${redPercent+yellowPercent}%,#22c55e ${redPercent+yellowPercent}% 100%)`;
       const loadedPie = `conic-gradient(#22c55e 0 ${data.percent}%,#ef4444 ${data.percent}% 100%)`;
-      const missingDetails = data.missing.map(item => {
-        const state = overviewReasons.get(overviewKey + '|' + item.shipmentId + '|' + item.at);
-        return '<tr><td>' + reportEscape(item.shipmentId) + '</td><td>' +
+      const missingRows = data.missing.map(item => ({
+        ...item, state: overviewReasons.get(item.shipmentId + '|' + item.at) || null
+      }));
+      const reasonCounts = new Map();
+      missingRows.forEach(item => {
+        const name = item.state?.reason || 'Aguardando consulta';
+        reasonCounts.set(name, (reasonCounts.get(name) || 0) + 1);
+      });
+      const reasonsSorted = [...reasonCounts].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
+      const maxReason = Math.max(1,...reasonsSorted.map(x=>x[1]));
+      const reasonGraph = reasonsSorted.map(([name,quantity]) =>
+        '<div class="reason-row"><div class="reason-info"><span>' + reportEscape(name) +
+        '</span><strong>' + quantity + '</strong></div><div class="reason-track"><i style="width:' +
+        Math.max(2,quantity/maxReason*100) + '%"></i></div></div>'
+      ).join('');
+      const classifiedCount = missingRows.filter(item => item.state?.code && !['UNMAPPED','FETCH_ERROR'].includes(item.state.code)).length;
+      const missingDetails = missingRows.map(item => {
+        const state = item.state;
+        return '<tr><td><strong>' + reportEscape(item.shipmentId) + '</strong></td><td>' +
           reportEscape(item.at) + '<small>' + reportEscape(item.route) + '</small></td>' +
           '<td>' + reportEscape(state?.reason || 'Aguardando consulta...') +
-          (state?.destinationAt ? '<small>Nova AT: ' + reportEscape(state.destinationAt) + '</small>' : '') +
-          '</td></tr>';
+          (state?.destinationAt ? '<small>AT posterior: ' + reportEscape(state.destinationAt) + '</small>' : '') +
+          (state?.elapsedMinutes != null ? '<small>Tempo até ocorrência: ' + reportEscape(state.elapsedMinutes) + ' min</small>' : '') +
+          '</td><td><small>AutoAdd: ' + reportEscape(overviewDate(state?.originEvent?.timestamp) || '—') + '</small>' +
+          '<small>Causa: ' + reportEscape(overviewDate(state?.evidenceEvent?.timestamp) || '—') +
+          '</small></td></tr>';
       }).join('');
       doc.getElementById('spx-report-content').innerHTML = `
-        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')} · ${overviewValidatedOnly ? 'Apenas rotas validadas' : 'Todas as rotas'}</p></div>
-        <div class="report-actions"><button type="button" data-csv>Exportar CSV</button><button type="button" data-print>Imprimir / PDF</button></div></div>
+        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')} · Apenas ATs validadas</p></div>
+        <div class="report-actions"><span class="muted">Somente ATs validadas</span></div></div>
         <p class="notice">${isPartial ? 'Relatório parcial: '+done+' de '+total+' ATs verificadas'+(failed?' · '+failed+' falhas de consulta':'')+'. Os percentuais usam somente ATs com dados confirmados.' : 'Relatório consolidado: '+done+' ATs verificadas.'} </p>
         <div class="metrics"><div class="metric"><span>Pedidos AutoAdd</span><strong>${data.planned}</strong></div><div class="metric"><span>Carregados</span><strong class="green">${data.scanned}</strong></div><div class="metric"><span>Pendentes</span><strong class="red">${data.pending}</strong></div><div class="metric"><span>Taxa de carregamento</span><strong style="color:${color}">${data.percent}%</strong></div><div class="metric"><span>Rotas com AutoAdd</span><strong>${classes}</strong></div></div>
         <div class="charts"><section class="panel"><h2>Qualidade por rota</h2><div class="donut-row"><div class="donut" style="background:${qualityPie}"><div>${classes}<small>rotas</small></div></div><div class="legend"><div><i style="background:#ef4444"></i> Críticas (&lt;60%) <b>${data.red}</b></div><div><i style="background:#f59e0b"></i> Atenção (60–89%) <b>${data.yellow}</b></div><div><i style="background:#22c55e"></i> Boas (≥90%) <b>${data.green}</b></div></div></div></section>
         <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${data.percent}%<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
         <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${item.pct}% concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
-        <section class="panel"><h2>Pedidos AutoAdd faltantes</h2><p class="muted">Pedidos não validados nesta AT, aguardando análise do motivo.</p><div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="3">Nenhuma pendência encontrada.</td></tr>'}</tbody></table></div></section></div>
-        <section class="panel"><div class="section-header"><h2>${overviewValidatedOnly ? 'Detalhamento das ATs validadas' : 'Detalhamento de todas as ATs'}</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
+        <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p><div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo principal</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
+        <section class="panel"><div class="section-header"><h2>Motivos dos AutoAdd faltantes</h2><span>${classifiedCount}/${missingRows.length} classificados</span></div><div class="reason-list">${reasonGraph || '<p class="muted">Nenhuma pendência nas ATs validadas.</p>'}</div><p class="muted" style="font-size:11px;margin-top:16px">Missing até 30 min e acima de 30 min: inferências operacionais pelo intervalo. Novos eventos posteriores à perda não substituem o motivo inicial.</p></section>
+        <section class="panel"><div class="section-header"><h2>Detalhamento das ATs validadas</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
         <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
-      doc.querySelector('[data-csv]').onclick=()=> {
-        const header=['VT','AT','Rota','AutoAdd','Carregados','Pendentes','Percentual'];
-        const lines=[header,...data.active.map(item=>[overviewKey,item.at,item.route,item.planned,item.scanned,item.pending,item.pct+'%'])];
-        const csv='\\uFEFF'+lines.map(line=>line.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(';')).join('\\r\\n');
-        const url=URL.createObjectURL(new Blob([csv.replace('\\uFEFF','\uFEFF').replaceAll('\\r\\n','\r\n')],{type:'text/csv;charset=utf-8'}));
-        const link=doc.createElement('a');link.href=url;link.download='autoadd-'+overviewKey+'.csv';link.click();
-        setTimeout(()=>URL.revokeObjectURL(url),1000);
-      };
-      doc.querySelector('[data-print]').onclick=()=>tab.print();
+      doc.querySelector('[data-missing-csv]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'csv');
+      doc.querySelector('[data-missing-json]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'json');
     } catch (error) { console.warn('[SPX AutoAdd] Relatório indisponível:',error); }
   }
 
@@ -697,8 +773,8 @@
         .legend{flex:1;min-width:170px}.legend div{display:flex;align-items:center;gap:9px;margin:12px 0;color:#b9c9df}.legend i{width:10px;height:10px;border-radius:3px;flex:0 0 auto}.legend b{margin-left:auto;color:#fff}
         .offender{display:flex;align-items:center;gap:12px;border-top:1px solid #31415b;padding:12px 0}.offender>div{flex:1}.offender small{display:block;color:#93a6c1}.offender b{color:#fda4af}.rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#3f2636;color:#fda4af;font-weight:850}
         .missing-table-wrap{overflow-x:auto;max-height:330px;overflow-y:auto}.missing-table{width:100%;border-collapse:collapse;font-size:11px;text-align:left}.missing-table th,.missing-table td{padding:9px 8px;border-bottom:1px solid #30415b;vertical-align:top}.missing-table th{position:sticky;top:0;background:#152136;color:#93a6c1}.missing-table small{display:block;margin-top:3px;color:#93a6c1}
-        .opportunity{padding:12px;border-left:3px solid #f59e0b;background:#1d2b40;border-radius:6px;margin:11px 0}.opportunity p{color:#9fb0c9;font-size:12px}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.route{background:#192a42;border:1px solid #304664;border-radius:11px;padding:13px}.route-title{display:grid;grid-template-columns:1fr auto;gap:0 8px}.route-title strong{font-size:15px}.route-title small{grid-column:1;color:#93a6c1}.route-title b{grid-column:2;grid-row:1/3;font-size:17px}.bar{height:8px;border-radius:99px;overflow:hidden;background:#34455f;margin:10px 0}.bar i{display:block;height:100%;border-radius:99px}.route-meta{display:flex;justify-content:space-between;font-size:11px;color:#a6b8d0}.route-meta strong{color:#f8fafc}.section-header span{color:#94a3b8;font-size:11px}
-        footer{color:#91a5c0;font-size:11px;margin-top:20px;padding-bottom:25px} @media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.route-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){main{padding:16px}.metrics{grid-template-columns:repeat(2,1fr)}.charts,.sections,.route-grid{grid-template-columns:1fr}.donut{width:145px;height:145px}.donut>div{width:100px;height:100px}}
+        .reason-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px}.reason-row{min-width:0}.reason-info{display:flex;align-items:start;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:6px;color:#d7e5f7}.reason-info strong{font-size:13px;color:#f8fafc}.reason-track{height:9px;background:#30435f;border-radius:20px;overflow:hidden}.reason-track i{display:block;background:linear-gradient(90deg,#2563eb,#60a5fa);height:100%;border-radius:20px}.reason-row:last-child .reason-track i{background:#64748b}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.route{background:#192a42;border:1px solid #304664;border-radius:11px;padding:13px}.route-title{display:grid;grid-template-columns:1fr auto;gap:0 8px}.route-title strong{font-size:15px}.route-title small{grid-column:1;color:#93a6c1}.route-title b{grid-column:2;grid-row:1/3;font-size:17px}.bar{height:8px;border-radius:99px;overflow:hidden;background:#34455f;margin:10px 0}.bar i{display:block;height:100%;border-radius:99px}.route-meta{display:flex;justify-content:space-between;font-size:11px;color:#a6b8d0}.route-meta strong{color:#f8fafc}.section-header span{color:#94a3b8;font-size:11px}
+        footer{color:#91a5c0;font-size:11px;margin-top:20px;padding-bottom:25px} @media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.route-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){.reason-list{grid-template-columns:1fr}main{padding:16px}.metrics{grid-template-columns:repeat(2,1fr)}.charts,.sections,.route-grid{grid-template-columns:1fr}.donut{width:145px;height:145px}.donut>div{width:100px;height:100px}}
         body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#0b1220}main{max-width:1260px}
         .panel,.metric{border-radius:14px;background:#152238;border-color:#334155}button{background:#23344d;border:1px solid #3b4a60;border-radius:9px}button:hover{background:#30445d}
         button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}

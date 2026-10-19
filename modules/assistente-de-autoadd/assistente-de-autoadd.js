@@ -5,6 +5,7 @@
   const STATION_URL = '/api/admin/basicserver/current_user/station_list/?count=50&status_list=0';
   const PLANNED_URL = '/spx_delivery/admin/assignment/assignment_task/detail/planned_order/search';
   const SCANNED_URL = '/api/in-station/lmhub/audit/parcel/list';
+  const TRACKING_URL = '/api/fleet_order/order/detail/tracking_info';
   const SCANNED_COUNT = 999;
   const SCANNED_REFRESH_MS = 3500;
   const PLANNED_REFRESH_MS = 20000;

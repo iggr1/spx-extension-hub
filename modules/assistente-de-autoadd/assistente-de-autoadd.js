@@ -624,6 +624,7 @@
     overviewMessage('<span>Consultando ATs e pedidos AutoAdd da VT...</span>');
     try {
       const allAts = await fetchOverviewTargets(vt, controller.signal);
+      if (controller.signal.aborted || overviewKey !== vt) return;
       const ats = overviewValidatedOnly ? allAts.filter(item => item.validated) : allAts;
       const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
       overviewReportRows = rows;

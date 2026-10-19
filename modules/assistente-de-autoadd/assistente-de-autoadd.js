@@ -5,7 +5,6 @@
   const STATION_URL = '/api/admin/basicserver/current_user/station_list/?count=50&status_list=0';
   const PLANNED_URL = '/spx_delivery/admin/assignment/assignment_task/detail/planned_order/search';
   const SCANNED_URL = '/api/in-station/lmhub/audit/parcel/list';
-  const TRACKING_URL = '/api/fleet_order/order/detail/tracking_info';
   const SCANNED_COUNT = 999;
   const SCANNED_REFRESH_MS = 3500;
   const PLANNED_REFRESH_MS = 20000;
@@ -383,9 +382,6 @@
   let overviewReportRows = [];
   let overviewReportProgress = { done: 0, total: 0, failed: 0 };
   let overviewReportWindow = null;
-  const overviewTrackingCache = new Map();
-  let overviewTrackingController = null;
-  let overviewTrackingPending = null;
   let overviewValidatedOnly = loadOverviewValidatedOnly();
 
   function overviewContext() {
@@ -627,123 +623,6 @@
     };
   }
 
-  function flattenOverviewTracking(list) {
-    const collected = [];
-    const visited = new Set();
-    const walk = items => {
-      for (const item of Array.isArray(items) ? items : []) {
-        if (!item || typeof item !== 'object') continue;
-        const key = String(item.id || '') + ':' + String(item.timestamp || '');
-        if (!visited.has(key)) {
-          visited.add(key);
-          collected.push({
-            timestamp: Number(item.timestamp) || 0,
-            status: item.status,
-            message: String(item.message || ''),
-            on_hold_reason: String(item.on_hold_reason || ''),
-            station_id: item.station_id || 0,
-            station_name: String(item.station_name || ''),
-            operator: String(item.operator || ''),
-            tags: Array.isArray(item.tags) ? item.tags : []
-          });
-        }
-        walk(item.children);
-        walk(item.event_children);
-      }
-    };
-    walk(list);
-    return collected.sort((a, b) => a.timestamp - b.timestamp);
-  }
-
-  function classifyOverviewTracking(item, events) {
-    const latest = events.at(-1) || null;
-    const assigned = events.filter(event =>
-      event.message.includes(item.at) && (/Auto Add/i.test(event.operator) || /Assignment Task/i.test(event.message))
-    );
-    const start = assigned.length ? assigned[0].timestamp : 0;
-    const relevant = start ? events.filter(event => event.timestamp >= start) : [];
-    const explicit = [...relevant].reverse().find(event => event.on_hold_reason.trim());
-    return {
-      reason: explicit ? explicit.on_hold_reason : 'A classificar',
-      evidence: explicit ? explicit.message : '',
-      latestEvent: latest?.message || 'Sem evento descritivo',
-      latestStatus: latest?.status ?? null,
-      latestAt: latest?.timestamp || 0,
-      source: explicit ? 'on_hold_reason' : 'pendente de mapeamento'
-    };
-  }
-
-  async function fetchOverviewTracking(item, signal) {
-    const url = TRACKING_URL + '?' + new URLSearchParams({ shipment_id: item.shipmentId });
-    const response = await fetchJson(url, { method: 'GET' }, signal);
-    if (!response?.data || !Array.isArray(response.data.tracking_list)) {
-      throw new Error('O histórico não foi retornado pela SPX.');
-    }
-    const events = flattenOverviewTracking(response.data.tracking_list);
-    return {
-      shipmentId: item.shipmentId, at: item.at, route: item.route,
-      validationTaskId: item.validationTaskId,
-      displayStatus: response.data.display_status,
-      events, ...classifyOverviewTracking(item, events)
-    };
-  }
-
-  function startOverviewTracking() {
-    const report = reportData();
-    const pending = report.missing.filter(item => !overviewTrackingCache.has(item.shipmentId));
-    if (!pending.length || overviewTrackingPending) return;
-
-    const controller = new AbortController();
-    overviewTrackingController = controller;
-    const vt = overviewKey;
-    overviewTrackingPending = (async () => {
-      let next = 0;
-      const work = async () => {
-        while (next < pending.length && !controller.signal.aborted && vt === overviewKey) {
-          const item = pending[next++];
-          try {
-            const result = await fetchOverviewTracking(item, controller.signal);
-            overviewTrackingCache.set(item.shipmentId, result);
-          } catch (error) {
-            if (controller.signal.aborted) break;
-            overviewTrackingCache.set(item.shipmentId, {
-              ...item, reason: 'Consulta indisponível', error: String(error.message || error),
-              events: [], source: 'erro'
-            });
-          }
-          renderOverviewReport();
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(3, pending.length) }, work));
-    })().finally(() => {
-      overviewTrackingController = null;
-      overviewTrackingPending = null;
-    });
-  }
-
-  function exportOverviewHistories() {
-    const data = reportData();
-    const histories = data.missing.map(item => ({
-      ...item,
-      ...(overviewTrackingCache.get(item.shipmentId) || {
-        reason: 'Histórico ainda não consultado', events: [], source: 'não consultado'
-      })
-    }));
-    const payload = {
-      schema: 'spx-autoadd-missing-tracking-v1',
-      generatedAt: new Date().toISOString(),
-      validationTaskId: overviewKey,
-      validatedOnly: overviewValidatedOnly,
-      totalMissing: histories.length,
-      histories
-    };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'historicos-autoadd-' + overviewKey + '.json';
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
 
   async function refreshOverview(vt, force = false) {
     if (!vt || overviewKey !== vt) return;

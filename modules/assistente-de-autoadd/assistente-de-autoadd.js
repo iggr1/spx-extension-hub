@@ -632,6 +632,7 @@
       tab.document.close();
     }
     renderOverviewReport();
+    queueOverviewReasonLookup();
     tab.focus();
   }
 
@@ -732,7 +733,7 @@
           }
           done++;
           overviewReportProgress = { done, total: rows.length, failed };
-        if (done % 5 === 0 || done === rows.length) { render(); renderOverviewReport(); }
+        if (done % 5 === 0 || done === rows.length) { render(); renderOverviewReport(); queueOverviewReasonLookup(); }
         }
       }
       await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));

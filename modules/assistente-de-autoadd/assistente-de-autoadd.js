@@ -616,6 +616,7 @@
         reason: 'Consulta indisponível', code: 'FETCH_ERROR', confidence: 'unknown',
         details: String(error?.message || error), loading: false, expiresAt: Date.now() + 2 * 60 * 1000
       })).finally(() => {
+        if (overviewReasons.get(key)?.loading) overviewReasons.delete(key);
         overviewReasonBusy--;
         if (vt === overviewKey) {
           renderOverviewReport();
@@ -794,11 +795,12 @@
       const url = '/api/in-station/lmhub/audit/target/list?' + new URLSearchParams({ task_id: vt, page_no: String(page), count: '100' });
       const data = (await fetchJson(url, {}, signal))?.data || {};
       const list = Array.isArray(data.list) ? data.list : [];
+      const previousCount = items.size;
       for (const item of list) {
         const at = String(item?.target_id || '').toUpperCase();
         if (/^AT[A-Z0-9]+$/.test(at)) items.set(at, { at, route: String(item.binding_entity || '-'), validated: Number(item.validation_status) === 4 });
       }
-      if (list.length === 0 || (Number(data.total || data.all_qty || 0) > 0 && items.size >= Number(data.total || data.all_qty || 0))) break;
+      if (list.length === 0 || items.size === previousCount || (Number(data.total || data.all_qty || 0) > 0 && items.size >= Number(data.total || data.all_qty || 0))) break;
     }
     return [...items.values()];
   }
@@ -820,8 +822,9 @@
       params.set('page_no', String(page));
       const data = await fetchJson(SCANNED_URL + '?' + params, {}, signal);
       const list = Array.isArray(data?.data?.list) ? data.data.list : [];
+      const beforeCount = scanned.size;
       for (const item of list) scanned.add(String(item.shipment_id || '').toUpperCase());
-      if (!list.length || (Number(data?.data?.total || 0) > 0 && scanned.size >= Number(data.data.total)) ) break;
+      if (!list.length || scanned.size === beforeCount || (Number(data?.data?.total || 0) > 0 && scanned.size >= Number(data.data.total))) break;
     }
 
     const missingIds = planned.map(item => item.shipmentId).filter(id => !scanned.has(id));

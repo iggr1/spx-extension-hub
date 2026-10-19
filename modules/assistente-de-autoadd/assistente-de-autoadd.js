@@ -522,6 +522,7 @@
     const unknown = (details, after = []) => ({ code: 'UNMAPPED', reason: 'A classificar', confidence: 'unknown', details, originEvent: origin, evidenceEvent: null, destinationAt: '', elapsedMinutes: null, eventsAfterOrigin: after });
     if (!origin) return unknown('AutoAdd (Polygon) na AT informada não localizado no histórico.');
     const after = sorted.slice(index + 1);
+    let firstRemoval = null;
     const localTime = ts => new Date(Number(ts)*1000).toLocaleDateString('en-CA', {timeZone:'America/Sao_Paulo'});
     const build = (code, reason, evidence, confidence = 'confirmed', destinationAt = '') => ({
       code, reason, confidence, details: String(evidence?.message || ''), originEvent: origin,
@@ -533,6 +534,8 @@
       const event = after[i];
       const status = Number(event.status);
       const message = String(event.message || '');
+      if (status === 1 && Number(event.timestamp) > Number(origin.timestamp) &&
+          Number(event.station_id) === Number(origin.station_id) && !firstRemoval) firstRemoval = event;
       if (status === 581 || /order marked as missing/i.test(message)) {
         const minutes = (Number(event.timestamp) - Number(origin.timestamp)) / 60;
         return build(minutes <= 30 ? 'MISSING_DEVOLUCOES' : 'MISSING_SEPARACAO',
@@ -552,11 +555,15 @@
         const destinationAt = mentioned.find(x => x !== at) || '';
         if (isPolygon(event)) return build('NOVO_AUTOADD', 'Removido da AT e novo AutoAdd em outra AT', event, 'confirmed', destinationAt);
         if (isManual(event)) return build('MANUAL', 'Removido e realocado manualmente em outra AT', event, 'confirmed', destinationAt);
-        return unknown('Nova roteirização automática sem causa anterior comprovada.', after);
+        return firstRemoval ? build('REMOVIDO_EXPEDICAO', 'Removido na bancada de expedição', firstRemoval) :
+          unknown('Nova roteirização automática sem causa anterior comprovada.', after);
       }
-      if (status === 50 && mentioned.some(x => x !== at)) return unknown('Vinculado a outra AT sem novo processamento registrado; verificar se houve realocação direta.', after);
+      if (status === 50 && mentioned.some(x => x !== at)) return firstRemoval ?
+        build('REALOCADO_DIRETO', 'Realocado em outra rota', event, 'confirmed', mentioned.find(x => x !== at)) :
+        unknown('Vinculado a outra AT sem novo processamento registrado; verificar se houve realocação direta.', after);
     }
-    return unknown('Nenhuma causa conclusiva após o AutoAdd original.', after);
+    return firstRemoval ? build('REMOVIDO_EXPEDICAO', 'Removido na bancada de expedição', firstRemoval) :
+      unknown('Nenhuma causa conclusiva após o AutoAdd original.', after);
   }
 
   function flattenOverviewTracking(list) {

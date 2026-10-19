@@ -364,6 +364,17 @@
 
 
   const OVERVIEW_ID = 'spx-autoadd-vt-overview';
+  const OVERVIEW_VALIDATED_ONLY_KEY = 'spxAutoAddVtValidatedOnlyV1';
+
+  function loadOverviewValidatedOnly() {
+    try { return localStorage.getItem(OVERVIEW_VALIDATED_ONLY_KEY) !== 'false'; }
+    catch { return true; }
+  }
+
+  function saveOverviewValidatedOnly(checked) {
+    try { localStorage.setItem(OVERVIEW_VALIDATED_ONLY_KEY, checked ? 'true' : 'false'); }
+    catch {}
+  }
   const OVERVIEW_REFRESH_MS = 120000;
   let overviewKey = '';
   let overviewTimer = 0;
@@ -371,6 +382,7 @@
   let overviewReportRows = [];
   let overviewReportProgress = { done: 0, total: 0, failed: 0 };
   let overviewReportWindow = null;
+  let overviewValidatedOnly = loadOverviewValidatedOnly();
 
   function overviewContext() {
     if (location.origin !== 'https://spx.shopee.com.br' || !location.hash.startsWith('#/mercadao/audit-list/vt-detail')) return null;
@@ -404,6 +416,9 @@
         #${OVERVIEW_ID} .ov-summary-line strong{font-size:15px;white-space:nowrap}
         #${OVERVIEW_ID} .ov-bar{height:8px;background:#334155;border-radius:99px;overflow:hidden}
         #${OVERVIEW_ID} .ov-bar i{display:block;height:100%;border-radius:99px;transition:width .3s ease}
+        #${OVERVIEW_ID} .ov-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;color:#cbd5e1;font-size:11px;cursor:pointer;user-select:none}
+        #${OVERVIEW_ID} .ov-filter input{width:16px;height:16px;margin:0;flex-shrink:0;accent-color:#3b82f6;cursor:pointer}
+        #${OVERVIEW_ID} .ov-filter span{flex:1}
         #${OVERVIEW_ID} .ov-details{min-height:0;overflow-y:auto;border-top:1px solid #334155}
         #${OVERVIEW_ID}[data-collapsed="true"] .ov-details{display:none}
         #${OVERVIEW_ID} .ov-body{padding:14px 16px}
@@ -433,7 +448,14 @@
         <button class="ov-action" type="button" data-overview-refresh aria-label="Atualizar agora" title="Atualizar agora"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
         <button class="ov-action" type="button" data-expand aria-label="Expandir painel"><svg style="transform:rotate(180deg)" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
-      <div class="ov-summary"><div class="ov-summary-line"><span data-brief>Carregamento AutoAdd</span><strong data-percent>—</strong></div><div class="ov-bar"><i data-progress></i></div></div>
+      <div class="ov-summary">
+        <div class="ov-summary-line"><span data-brief>Carregamento AutoAdd</span><strong data-percent>—</strong></div>
+        <div class="ov-bar"><i data-progress></i></div>
+        <label class="ov-filter" title="Desmarque para incluir todas as ATs da VT, mesmo as não validadas">
+          <input type="checkbox" data-overview-validated-only ${overviewValidatedOnly ? 'checked' : ''}>
+          <span>Apenas rotas validadas</span>
+        </label>
+      </div>
       <div class="ov-details"><div class="ov-body" data-overview-body>Carregando...</div><div class="ov-footer">Atualização automática a cada 2 minutos</div></div>`;
     host.dataset.collapsed = 'true';
     const toggle = () => {
@@ -449,6 +471,11 @@
     host.querySelector('[data-expand]').addEventListener('click', event => { event.stopPropagation(); toggle(); });
     host.querySelector('[data-overview-report]').onclick = () => openOverviewReport();
     host.querySelector('[data-overview-refresh]').onclick = () => void refreshOverview(overviewKey, true);
+    host.querySelector('[data-overview-validated-only]').addEventListener('change', event => {
+      overviewValidatedOnly = event.currentTarget.checked;
+      saveOverviewValidatedOnly(overviewValidatedOnly);
+      if (overviewKey) void refreshOverview(overviewKey, true);
+    });
     document.documentElement.appendChild(host);
     return host;
   }
@@ -502,7 +529,7 @@
       const loadedPie = `conic-gradient(#22c55e 0 ${data.percent}%,#ef4444 ${data.percent}% 100%)`;
       const opportunities = offenders.map(item => `<div class="opportunity"><strong>${reportEscape(item.route)} · ${item.pending} pendentes</strong><p>Priorizar o carregamento dos ${item.pending} pedidos AutoAdd restantes nesta rota (${item.pct}% concluído).</p></div>`).join('');
       doc.getElementById('spx-report-content').innerHTML = `
-        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')}</p></div>
+        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')} · ${overviewValidatedOnly ? 'Apenas rotas validadas' : 'Todas as rotas'}</p></div>
         <div class="report-actions"><button type="button" data-csv>Exportar CSV</button><button type="button" data-print>Imprimir / PDF</button></div></div>
         <p class="notice">${isPartial ? 'Relatório parcial: '+done+' de '+total+' ATs verificadas'+(failed?' · '+failed+' falhas de consulta':'')+'. Os percentuais usam somente ATs com dados confirmados.' : 'Relatório consolidado: '+done+' ATs verificadas.'} </p>
         <div class="metrics"><div class="metric"><span>Pedidos AutoAdd</span><strong>${data.planned}</strong></div><div class="metric"><span>Carregados</span><strong class="green">${data.scanned}</strong></div><div class="metric"><span>Pendentes</span><strong class="red">${data.pending}</strong></div><div class="metric"><span>Taxa de carregamento</span><strong style="color:${color}">${data.percent}%</strong></div><div class="metric"><span>Rotas com AutoAdd</span><strong>${classes}</strong></div></div>
@@ -510,7 +537,7 @@
         <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${data.percent}%<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
         <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${item.pct}% concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
         <section class="panel"><h2>Oportunidades de melhoria</h2><p class="muted">Ações sugeridas automaticamente a partir das pendências.</p>${opportunities || '<p class="muted">Não foram identificadas oportunidades relacionadas a pedidos pendentes.</p>'}</section></div>
-        <section class="panel"><div class="section-header"><h2>Detalhamento de todas as ATs</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
+        <section class="panel"><div class="section-header"><h2>${overviewValidatedOnly ? 'Detalhamento das ATs validadas' : 'Detalhamento de todas as ATs'}</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
         <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
       doc.querySelector('[data-csv]').onclick=()=> {
         const header=['VT','AT','Rota','AutoAdd','Carregados','Pendentes','Percentual'];
@@ -564,7 +591,7 @@
       const list = Array.isArray(data.list) ? data.list : [];
       for (const item of list) {
         const at = String(item?.target_id || '').toUpperCase();
-        if (/^AT[A-Z0-9]+$/.test(at)) items.set(at, { at, route: String(item.binding_entity || '-'), validated: item.validation_status === 4 });
+        if (/^AT[A-Z0-9]+$/.test(at)) items.set(at, { at, route: String(item.binding_entity || '-'), validated: Number(item.validation_status) === 4 });
       }
       if (list.length === 0 || (Number(data.total || data.all_qty || 0) > 0 && items.size >= Number(data.total || data.all_qty || 0))) break;
     }
@@ -596,7 +623,8 @@
     overviewController = controller;
     overviewMessage('<span>Consultando ATs e pedidos AutoAdd da VT...</span>');
     try {
-      const ats = await fetchOverviewTargets(vt, controller.signal);
+      const allAts = await fetchOverviewTargets(vt, controller.signal);
+      const ats = overviewValidatedOnly ? allAts.filter(item => item.validated) : allAts;
       const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
       overviewReportRows = rows;
       overviewReportProgress = { done: 0, total: ats.length, failed: 0 };
@@ -611,7 +639,7 @@
         const loaded = known.reduce((n,x) => n + x.scanned, 0);
         const pct = total ? Math.round(loaded / total * 100) : 0;
         const host = overviewHost();
-        host.querySelector('[data-status]').textContent = done + '/' + ats.length + ' ATs consultadas' + (failed ? ' · ' + failed + ' falhas' : '');
+        host.querySelector('[data-status]').textContent = done + '/' + ats.length + ' ATs ' + (overviewValidatedOnly ? 'validadas consultadas' : 'consultadas') + (failed ? ' · ' + failed + ' falhas' : '');
         host.querySelector('[data-brief]').textContent = total + ' AutoAdd · ' + loaded + ' carregados · ' + (total - loaded) + ' pendentes';
         host.querySelector('[data-percent]').textContent = pct + '%' + (done < ats.length ? ' *' : '');
         const bar = host.querySelector('[data-progress]');
@@ -626,7 +654,7 @@
         }).join('');
         overviewMessage('<div class="ov-metrics"><div class="ov-metric"><span>AutoAdd</span><strong>' + total + '</strong></div><div class="ov-metric"><span>Carregados</span><strong style="color:#22c55e">' + loaded + '</strong></div><div class="ov-metric"><span>Pendentes</span><strong style="color:#f59e0b">' + (total-loaded) + '</strong></div></div>' +
           '<p style="color:#94a3b8;font-size:10px">Vermelho: &lt;60% · Amarelo: 60–89% · Verde: ≥90%. ' + (done < ats.length ? 'Resumo parcial.' : failed ? 'Algumas ATs não puderam ser consultadas.' : '') + '</p>' +
-          (cards || '<p style="color:#94a3b8">Nenhuma AT com AutoAdd identificada até o momento.</p>'));
+          (cards || '<p style="color:#94a3b8">' + (overviewValidatedOnly && !ats.length ? 'Nenhuma rota validada nesta VT.' : 'Nenhuma AT com AutoAdd identificada até o momento.') + '</p>'));
       }
       render();
       async function worker() {

@@ -525,8 +525,8 @@
 
       .dock-selection-checkbox {
         position: absolute;
-        top: -4px;
-        left: -4px;
+        top: -10px;
+        left: -5px;
         z-index: 7;
         display: block;
         width: 34px;

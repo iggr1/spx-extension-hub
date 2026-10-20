@@ -83,7 +83,7 @@
           ]
         }
       ],
-      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf"
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/descricao.pdf?docs=20261020"
     },
     {
       "id": "spx-dock-flow-autoadd",
@@ -130,7 +130,7 @@
           "allFrames": false
         }
       ],
-      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-autoadd/descricao.pdf"
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-autoadd/descricao.pdf?docs=20261020"
     },
     {
       "id": "assistente-de-devolucoes",
@@ -191,7 +191,7 @@
           "allFrames": false
         }
       ],
-      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf",
+      "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-devolucoes/descricao.pdf?docs=20261020",
       "authProfiles": [
         {
           "id": "spx",

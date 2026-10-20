@@ -510,16 +510,40 @@
       green: active.filter(item=>item.pct>=90).length };
   }
 
+  function previousAutoAddOnHold(events, originIndex) {
+    const origin = events[originIndex];
+    if (!origin) return { fromOnHold: false, onHoldEvent: null, receivedEvent: null };
+    const before = events.slice(0, originIndex);
+    const receivedIndex = before.findLastIndex(event =>
+      Number(event.status) === 1 && Number(event.station_id) === Number(origin.station_id));
+    const receivedEvent = receivedIndex < 0 ? null : before[receivedIndex];
+    if (!receivedEvent) return { fromOnHold: false, onHoldEvent: null, receivedEvent: null };
+    const preceding = before.slice(0, receivedIndex);
+    const holdIndex = preceding.findLastIndex(event => Number(event.status) === 5);
+    const onHoldEvent = holdIndex < 0 ? null : preceding[holdIndex];
+    const newOperation = onHoldEvent && before.slice(holdIndex + 1).some(event =>
+      [2, 4, 49, 50].includes(Number(event.status)));
+    return {
+      fromOnHold: Boolean(onHoldEvent && !newOperation),
+      onHoldEvent: onHoldEvent && !newOperation ? onHoldEvent : null,
+      receivedEvent
+    };
+  }
+
   function classifyAutoAddHistory(events, assignmentTaskId) {
     const at = String(assignmentTaskId || '').toUpperCase();
     const getAts = event => String(event?.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
     const includesAt = (event, id) => getAts(event).includes(id);
     const isPolygon = event => /polygon|auto\s*add/i.test(String(event?.operator || ''));
     const isManual = event => Number(event?.status) === 49 && !/admin\(|polygon|auto\s*add|dynamic\s*routing/i.test(String(event?.operator || ''));
-    const sorted = [...(events || [])].sort((a,b) => Number(a.timestamp) - Number(b.timestamp));
+    const sorted = [...(events || [])].sort((a,b) =>
+      Number(a.timestamp) - Number(b.timestamp) ||
+      (Number(a.status) === 1 ? -1 : Number(a.status) === 49 ? 0 : 1) -
+      (Number(b.status) === 1 ? -1 : Number(b.status) === 49 ? 0 : 1));
     const index = sorted.findIndex(event => Number(event.status) === 49 && includesAt(event, at) && isPolygon(event));
     const origin = index >= 0 ? sorted[index] : null;
-    const unknown = (details, after = []) => ({ code: 'UNMAPPED', reason: 'A classificar', confidence: 'unknown', details, originEvent: origin, evidenceEvent: null, destinationAt: '', elapsedMinutes: null, eventsAfterOrigin: after });
+    const sourceContext = previousAutoAddOnHold(sorted, index);
+    const unknown = (details, after = []) => ({ code: 'UNMAPPED', reason: 'A classificar', confidence: 'unknown', details, originEvent: origin, evidenceEvent: null, destinationAt: '', elapsedMinutes: null, eventsAfterOrigin: after, sourceContext });
     if (!origin) return unknown('AutoAdd (Polygon) na AT informada não localizado no histórico.');
     const after = sorted.slice(index + 1);
     let firstRemoval = null;
@@ -528,7 +552,7 @@
       code, reason, confidence, details: String(evidence?.message || ''), originEvent: origin,
       evidenceEvent: evidence, destinationAt,
       elapsedMinutes: Math.max(0, Math.round((Number(evidence?.timestamp) - Number(origin.timestamp)) / 60 * 10) / 10),
-      eventsAfterOrigin: after
+      eventsAfterOrigin: after, sourceContext
     });
     for (let i = 0; i < after.length; i++) {
       const event = after[i];
@@ -537,9 +561,9 @@
       if (status === 1 && Number(event.timestamp) > Number(origin.timestamp) &&
           Number(event.station_id) === Number(origin.station_id) && !firstRemoval) firstRemoval = event;
       if (status === 581 || /order marked as missing/i.test(message)) {
-        const minutes = (Number(event.timestamp) - Number(origin.timestamp)) / 60;
-        return build(minutes <= 30 ? 'MISSING_DEVOLUCOES' : 'MISSING_SEPARACAO',
-          minutes <= 30 ? 'Não transportado da bancada até a gaiola' : 'Perda/desvio na separação', event, 'probable');
+        return build(sourceContext.fromOnHold ? 'MISSING_DEVOLUCOES' : 'MISSING_SEPARACAO',
+          sourceContext.fromOnHold ? 'Recebido na devolução e não alocado na gaiola' :
+            'Recebido e separado incorretamente', event, 'probable');
       }
       if (/pacote n[aã]o coube no ve[ií]culo/i.test(message)) return build('CAPACIDADE', 'Não coube no veículo — capacidade insuficiente', event);
       if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada — encaminhado ao EHA', event);
@@ -652,6 +676,14 @@
         causeTimestamp: state.evidenceEvent?.timestamp || null,
         causeDateTime: overviewDate(state.evidenceEvent?.timestamp),
         elapsedMinutes: state.elapsedMinutes ?? null,
+        sourceFromOnHold: Boolean(state.sourceContext?.fromOnHold),
+        priorOnHoldTimestamp: state.sourceContext?.onHoldEvent?.timestamp || null,
+        priorOnHoldDateTime: overviewDate(state.sourceContext?.onHoldEvent?.timestamp),
+        priorOnHoldReason: state.sourceContext?.onHoldEvent?.on_hold_reason || '',
+        priorOnHoldOperator: state.sourceContext?.onHoldEvent?.operator || '',
+        priorReceiptTimestamp: state.sourceContext?.receivedEvent?.timestamp || null,
+        priorReceiptDateTime: overviewDate(state.sourceContext?.receivedEvent?.timestamp),
+        sourceContext: state.sourceContext || null,
         operator: state.evidenceEvent?.operator || '', eventStatus: state.evidenceEvent?.status ?? '',
         eventMessage: state.evidenceEvent?.message || '',
         onHoldReason: state.evidenceEvent?.on_hold_reason || '',
@@ -679,7 +711,10 @@
         ['vt','VT'], ['shipmentId','BR'], ['at','AT original'], ['route','Rota'],
         ['validated','AT validada'], ['reason','Motivo principal'], ['reasonCode','Código motivo'],
         ['confidence','Confiança'], ['autoAddDateTime','AutoAdd data/hora'], ['causeDateTime','Causa data/hora'],
-        ['elapsedMinutes','Intervalo minutos'], ['operator','Operador do evento'],
+        ['elapsedMinutes','Intervalo minutos'], ['sourceFromOnHold','Veio de On Hold'],
+        ['priorOnHoldDateTime','On Hold anterior data/hora'], ['priorOnHoldReason','Motivo On Hold anterior'],
+        ['priorOnHoldOperator','Motorista do On Hold'], ['priorReceiptDateTime','Recebido antes AutoAdd'],
+        ['operator','Operador do evento'],
         ['eventStatus','Status'], ['eventMessage','Evento principal'],
         ['onHoldReason','Motivo on-hold'], ['stationId','ID hub'], ['stationName','Hub'],
         ['destinationAt','AT posterior'], ['analysisDateTime','Consulta data/hora'],
@@ -740,6 +775,8 @@
           reportEscape(item.at) + '<small>' + reportEscape(item.route) + '</small></td>' +
           '<td>' + reportEscape(state?.reason || 'Aguardando consulta...') +
           (state?.destinationAt ? '<small>AT posterior: ' + reportEscape(state.destinationAt) + '</small>' : '') +
+          (state?.sourceContext?.fromOnHold && state?.code === 'MISSING_DEVOLUCOES' ? '<small>On Hold anterior: ' +
+            reportEscape(overviewDate(state.sourceContext.onHoldEvent?.timestamp)) + '</small>' : '') +
           (state?.elapsedMinutes != null ? '<small>Tempo até ocorrência: ' + reportEscape(state.elapsedMinutes) + ' min</small>' : '') +
           '</td><td><small>AutoAdd: ' + reportEscape(overviewDate(state?.originEvent?.timestamp) || '—') + '</small>' +
           '<small>Causa: ' + reportEscape(overviewDate(state?.evidenceEvent?.timestamp) || '—') +
@@ -754,7 +791,7 @@
         <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${data.percent}%<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
         <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${item.pct}% concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
         <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p><div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo principal</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
-        <section class="panel reason-panel"><div class="section-header"><h2>Motivos dos AutoAdd faltantes</h2><span>${classifiedCount}/${missingRows.length} classificados</span></div><div class="reason-list">${reasonGraph || '<p class="muted">Nenhuma pendência nas ATs validadas.</p>'}</div><p class="muted" style="font-size:11px;margin-top:16px">Missing até 30 min e acima de 30 min: inferências operacionais pelo intervalo. Novos eventos posteriores à perda não substituem o motivo inicial.</p></section>
+        <section class="panel reason-panel"><div class="section-header"><h2>Motivos dos AutoAdd faltantes</h2><span>${classifiedCount}/${missingRows.length} classificados</span></div><div class="reason-list">${reasonGraph || '<p class="muted">Nenhuma pendência nas ATs validadas.</p>'}</div><p class="muted" style="font-size:11px;margin-top:16px">Missing: origem na devolução identificada por On Hold anterior ao recebimento e ao Polygon AutoAdd; sem On Hold anterior, classificação de separação. O tempo de 30 minutos não é utilizado.</p></section>
         <section class="panel"><div class="section-header"><h2>Detalhamento das ATs validadas</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
         <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
       doc.querySelector('[data-missing-csv]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'csv');

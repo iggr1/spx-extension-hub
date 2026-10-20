@@ -6,6 +6,7 @@
   const PLANNED_URL = '/spx_delivery/admin/assignment/assignment_task/detail/planned_order/search';
   const SCANNED_URL = '/api/in-station/lmhub/audit/parcel/list';
   const TRACKING_URL = '/api/fleet_order/order/detail/tracking_info';
+  const ASSIGNMENT_SEARCH_URL = '/spx_delivery/admin/assignment/assignment_task/search/v2';
   const SCANNED_COUNT = 999;
   const SCANNED_REFRESH_MS = 3500;
   const PLANNED_REFRESH_MS = 20000;
@@ -387,8 +388,11 @@
   let overviewReasonBusy = 0;
   let overviewValidatedOnly = true;
   const overviewTrackingCache = new Map();
+  const overviewVehicleCache = new Map();
+  let overviewVehicleNextRequestAt = 0;
   const overviewAtStatsCache = new Map();
   const OVERVIEW_TRACK_CACHE_MS = 20 * 60 * 1000;
+  const OVERVIEW_VEHICLE_CACHE_MS = 30 * 60 * 1000;
   const OVERVIEW_STATS_CACHE_MS = 3 * 60 * 1000;
   const OVERVIEW_REASON_CACHE_MS = 20 * 60 * 1000;
   let overviewReasonNextRequestAt = 0;
@@ -563,7 +567,7 @@
       if (status === 581 || /order marked as missing/i.test(message)) {
         return build(sourceContext.fromOnHold ? 'MISSING_DEVOLUCOES' : 'MISSING_SEPARACAO',
           sourceContext.fromOnHold ? 'Recebido na devolução e não alocado na gaiola' :
-            'Recebido e separado incorretamente', event, 'probable');
+            'Pedido não separado ou separado incorretamente', event, 'probable');
       }
       if (/pacote n[aã]o coube no ve[ií]culo/i.test(message)) return build('CAPACIDADE', 'Não coube no veículo — capacidade insuficiente', event);
       if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada — encaminhado ao EHA', event);
@@ -624,6 +628,73 @@
     return promise;
   }
 
+
+  function overviewVehicleCategory(record) {
+    if (!record || typeof record !== 'object') return { type: '', raw: '', field: '' };
+    const candidates = [
+      ['vehicle_type_name', record.vehicle_type_name],
+      ['vehicle_type', record.vehicle_type],
+      ['vehicle_category', record.vehicle_category],
+      ['planned_vehicle_type', record.planned_vehicle_type],
+      ['vehicle_name', record.vehicle_name],
+      ['vehicle.type_name', record.vehicle?.type_name],
+      ['vehicle.type', record.vehicle?.type]
+    ];
+    for (const [field, raw] of candidates) {
+      if (raw == null || raw === '') continue;
+      const value = String(raw).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase().replace(/[_-]+/g, ' ').trim();
+      if (/\b(MOTO|MOTOCICLETA|MOTORCYCLE|MOTORBIKE|MOTOR BIKE|2W|2 WHEELS?|2 RODAS)\b/.test(value)) {
+        return { type: 'Moto', raw, field };
+      }
+      if (/\b(PASSEIO|PASSENGER CAR|PASSENGER VEHICLE|CARRO|AUTOMOVEL|SEDAN|HATCH|HATCHBACK|CAR|4W|4 WHEELS?|4 RODAS)\b/.test(value)) {
+        return { type: 'Passeio', raw, field };
+      }
+    }
+    return { type: '', raw: candidates.find(([, value]) => value != null && value !== '')?.[1] ?? '', field: '' };
+  }
+
+  function overviewAtIdentifier(record) {
+    const candidates = [
+      record?.assignment_task_id, record?.assignmentTaskId, record?.assignment_task_code,
+      record?.task_id, record?.taskId, record?.task_code, record?.code
+    ];
+    return String(candidates.find(v => /^AT[A-Z0-9]+$/i.test(String(v || ''))) || '').toUpperCase();
+  }
+
+  function overviewVehicleFor(at) {
+    const id = String(at || '').toUpperCase();
+    const cached = overviewVehicleCache.get(id);
+    if (cached && cached.expiresAt > Date.now()) return cached.promise;
+    const promise = (async () => {
+      const now = Date.now();
+      const delay = Math.max(0, overviewVehicleNextRequestAt - now);
+      overviewVehicleNextRequestAt = Math.max(now, overviewVehicleNextRequestAt) + 1000;
+      if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+      const response = await fetchJson(ASSIGNMENT_SEARCH_URL, {
+        method: 'POST',
+        body: JSON.stringify({ assignment_task_id: id, pageno: 1, count: 20, search_type: 0 })
+      });
+      const body = response?.data || {};
+      const list = Array.isArray(body.list) ? body.list :
+        Array.isArray(body.assignment_task_list) ? body.assignment_task_list :
+        Array.isArray(body.items) ? body.items : [];
+      const record = list.find(item => overviewAtIdentifier(item) === id);
+      const vehicle = overviewVehicleCategory(record);
+      return { ...vehicle, source: record ? 'assignment_task/search/v2' : '', exactAtMatch: Boolean(record) };
+    })().catch(error => ({
+      type: '', raw: '', field: '', source: '', exactAtMatch: false,
+      error: String(error?.message || error)
+    }));
+    overviewVehicleCache.set(id, { promise, expiresAt: Date.now() + OVERVIEW_VEHICLE_CACHE_MS });
+    promise.then(data => {
+      const current = overviewVehicleCache.get(id);
+      if (current?.promise === promise && !data.type) current.expiresAt = Date.now() + 2 * 60 * 1000;
+    });
+    if (overviewVehicleCache.size > 400) overviewVehicleCache.delete(overviewVehicleCache.keys().next().value);
+    return promise;
+  }
+
   function queueOverviewReasonLookup() {
     if (!overviewReportWindow || overviewReportWindow.closed || overviewReasonBusy >= 2) return;
     const vt = overviewKey;
@@ -642,6 +713,15 @@
         if (vt !== overviewKey || !overviewReportWindow || overviewReportWindow.closed) return;
         const events = await overviewTrackingFor(item.shipmentId);
         const classified = classifyAutoAddHistory(events, item.at);
+        if (classified.code === 'CAPACIDADE') {
+          const vehicle = await overviewVehicleFor(item.at);
+          classified.vehicleType = vehicle.type || '';
+          classified.vehicleSource = vehicle.source || '';
+          classified.vehicleRaw = vehicle.raw || '';
+          classified.vehicleField = vehicle.field || '';
+          classified.vehicleLookupError = vehicle.error || '';
+          classified.reason = 'Pacote não coube no veículo - Veículo: ' + (vehicle.type || 'não identificado');
+        }
         overviewReasons.set(key, { ...classified, loading: false, analyzedAt: Date.now(), expiresAt: Date.now() + OVERVIEW_REASON_CACHE_MS });
       })().catch(error => overviewReasons.set(key, {
         reason: 'Consulta indisponível', code: 'FETCH_ERROR', confidence: 'unknown',
@@ -690,6 +770,11 @@
         stationId: state.evidenceEvent?.station_id ?? '',
         stationName: state.evidenceEvent?.station_name || '',
         destinationAt: state.destinationAt || '',
+        vehicleType: state.vehicleType || '',
+        vehicleSource: state.vehicleSource || '',
+        vehicleField: state.vehicleField || '',
+        vehicleRaw: state.vehicleRaw || '',
+        vehicleLookupError: state.vehicleLookupError || '',
         analysisDateTime: state.analyzedAt ? new Date(state.analyzedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : '',
         subsequentEvents: state.eventsAfterOrigin || [],
         originalAutoAddEvent: state.originEvent || null,
@@ -717,7 +802,9 @@
         ['operator','Operador do evento'],
         ['eventStatus','Status'], ['eventMessage','Evento principal'],
         ['onHoldReason','Motivo on-hold'], ['stationId','ID hub'], ['stationName','Hub'],
-        ['destinationAt','AT posterior'], ['analysisDateTime','Consulta data/hora'],
+        ['destinationAt','AT posterior'], ['vehicleType','Veículo AT original'],
+        ['vehicleSource','Fonte veículo'], ['vehicleField','Campo veículo'], ['vehicleRaw','Valor original veículo'],
+        ['vehicleLookupError','Erro consulta veículo'], ['analysisDateTime','Consulta data/hora'],
         ['explanation','Observações'], ['subsequentEvents','Linha do tempo completa']
       ];
       const lines = [cols.map(c=>c[1]),...records.map(r=>cols.map(c=>c[0] === 'subsequentEvents' ?

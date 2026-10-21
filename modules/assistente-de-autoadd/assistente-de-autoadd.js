@@ -654,6 +654,22 @@
       }
       if (/pacote n[aã]o coube no ve[ií]culo/i.test(message)) return build('CAPACIDADE', 'Não coube no veículo — capacidade insuficiente', event);
       if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada — encaminhado ao EHA', event);
+      if ([650, 574, 646].includes(status) &&
+          /\bsolicitacao\s+de\s+rts\b/i.test(message.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) {
+        const remainder = after.slice(i + 1);
+        const nextCycle = remainder.findIndex(item =>
+          Number(item.status) === 2 ||
+          (Number(item.status) === 49 && getAts(item).some(other => other !== at)));
+        const sameCycle = nextCycle < 0 ? remainder : remainder.slice(0, nextCycle);
+        const eha = sameCycle.find(item =>
+          Number(item.status) === 580 &&
+          Number(item.station_id) === Number(origin.station_id) &&
+          /\beha\b/i.test(String(item.message || '')));
+        if (eha) return {
+          ...build('RTS_EHA', 'Solicitação de RTS — encaminhado ao EHA', event),
+          rtsEvent: event, ehaEvent: eha
+        };
+      }
       const mentioned = getAts(event);
       if (status === 49 && mentioned.includes(at) && !isPolygon(event) && localTime(event.timestamp) !== localTime(origin.timestamp)) {
         const nextNewRoute = after.slice(i + 1).findIndex(item => Number(item.status) === 49 && getAts(item).some(x => x !== at));

@@ -382,6 +382,20 @@
   let overviewTimer = 0;
   let overviewController = null;
   let overviewReportRows = [];
+  let overviewAllTargets = [];
+  let reportSelectedVts = new Set();
+  let reportVtCatalog = [];
+  let reportVtResults = new Map();
+  let reportVtShown = 6;
+  let reportVtPage = 1;
+  let reportVtHasMore = true;
+  let reportVtCatalogLoading = false;
+  let reportVtCatalogBusy = null;
+  let reportVtLoadChain = Promise.resolve();
+  let reportVtGeneration = 0;
+  const REPORT_VT_PAGE_SIZE = 24;
+  const REPORT_MAX_SELECTED_VTS = 6;
+
   let overviewReportProgress = { done: 0, total: 0, failed: 0 };
   let overviewLoadingTargets = false;
   let overviewReportWindow = null;
@@ -497,8 +511,67 @@
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
   }
 
+  function reportVtTimestamp(vt) {
+    const item = reportVtCatalog.find(entry => entry.vt === vt);
+    if (item?.dateMs) return item.dateMs;
+    const match = String(vt).match(/^VT(20\d{2})(\d{2})(\d{2})/i);
+    if (!match) return 0;
+    const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function sortedReportVts(ids = [...reportSelectedVts]) {
+    return [...ids].sort((a, b) =>
+      reportVtTimestamp(b) - reportVtTimestamp(a) || b.localeCompare(a));
+  }
+
+  function reportRows() {
+    if (!overviewReportWindow || overviewReportWindow.closed) return overviewReportRows;
+    const rows = [];
+    for (const vt of sortedReportVts()) {
+      if (vt === overviewKey) {
+        const known = new Map(overviewReportRows.map(item => [item.at, item]));
+        for (const item of overviewAllTargets) {
+          rows.push({ ...item, ...(known.get(item.at) || {}), validationTaskId: vt });
+        }
+        if (!overviewAllTargets.length) {
+          rows.push(...overviewReportRows.map(item => ({ ...item, validationTaskId: vt })));
+        }
+      } else {
+        const state = reportVtResults.get(vt);
+        if (state) rows.push(...(state.rows || []).map(item => ({ ...item, validationTaskId: vt })));
+      }
+    }
+    const byAt = new Map();
+    for (const item of rows) if (!byAt.has(item.at)) byAt.set(item.at, item);
+    return [...byAt.values()];
+  }
+
+  function reportCurrentProgress() {
+    const selected = reportSelectedVts.size && overviewReportWindow && !overviewReportWindow.closed ?
+      reportSelectedVts : new Set([overviewKey]);
+    let done = 0, total = 0, failed = 0, loadingTargets = false;
+    for (const vt of selected) {
+      if (vt === overviewKey) {
+        done += overviewReportProgress.done;
+        total += overviewReportProgress.total;
+        failed += overviewReportProgress.failed;
+        loadingTargets ||= overviewLoadingTargets;
+      } else {
+        const state = reportVtResults.get(vt);
+        if (!state || state.status === 'targets') loadingTargets = true;
+        if (state) {
+          done += state.done || 0;
+          total += state.total || 0;
+          failed += state.failed || 0;
+        }
+      }
+    }
+    return { done, total, failed, loadingTargets };
+  }
+
   function reportData() {
-    const rows = overviewReportRows.filter(item => item.validated === true && Number.isFinite(item.planned) && Number.isFinite(item.scanned));
+    const rows = reportRows().filter(item => item.validated === true && Number.isFinite(item.planned) && Number.isFinite(item.scanned));
     const active = rows.filter(item => item.planned > 0).map(item => ({
       ...item, pending: Math.max(0, item.planned - item.scanned),
       pct: Math.round(Math.min(100, item.scanned / item.planned * 100))
@@ -506,7 +579,7 @@
     const planned = active.reduce((n,item) => n + item.planned, 0);
     const scanned = active.reduce((n,item) => n + item.scanned, 0);
     const missing = rows.flatMap(item => (item.missingIds || []).map(shipmentId => ({
-      shipmentId, at: item.at, route: item.route, validationTaskId: overviewKey
+      shipmentId, at: item.at, route: item.route, validationTaskId: item.validationTaskId || overviewKey
     })));
     return { rows, active, missing, planned, scanned, pending: Math.max(0, planned-scanned),
       percent: planned ? Math.round(scanned / planned * 100) : 0,
@@ -754,10 +827,10 @@
     }).length;
     const classified = missing.filter(item =>
       overviewReasonReady(overviewReasons.get(item.shipmentId + '|' + item.at))).length;
-    const { done, total, failed } = overviewReportProgress;
-    const active = overviewLoadingTargets || done < total || historiesDone < missing.length;
+    const { done, total, failed, loadingTargets } = reportCurrentProgress();
+    const active = reportVtCatalogLoading || loadingTargets || done < total || historiesDone < missing.length;
     return {
-      active, targetsLoading: overviewLoadingTargets, atsDone: done, atsTotal: total,
+      active, targetsLoading: loadingTargets, atsDone: done, atsTotal: total,
       failed, historiesDone, historiesTotal: missing.length, classified,
       historiesPending: missing.length - historiesDone
     };
@@ -876,8 +949,8 @@
       const doc = tab.document;
       if (!doc.getElementById('spx-report-content')) return;
       const data = reportData();
-      const { done, total, failed } = overviewReportProgress;
-      const isPartial = done < total || failed > 0;
+      const { done, total, failed, loadingTargets } = reportCurrentProgress();
+      const isPartial = loadingTargets || done < total || failed > 0;
       const color = overviewColor(data.percent);
       const classes = data.active.length;
       const redPercent = classes ? data.red/classes*100 : 0;
@@ -922,7 +995,7 @@
           '</small></td></tr>';
       }).join('');
       doc.getElementById('spx-report-content').innerHTML = `
-        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd da VT</h1><p class="muted">${reportEscape(overviewKey)} · ${new Date().toLocaleString('pt-BR')} · Apenas ATs validadas</p></div>
+        <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd das VTs</h1><p class="muted">${reportEscape(sortedReportVts().join(' · '))} · ${new Date().toLocaleString('pt-BR')} · Apenas ATs validadas</p></div>
         <div class="report-actions"><span class="muted">Somente ATs validadas</span></div></div>
         <p class="notice">${isPartial ? 'Relatório parcial: '+done+' de '+total+' ATs verificadas'+(failed?' · '+failed+' falhas de consulta':'')+'. Os percentuais usam somente ATs com dados confirmados.' : 'Relatório consolidado: '+done+' ATs verificadas.'} </p>
         <div class="metrics"><div class="metric"><span>Pedidos AutoAdd</span><strong>${data.planned}</strong></div><div class="metric"><span>Carregados</span><strong class="green">${data.scanned}</strong></div><div class="metric"><span>Pendentes</span><strong class="red">${data.pending}</strong></div><div class="metric"><span>Taxa de carregamento</span><strong style="color:${color}">${data.percent}%</strong></div><div class="metric"><span>Rotas com AutoAdd</span><strong>${classes}</strong></div></div>
@@ -934,6 +1007,7 @@
         <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
       doc.querySelector('[data-missing-csv]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'csv');
       doc.querySelector('[data-missing-json]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'json');
+      renderReportVtFilters();
       renderOverviewLoadingPopup();
     } catch (error) { console.warn('[SPX AutoAdd] Relatório indisponível:',error); }
   }
@@ -1047,6 +1121,7 @@
     try {
       const allAts = await fetchOverviewTargets(vt, controller.signal);
       if (controller.signal.aborted || overviewKey !== vt) return;
+      overviewAllTargets = allAts;
       const ats = allAts.filter(item => item.validated === true);
       const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
       overviewReportRows = rows;
@@ -1122,6 +1197,15 @@
     document.getElementById(OVERVIEW_ID)?.remove();
     overviewKey = vt || '';
     overviewReportRows = [];
+    overviewAllTargets = [];
+    reportSelectedVts = new Set();
+    reportVtCatalog = [];
+    reportVtResults = new Map();
+    reportVtGeneration++;
+    reportVtShown = 6;
+    reportVtPage = 1;
+    reportVtHasMore = true;
+    reportVtCatalogLoading = false;
     overviewReportProgress = { done: 0, total: 0, failed: 0 };
     overviewLoadingTargets = false;
     if (overviewReportWindow && !overviewReportWindow.closed) { overviewReportWindow.close(); }
@@ -1148,6 +1232,7 @@
   }
 
   function stop() {
+    reportVtGeneration++;
     destroyed = true;
     window.removeEventListener('hashchange', checkLocation);
     window.removeEventListener('popstate', checkLocation);

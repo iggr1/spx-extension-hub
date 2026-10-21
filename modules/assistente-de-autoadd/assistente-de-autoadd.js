@@ -862,6 +862,201 @@
       </div>${p.targetsLoading ? '<small class="loading-indeterminate">Identificando o total de ATs...</small>' : ''}`;
   }
 
+
+  function reportVtEntry(item) {
+    const vt = String(item?.validation_task_id || item?.validationTaskId || item?.task_id || item?.taskId || '').toUpperCase();
+    if (!/^VT[A-Z0-9]+$/.test(vt)) return null;
+    const raw = item.validation_start_time || item.start_time || item.ctime ||
+      item.create_time || item.created_at || item.validation_end_time || 0;
+    let dateMs = 0;
+    if (typeof raw === 'number' || /^\d+$/.test(String(raw))) {
+      const value = Number(raw);
+      dateMs = value > 1e12 ? value : value > 1e9 ? value * 1000 : 0;
+    } else if (raw) dateMs = Date.parse(raw) || 0;
+    return { vt, dateMs: dateMs || reportVtTimestamp(vt) };
+  }
+
+  function reportVtChoices() {
+    const sorted = [...reportVtCatalog].sort((a,b) =>
+      b.dateMs - a.dateMs || b.vt.localeCompare(a.vt));
+    const visible = sorted.slice(0, reportVtShown);
+    const current = sorted.find(item => item.vt === overviewKey);
+    if (current && !visible.some(item => item.vt === current.vt)) {
+      if (visible.length >= reportVtShown) visible.pop();
+      visible.push(current);
+    }
+    return visible;
+  }
+
+  function renderReportVtFilters() {
+    const tab = overviewReportWindow;
+    if (!tab || tab.closed) return;
+    const doc = tab.document;
+    const el = doc.getElementById('spx-report-vt-filters');
+    if (!el) return;
+    const choices = reportVtChoices();
+    const allChecked = choices.length > 0 && choices.length <= REPORT_MAX_SELECTED_VTS &&
+      choices.every(item => reportSelectedVts.has(item.vt));
+    const anyChecked = choices.some(item => reportSelectedVts.has(item.vt));
+    const html = '<div class="vt-filter-head"><div><h2>Selecionar VTs</h2><p class="muted">Selecione até 6 VTs para comparar. ATs repetidas contam somente na VT mais recente.</p></div>' +
+      '<span class="vt-selected-count">' + reportSelectedVts.size + '/6 selecionadas</span></div>' +
+      '<div class="vt-filter-options">' +
+      '<label class="vt-option vt-all"><input type="checkbox" data-vt-all ' +
+      (allChecked ? 'checked ' : '') + (anyChecked && !allChecked ? 'data-indeterminate="true" ' : '') +
+      '><span>' + (choices.length > 6 ? 'Selecionar as 6 primeiras' : 'Todas as exibidas') + '</span></label>' +
+      choices.map(item => '<label class="vt-option"><input type="checkbox" data-report-vt="' +
+        reportEscape(item.vt) + '" ' + (reportSelectedVts.has(item.vt) ? 'checked' : '') + '>' +
+        '<span><strong>' + reportEscape(item.vt) + '</strong><small>' +
+        (item.dateMs ? new Date(item.dateMs).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}) : 'Data não informada') +
+        '</small></span></label>').join('') + '</div>' +
+      '<div class="vt-filter-actions">' +
+      (reportVtHasMore || reportVtShown < reportVtCatalog.length ?
+        '<button type="button" data-vt-more ' + (reportVtCatalogLoading ? 'disabled' : '') +
+        '>' + (reportVtCatalogLoading ? 'Carregando...' : 'Mais antigas') + '</button>' : '') +
+      '<span class="vt-selection-note" id="vt-selection-note"></span></div>';
+    if (el.dataset.signature === html) return;
+    el.dataset.signature = html;
+    el.innerHTML = html;
+    const all = el.querySelector('[data-vt-all]');
+    if (all) {
+      all.indeterminate = anyChecked && !allChecked;
+      all.onchange = () => {
+        if (all.checked) {
+          const six = choices.slice(0, REPORT_MAX_SELECTED_VTS).map(item => item.vt);
+          reportSelectedVts = new Set(six);
+          for (const vt of six) if (vt !== overviewKey) queueReportVtLoad(vt);
+        } else reportSelectedVts.clear();
+        renderOverviewReport(); queueOverviewReasonLookup();
+      };
+    }
+    el.querySelectorAll('[data-report-vt]').forEach(input => {
+      input.onchange = () => {
+        const vt = input.dataset.reportVt;
+        if (input.checked) {
+          if (reportSelectedVts.size >= REPORT_MAX_SELECTED_VTS) {
+            input.checked = false;
+            const note = el.querySelector('#vt-selection-note');
+            if (note) note.textContent = 'Limite de 6 VTs. Desmarque uma antes de adicionar outra.';
+            return;
+          }
+          reportSelectedVts.add(vt);
+          if (vt !== overviewKey) queueReportVtLoad(vt);
+        } else reportSelectedVts.delete(vt);
+        renderOverviewReport(); queueOverviewReasonLookup();
+      };
+    });
+    const more = el.querySelector('[data-vt-more]');
+    if (more) more.onclick = async () => {
+      reportVtShown += 6;
+      await loadReportVtCatalog();
+      renderReportVtFilters();
+    };
+  }
+
+  async function loadReportVtCatalog() {
+    if (!overviewReportWindow || overviewReportWindow.closed || !reportVtHasMore) return;
+    if (reportVtCatalogBusy) return reportVtCatalogBusy;
+    if (reportVtCatalog.length >= reportVtShown && reportVtPage !== 1) return;
+    const generation = reportVtGeneration;
+    reportVtCatalogLoading = true;
+    renderReportVtFilters();
+    renderOverviewLoadingPopup();
+    const pending = (async () => {
+      try {
+        while (reportVtHasMore && (reportVtPage === 1 || reportVtCatalog.length < reportVtShown)) {
+          const until = Math.ceil(Date.now() / 1000) + 86400;
+          const since = until - 365 * 86400;
+          const params = new URLSearchParams({
+            page_no: String(reportVtPage), count: String(REPORT_VT_PAGE_SIZE),
+            validation_start_time: String(since), validation_end_time: String(until)
+          });
+          const result = await fetchJson('/api/in-station/lmhub/audit/task/list?' + params);
+          if (generation !== reportVtGeneration) return;
+          const body = result?.data || {};
+          const list = Array.isArray(body.list) ? body.list :
+            Array.isArray(body.task_list) ? body.task_list : [];
+          const seen = new Set(reportVtCatalog.map(item => item.vt));
+          let added = 0;
+          for (const task of list) {
+            const entry = reportVtEntry(task);
+            if (entry && !seen.has(entry.vt)) {
+              reportVtCatalog.push(entry);
+              seen.add(entry.vt);
+              added++;
+            } else if (entry?.dateMs) {
+              const old = reportVtCatalog.find(item => item.vt === entry.vt);
+              if (old && !old.dateMs) old.dateMs = entry.dateMs;
+            }
+          }
+          reportVtPage++;
+          if (list.length < REPORT_VT_PAGE_SIZE || !added || reportVtPage > 50) reportVtHasMore = false;
+        }
+      } catch(error) {
+        console.warn('[SPX AutoAdd] Não foi possível listar VTs:', error);
+        reportVtHasMore = false;
+      } finally {
+        if (generation === reportVtGeneration) {
+          reportVtCatalogLoading = false;
+          reportVtCatalogBusy = null;
+          renderReportVtFilters();
+          renderOverviewLoadingPopup();
+        }
+      }
+    })();
+    reportVtCatalogBusy = pending;
+    return pending;
+  }
+
+  function queueReportVtLoad(vt) {
+    const current = reportVtResults.get(vt);
+    if (current && ['targets','loading','done'].includes(current.status)) return;
+    const generation = reportVtGeneration;
+    reportVtResults.set(vt, { status:'targets', rows:[], done:0, total:0, failed:0 });
+    reportVtLoadChain = reportVtLoadChain.catch(() => {}).then(async () => {
+      if (generation !== reportVtGeneration || !reportSelectedVts.has(vt)) {
+        reportVtResults.delete(vt);
+        return;
+      }
+      const state = reportVtResults.get(vt);
+      try {
+        const targets = await fetchOverviewTargets(vt);
+        if (generation !== reportVtGeneration) return;
+        state.rows = targets.map(item => ({ ...item, planned:null, scanned:null, missingIds:[] }));
+        const validRows = state.rows.filter(item => item.validated === true);
+        state.total = validRows.length;
+        state.status = 'loading';
+        renderOverviewReport();
+        let cursor = 0;
+        async function worker() {
+          while (cursor < validRows.length && generation === reportVtGeneration && reportSelectedVts.has(vt)) {
+            const row = validRows[cursor++];
+            try {
+              const result = await overviewAtStats(vt, row.at);
+              row.planned = result.planned; row.scanned = result.scanned; row.missingIds = result.missingIds;
+            } catch(error) {
+              state.failed++;
+              console.warn('[SPX AutoAdd] AT não consultada:',vt,row.at,error);
+            }
+            state.done++;
+            renderOverviewReport();
+            queueOverviewReasonLookup();
+          }
+        }
+        await Promise.all(Array.from({ length: Math.min(2, validRows.length) }, worker));
+        state.status = reportSelectedVts.has(vt) ? 'done' : 'cancelled';
+      } catch(error) {
+        state.status = 'error';
+        state.failed++;
+        console.warn('[SPX AutoAdd] Falha na VT:',vt,error);
+      } finally {
+        if (generation === reportVtGeneration) {
+          renderOverviewReport();
+          queueOverviewReasonLookup();
+        }
+      }
+    });
+  }
+
   function overviewDate(timestamp) {
     const time = Number(timestamp);
     return time ? new Date(time * 1000).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo', hour12:false}) : '';
@@ -871,7 +1066,7 @@
     const records = rows.map(item => {
       const state = item.state || {};
       return {
-        vt, shipmentId: item.shipmentId, at: item.at, route: item.route,
+        vt: item.validationTaskId || vt, shipmentId: item.shipmentId, at: item.at, route: item.route,
         validated: true, reason: state.reason || 'Aguardando consulta',
         reasonCode: state.code || 'PENDING', confidence: state.confidence || 'unknown',
         explanation: state.details || '', generatedAt: new Date().toISOString(),
@@ -910,8 +1105,8 @@
     let content, type, extension;
     if (format === 'json') {
       content = JSON.stringify({
-        schema:'spx-autoadd-vt-missing-v3', exportedAt:new Date().toISOString(),
-        timezone:'America/Sao_Paulo', validatedATsOnly:true, vt,
+        schema:'spx-autoadd-vt-missing-v4', exportedAt:new Date().toISOString(),
+        timezone:'America/Sao_Paulo', validatedATsOnly:true, selectedVTs:sortedReportVts(),
         total:records.length, records
       },null,2);
       type = 'application/json;charset=utf-8'; extension = 'json';
@@ -1019,12 +1214,24 @@
       tab=window.open('','_blank');
       if (!tab) { alert('Permita pop-ups para abrir o relatório da VT.'); return; }
       overviewReportWindow=tab;
+      reportVtGeneration++;
+      reportSelectedVts = new Set([overviewKey]);
+      reportVtCatalog = [{ vt: overviewKey, dateMs: reportVtTimestamp(overviewKey) }];
+      reportVtShown = 6;
+      reportVtPage = 1;
+      reportVtHasMore = true;
+      reportVtCatalogLoading = false;
+      reportVtResults = new Map();
+      reportVtLoadChain = Promise.resolve();
       tab.document.open();
       tab.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoAdd · Relatório da VT</title><style>
         *{box-sizing:border-box}body{margin:0;background:#0b1220;color:#f8fafc;font:13px/1.5 system-ui,Arial,sans-serif}main{max-width:1300px;margin:auto;padding:30px 24px}
         h1{font-size:27px;letter-spacing:-.5px;margin:4px 0}h2{font-size:17px;margin:0 0 12px}p{margin:7px 0}.muted{color:#93a6c1}.eyebrow{font-size:11px;color:#93c5fd;letter-spacing:.12em;font-weight:850}
         .report-head,.report-actions,.donut-row,.section-header{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}.report-head{margin-bottom:22px}.report-actions{justify-content:flex-end}
         button{border:1px solid #42536f;background:#233955;color:#e8f1ff;padding:10px 14px;border-radius:9px;font-weight:750;cursor:pointer}
+        .vt-filters{margin-bottom:18px;padding:16px 18px}.vt-filter-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.vt-filter-head h2{margin:0;font-size:15px}.vt-filter-head p{font-size:11px}.vt-selected-count{font-size:11px;color:#bfdbfe;background:#2563eb26;border-radius:20px;padding:5px 10px}
+        .vt-filter-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}.vt-option{display:flex;align-items:center;gap:9px;min-width:0;cursor:pointer;background:#1c2d45;border:1px solid #394c67;border-radius:10px;padding:10px 9px;font-size:11px}.vt-option:has(input:checked){background:#1c3b59;border-color:#60a5fa}.vt-option input{accent-color:#3b82f6;flex:none}.vt-option span{min-width:0}.vt-option strong{display:block;overflow-wrap:anywhere;font-size:10.5px}.vt-option small{display:block;margin-top:3px;color:#9ab0c8}.vt-all{background:#253650;font-weight:750}.vt-filter-actions{display:flex;align-items:center;gap:12px}.vt-filter-actions button{font-size:11px;padding:8px 12px}.vt-selection-note{color:#fbbf24;font-size:11px}
+        @media(max-width:850px){.vt-filter-options{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:460px){.vt-filter-options{grid-template-columns:1fr}}
         .notice{padding:12px 14px;background:#142944;border:1px solid #2e557f;color:#c7d9f5;border-radius:9px;margin-bottom:18px}
         .metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}.metric,.panel{background:#152136;border:1px solid #31415b;border-radius:14px;padding:19px}.metric span{font-size:11px;color:#99aecb;display:block}.metric strong{display:block;margin-top:7px;font-size:26px}.green{color:#22c55e}.red{color:#ef4444}
         .charts,.sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.donut-row{justify-content:flex-start;gap:30px;min-height:200px}.donut{width:177px;height:177px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}.donut>div{background:#152136;width:121px;height:121px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:24px;font-weight:900}.donut small{font-size:11px;font-weight:400;color:#9fb0c9}
@@ -1050,12 +1257,13 @@
         button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
         .route{border-radius:11px;background:#1b2b43}.eyebrow{color:#93c5fd}
                 @media print{#spx-report-loading-popup{display:none!important}body{background:white;color:#172033}.panel,.metric,.route{background:white;color:#172033;border-color:#d0d7e0}button{display:none}.notice{color:#172033;background:white}.muted,footer{color:#475569}}
-      </style></head><body><main id="spx-report-content"></main><aside id="spx-report-loading-popup" role="status" aria-live="off" hidden></aside></body></html>`);
+      </style></head><body><main><section id="spx-report-vt-filters" class="panel vt-filters"></section><div id="spx-report-content"></div></main><aside id="spx-report-loading-popup" role="status" aria-live="off" hidden></aside></body></html>`);
       tab.document.close();
     }
     renderOverviewReport();
     queueOverviewReasonLookup();
     renderOverviewLoadingPopup();
+    if (reportVtPage === 1 && !reportVtCatalogLoading) void loadReportVtCatalog();
     tab.focus();
   }
 

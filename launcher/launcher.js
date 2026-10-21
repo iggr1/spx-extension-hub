@@ -3,6 +3,40 @@ const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/
 const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.1.0';
 const SUSPENDED_MODULES = new Set(['importador-de-planilhas']);
 
+const MODULE_ICON_PATHS = Object.freeze({
+  'spx-dock-flow': '<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-5l-3-5h-5"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  'spx-dock-flow-autoadd': '<circle cx="6" cy="19" r="2"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="2"/>',
+  'assistente-de-devolucoes': '<path d="m12 2 8 4.5v10L12 21l-8-4.5v-10L12 2Z"/><path d="m4 6.5 8 4.5 8-4.5"/><path d="M12 11v10"/><path d="M17.5 14.5h-4a2.5 2.5 0 0 0 0 5h2"/><path d="m15 17.5 2.5 2-2.5 2"/>'
+});
+
+const ACCESS_ICONS = Object.freeze({
+  open: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+  closed: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
+});
+
+function moduleSvg(paths) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+}
+
+function renderModuleIcon(module) {
+  const paths = MODULE_ICON_PATHS[module.id];
+  return paths ? moduleSvg(paths) : escapeHtml(module.name.slice(0, 2).toUpperCase());
+}
+
+function renderModuleAccess(module, permission) {
+  if (module.id === 'assistente-de-devolucoes') {
+    return '<div class="module-access is-limited" role="status" title="Uso condicionado às permissões da conta SPX">' +
+      moduleSvg(ACCESS_ICONS.closed) + '<span>Acesso restrito.</span></div>';
+  }
+  if (permission.loading) {
+    return '<div class="module-access is-loading" role="status"><span class="access-spinner" aria-hidden="true"></span><span>Verificando acesso...</span></div>';
+  }
+  return '<div class="module-access ' + (permission.allowed ? 'is-approved' : 'is-locked') + '" role="status">' +
+    moduleSvg(permission.allowed ? ACCESS_ICONS.open : ACCESS_ICONS.closed) +
+    '<span>' + escapeHtml(permission.allowed ? 'Acesso liberado.' : permission.message) + '</span></div>';
+}
+
+
 const grid = document.getElementById('moduleGrid');
 const status = document.getElementById('status');
 const loaderVersion = document.getElementById('loaderVersion');
@@ -24,6 +58,7 @@ let pdfRenderToken = 0;
 let currentModules = [];
 let currentLoaderVersion = '0.0.0';
 const userScriptStates = new Map();
+let userScriptStatusGeneration = 0;
 
 document.getElementById('refreshButton').addEventListener('click', () => loadModules(true));
 document.getElementById('updateLoaderButton').addEventListener('click', () => {
@@ -40,6 +75,7 @@ window.addEventListener('spx-auth-change', renderModules);
 loadModules(false);
 
 async function loadModules(forceRefresh) {
+  userScriptStatusGeneration++;
   status.textContent = 'Atualizando catálogo...';
 
   try {
@@ -102,14 +138,11 @@ function renderModules() {
 
     return `
       <article class="module-card${permission.allowed ? '' : ' is-restricted'}${permission.loading ? ' is-loading' : ''}" aria-busy="${Boolean(permission.loading)}" ${permission.loading ? 'inert' : ''} data-module-card="${escapeHtml(module.id)}">
-        <div class="module-icon">${escapeHtml(module.name.slice(0, 2).toUpperCase())}</div>
+        <div class="module-icon">${renderModuleIcon(module)}</div>
         <h2>${escapeHtml(module.name)}</h2>
         <p>${escapeHtml(module.description || 'Módulo operacional publicado no hub.')}</p>
         ${module.id === 'assistente-de-devolucoes' ? '<p class="module-requirement">Somente login SPX com e-mail @shopee.com e permissões para resolver e cancelar ocorrências.</p>' : ''}
-        <div class="module-access ${permission.allowed ? 'is-approved' : 'is-locked'}" role="status">
-          ${permission.loading ? '<span class="access-spinner" aria-hidden="true"></span>' : permission.allowed ? '' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
-          <span>${escapeHtml(permission.message)}</span>
-        </div>
+        ${renderModuleAccess(module, permission)}
         <div class="module-footer">
           <span class="module-version">v${escapeHtml(module.version)}</span>
           <div class="module-actions">${actions}</div>
@@ -200,16 +233,21 @@ function renderUserScriptSwitch(module) {
   `;
 }
 
+function waitForUserScriptStatus(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 async function loadUserScriptStates() {
   const modules = currentModules.filter(module => module.type === 'user_script');
   if (!modules.length) return;
+  const generation = ++userScriptStatusGeneration;
 
   if (compareVersions(currentLoaderVersion, USER_SCRIPT_SWITCH_MIN_LOADER_VERSION) < 0) {
     for (const module of modules) {
       userScriptStates.set(module.id, {
         enabled: false,
         unavailable: true,
-        message: `Clique em “Atualizar loader” no topo para instalar a versão atual.`
+        message: 'Clique em “Atualizar loader” no topo para instalar a versão atual.'
       });
     }
     renderModules();
@@ -217,30 +255,50 @@ async function loadUserScriptStates() {
   }
 
   await Promise.all(modules.map(async module => {
-    try {
-      const response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
-      if (!response?.ok) {
-        throw new Error(response?.error || 'Não foi possível consultar o estado do módulo.');
-      }
-
+    const original = userScriptStates.get(module.id);
+    if (!original?.busy) {
       userScriptStates.set(module.id, {
-        enabled: response.enabled === true,
-        registered: response.registered === true,
-        message: response.enabled
-          ? activeScriptMessage(module)
-          : 'Desativado.'
-      });
-    } catch (error) {
-      userScriptStates.set(module.id, {
-        enabled: false,
-        unavailable: true,
-        error: true,
-        message: normalizeSwitchError(error)
+        ...original,
+        loading: true,
+        unavailable: false,
+        error: false,
+        message: 'Verificando estado dos scripts...'
       });
     }
-  }));
+    renderModules();
 
-  renderModules();
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (generation !== userScriptStatusGeneration) return;
+      try {
+        const response = await LoaderBridge.requestForModule(module.id, 'userscripts.status');
+        if (!response?.ok) throw new Error(response?.error || 'Não foi possível consultar o estado do módulo.');
+        if (generation !== userScriptStatusGeneration || userScriptStates.get(module.id)?.busy) return;
+        userScriptStates.set(module.id, {
+          enabled: response.enabled === true,
+          registered: response.registered === true,
+          message: response.enabled ? activeScriptMessage(module) : 'Desativado.'
+        });
+        renderModules();
+        return;
+      } catch (error) {
+        if (generation !== userScriptStatusGeneration) return;
+        if (attempt < 3) {
+          await waitForUserScriptStatus([400, 950, 1850][attempt]);
+          continue;
+        }
+        if (userScriptStates.get(module.id)?.busy) return;
+        userScriptStates.set(module.id, {
+          ...original,
+          enabled: original?.enabled === true,
+          unavailable: true,
+          error: true,
+          loading: false,
+          message: 'Não foi possível confirmar o estado. Clique em “Atualizar lista” para tentar novamente.'
+        });
+        renderModules();
+      }
+    }
+  }));
 }
 
 async function toggleUserScript(module, enabled) {

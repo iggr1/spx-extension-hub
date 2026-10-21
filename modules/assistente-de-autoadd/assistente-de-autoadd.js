@@ -617,6 +617,46 @@
     };
   }
 
+  function overviewEhaReason(message) {
+    const value = String(message || '').replace(/\s+/g, ' ').trim();
+    const plain = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/\bsolicitacao\s+de\s+rts\b/i.test(plain)) return 'Solicitação de RTS — encaminhado ao EHA';
+    return value.replace(/\s*[—-]\s*encaminhado\s+ao\s+eha\.?$/i, '').replace(/\s*\.?$/, '') + ' — encaminhado ao EHA';
+  }
+
+  function overviewEhaException(events, origin, at, getAts, build) {
+    const nextAt = events.findIndex(event =>
+      [49, 50].includes(Number(event.status)) && getAts(event).some(other => other !== at));
+    const inAt = nextAt < 0 ? events : events.slice(0, nextAt);
+    if (inAt.some(event => Number(event.status) === 2)) return null;
+    const firstMissing = inAt.findIndex(event =>
+      Number(event.status) === 581 || /order marked as missing/i.test(String(event.message || '')));
+    const cycle = firstMissing < 0 ? inAt : inAt.slice(0, firstMissing);
+    const ehaEvent = cycle.find(event =>
+      Number(event.status) === 580 &&
+      Number(event.station_id) === Number(origin.station_id) &&
+      /\beha\b/i.test(String(event.message || '')));
+    if (!ehaEvent) return null;
+    const reasons = cycle.filter(event =>
+      [650, 574, 646].includes(Number(event.status)) &&
+      Number(event.station_id) === Number(origin.station_id) &&
+      String(event.message || '').trim() &&
+      !/^(?:ticket submitted|all exceptions have been resolved|exception,?\s*put in eha\.?|-|resolved)$/i.test(String(event.message || '').trim()));
+    reasons.sort((a, b) => {
+      const rank = event => Number(event.status) === 650 ? 0 : Number(event.status) === 574 ? 1 : 2;
+      return rank(a) - rank(b) || Number(a.timestamp) - Number(b.timestamp);
+    });
+    const cause = reasons[0];
+    if (!cause) return { ...build('EHA_SEM_MOTIVO',
+      'Encaminhado ao EHA — motivo não informado no histórico', ehaEvent, 'probable'), ehaEvent };
+    const message = String(cause.message).trim();
+    const plain = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const code = /\bsolicitacao\s+de\s+rts\b/i.test(plain) ? 'RTS_EHA' :
+      /pacote\s+nao\s+coube\s+no\s+veiculo/i.test(plain) ? 'CAPACIDADE' :
+      /etiqueta\s+avariada/i.test(plain) ? 'ETIQUETA' : 'EHA_EXCECAO';
+    return { ...build(code, overviewEhaReason(message), cause), exceptionEvent: cause, ehaEvent };
+  }
+
   function classifyAutoAddHistory(events, assignmentTaskId) {
     const at = String(assignmentTaskId || '').toUpperCase();
     const getAts = event => String(event?.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
@@ -641,6 +681,8 @@
       elapsedMinutes: Math.max(0, Math.round((Number(evidence?.timestamp) - Number(origin.timestamp)) / 60 * 10) / 10),
       eventsAfterOrigin: after, sourceContext
     });
+    const ehaClassification = overviewEhaException(after, origin, at, getAts, build);
+    if (ehaClassification) return ehaClassification;
     for (let i = 0; i < after.length; i++) {
       const event = after[i];
       const status = Number(event.status);
@@ -653,23 +695,7 @@
             'Pedido não separado ou separado incorretamente', event, 'probable');
       }
       if (/pacote n[aã]o coube no ve[ií]culo/i.test(message)) return build('CAPACIDADE', 'Não coube no veículo — capacidade insuficiente', event);
-      if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada — encaminhado ao EHA', event);
-      if ([650, 574, 646].includes(status) &&
-          /\bsolicitacao\s+de\s+rts\b/i.test(message.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) {
-        const remainder = after.slice(i + 1);
-        const nextCycle = remainder.findIndex(item =>
-          Number(item.status) === 2 ||
-          (Number(item.status) === 49 && getAts(item).some(other => other !== at)));
-        const sameCycle = nextCycle < 0 ? remainder : remainder.slice(0, nextCycle);
-        const eha = sameCycle.find(item =>
-          Number(item.status) === 580 &&
-          Number(item.station_id) === Number(origin.station_id) &&
-          /\beha\b/i.test(String(item.message || '')));
-        if (eha) return {
-          ...build('RTS_EHA', 'Solicitação de RTS — encaminhado ao EHA', event),
-          rtsEvent: event, ehaEvent: eha
-        };
-      }
+      if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada', event);
       const mentioned = getAts(event);
       if (status === 49 && mentioned.includes(at) && !isPolygon(event) && localTime(event.timestamp) !== localTime(origin.timestamp)) {
         const nextNewRoute = after.slice(i + 1).findIndex(item => Number(item.status) === 49 && getAts(item).some(x => x !== at));
@@ -820,7 +846,8 @@
           classified.vehicleRaw = vehicle.raw || '';
           classified.vehicleField = vehicle.field || '';
           classified.vehicleLookupError = vehicle.error || '';
-          classified.reason = 'Pacote não coube no veículo - Veículo: ' + (vehicle.type || 'não identificado');
+          classified.reason = 'Pacote não coube no veículo - Veículo: ' + (vehicle.type || 'não identificado') +
+            (classified.ehaEvent ? ' — encaminhado ao EHA' : '');
         }
         overviewReasons.set(key, { ...classified, loading: false, analyzedAt: Date.now(), expiresAt: Date.now() + OVERVIEW_REASON_CACHE_MS });
       })().catch(error => overviewReasons.set(key, {

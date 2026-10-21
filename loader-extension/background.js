@@ -9,6 +9,8 @@ const LOADER_PAGE = 'loader.html';
 let catalogPromise = null;
 let catalogMemory = null;
 let captureProfiles = [];
+let userScriptsRefreshSignature = '';
+let userScriptsRefreshPromise = null;
 
 chrome.runtime.onInstalled.addListener(async () => {
   const stored = await chrome.storage.local.get([CATALOG_URL_KEY]);
@@ -191,9 +193,29 @@ function applyCatalog(catalog) {
     }
   }
 
-  refreshEnabledUserScripts(catalog).catch(error => {
-    console.warn('SPX Loader: não foi possível atualizar os user scripts ativos.', error);
-  });
+  const signature = JSON.stringify(catalog.modules
+    .filter(module => module.enabled && module.type === 'user_script')
+    .map(module => ({
+      id: module.id,
+      version: module.version,
+      userScripts: module.userScripts
+    })));
+
+  if (signature !== userScriptsRefreshSignature) {
+    const previous = userScriptsRefreshPromise;
+    userScriptsRefreshSignature = signature;
+    const pending = (async () => {
+      if (previous) await previous.catch(() => {});
+      await refreshEnabledUserScripts(catalog);
+    })();
+    userScriptsRefreshPromise = pending;
+    pending.catch(error => {
+      console.warn('SPX Loader: não foi possível atualizar os user scripts ativos.', error);
+      if (userScriptsRefreshSignature === signature) userScriptsRefreshSignature = '';
+    }).finally(() => {
+      if (userScriptsRefreshPromise === pending) userScriptsRefreshPromise = null;
+    });
+  }
 }
 
 function validateCatalog(input) {
@@ -666,6 +688,7 @@ async function ensureUserScriptsAvailable() {
 }
 
 async function getUserScriptsStatus(module) {
+  if (userScriptsRefreshPromise) await userScriptsRefreshPromise.catch(() => {});
   if (module.type !== 'user_script') {
     return failure('INVALID_MODULE_TYPE', 'Este módulo não é um user script.');
   }
@@ -690,6 +713,7 @@ async function getUserScriptsStatus(module) {
 }
 
 async function setUserScriptsEnabled(module, enabled) {
+  if (userScriptsRefreshPromise) await userScriptsRefreshPromise.catch(() => {});
   if (module.type !== 'user_script') {
     return failure('INVALID_MODULE_TYPE', 'Este módulo não é um user script.');
   }

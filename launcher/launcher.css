@@ -24,7 +24,10 @@ button:disabled { cursor: not-allowed; opacity: .4; }
 .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
 .module-card { position: relative; display: flex; flex-direction: column; min-height: 252px; padding: 22px; overflow: hidden; border: 1px solid #2b3240; border-radius: 18px; background: linear-gradient(145deg, rgba(28,33,43,.95), rgba(17,20,27,.95)); box-shadow: 0 20px 60px rgba(0,0,0,.22); }
 .module-card::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 100% 0%, rgba(255,101,0,.16), transparent 38%); }
-.module-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 13px; background: #ff6500; font-weight: 900; font-size: 20px; }
+.module-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 13px; background: #ff6500; color: #fff; font-weight: 900; font-size: 20px; }
+.module-icon svg { display: block; width: 28px; height: 28px; }
+[data-module-card="spx-dock-flow-autoadd"] .module-icon { background: #174780; color: #93c5fd; border: 1px solid #2963a0; }
+[data-module-card="assistente-de-devolucoes"] .module-icon { background: #584319; color: #ffe08a; border: 1px solid #8e6a29; }
 .module-card h2 { position: relative; z-index: 1; margin: 20px 0 7px; font-size: 22px; }
 .module-card p { position: relative; z-index: 1; margin: 0; color: #abb2c0; line-height: 1.5; }
 .module-footer { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 22px; }
@@ -167,7 +170,9 @@ button:disabled {
   line-height: 1.5;
 }
 .module-access span { min-width: 0; overflow-wrap: anywhere; }
-.module-access svg { width: 17px; height: 17px; flex-shrink: 0; }
+.module-access svg { width: 15px; height: 15px; flex-shrink: 0; }
+.module-access.is-loading { background: #222b39; border-color: #3a4658; color: #d0d9e7; }
+.module-access.is-limited { background: #332b15; border-color: #786229; color: #ffdf83; }
 .module-access.is-locked { background: #30251e; border-color: #5a402d; color: #ffc08c; }
 .module-access.is-approved { background: #152e27; border-color: #295643; color: #8ce0b6; }
 .module-footer { flex-wrap: wrap; padding-top: 20px; }

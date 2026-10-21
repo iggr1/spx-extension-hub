@@ -89,7 +89,7 @@
       "id": "spx-dock-flow-autoadd",
       "name": "Assistênte de AutoAdd",
       "description": "Acompanha AutoAdd em ATs e VTs e notifica AutoAdd no recebimento.",
-      "version": "1.2.7",
+      "version": "1.2.8",
       "enabled": true,
       "type": "user_script",
       "permissions": [

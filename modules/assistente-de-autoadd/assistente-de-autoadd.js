@@ -383,6 +383,7 @@
   let overviewController = null;
   let overviewReportRows = [];
   let overviewReportProgress = { done: 0, total: 0, failed: 0 };
+  let overviewLoadingTargets = false;
   let overviewReportWindow = null;
   const overviewReasons = new Map();
   let overviewReasonBusy = 0;
@@ -704,6 +705,7 @@
       const current = overviewReasons.get(key);
       if (current && (current.loading || current.expiresAt > Date.now())) continue;
       overviewReasons.set(key, { reason: 'Consultando histórico...', loading: true, expiresAt: Date.now() + 60000 });
+      renderOverviewLoadingPopup();
       overviewReasonBusy++;
       const now = Date.now();
       const delay = Math.max(0, overviewReasonNextRequestAt - now);
@@ -737,6 +739,55 @@
     }
   }
 
+
+  function overviewReasonReady(state) {
+    return Boolean(state && !state.loading && state.code &&
+      !['UNMAPPED', 'FETCH_ERROR'].includes(state.code) && state.reason);
+  }
+
+  function overviewLoadStats() {
+    const missing = reportData().missing;
+    const now = Date.now();
+    const historiesDone = missing.filter(item => {
+      const state = overviewReasons.get(item.shipmentId + '|' + item.at);
+      return state && !state.loading && Number(state.expiresAt) > now;
+    }).length;
+    const classified = missing.filter(item =>
+      overviewReasonReady(overviewReasons.get(item.shipmentId + '|' + item.at))).length;
+    const { done, total, failed } = overviewReportProgress;
+    const active = overviewLoadingTargets || done < total || historiesDone < missing.length;
+    return {
+      active, targetsLoading: overviewLoadingTargets, atsDone: done, atsTotal: total,
+      failed, historiesDone, historiesTotal: missing.length, classified,
+      historiesPending: missing.length - historiesDone
+    };
+  }
+
+  function renderOverviewLoadingPopup() {
+    const tab = overviewReportWindow;
+    if (!tab || tab.closed) return;
+    const popup = tab.document.getElementById('spx-report-loading-popup');
+    if (!popup) return;
+    const p = overviewLoadStats();
+    popup.hidden = !p.active;
+    if (!p.active) return;
+    const percent = p.targetsLoading ? 0 :
+      Math.min(99, Math.floor((p.atsDone + p.historiesDone) /
+      Math.max(1, p.atsTotal + p.historiesTotal) * 100));
+    const stage = p.targetsLoading ? 'Localizando ATs validadas...' :
+      p.atsDone < p.atsTotal ? 'Consultando ATs e pedidos...' :
+      'Analisando históricos dos pedidos...';
+    popup.innerHTML = `<div class="loading-title"><span class="loading-spinner" aria-hidden="true"></span>Carregando relatório AutoAdd</div>
+      <p class="loading-subtitle">${stage}</p>
+      <div class="loading-row"><span>ATs consultadas</span><strong>${p.targetsLoading ? '—' : p.atsDone + '/' + p.atsTotal}</strong></div>
+      <div class="loading-row"><span>Históricos analisados</span><strong>${p.historiesDone}/${p.historiesTotal}</strong></div>
+      <div class="loading-row"><span>Motivos classificados</span><strong>${p.classified}</strong></div>
+      <div class="loading-row"><span>Históricos pendentes</span><strong>${p.historiesPending}</strong></div>
+      ${p.failed ? '<div class="loading-row loading-warning"><span>Falhas nas ATs</span><strong>' + p.failed + '</strong></div>' : ''}
+      <div class="loading-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
+        <i style="width:${percent}%"></i>
+      </div>${p.targetsLoading ? '<small class="loading-indeterminate">Identificando o total de ATs...</small>' : ''}`;
+  }
 
   function overviewDate(timestamp) {
     const time = Number(timestamp);
@@ -845,7 +896,8 @@
       }));
       const reasonCounts = new Map();
       missingRows.forEach(item => {
-        const name = item.state?.reason || 'Aguardando consulta';
+        if (!overviewReasonReady(item.state)) return;
+        const name = item.state.reason;
         reasonCounts.set(name, (reasonCounts.get(name) || 0) + 1);
       });
       const reasonsSorted = [...reasonCounts].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
@@ -855,7 +907,7 @@
         '</span><strong>' + quantity + '</strong></div><div class="reason-track"><i style="width:' +
         Math.max(2,quantity/maxReason*100) + '%"></i></div></div>'
       ).join('');
-      const classifiedCount = missingRows.filter(item => item.state?.code && !['UNMAPPED','FETCH_ERROR'].includes(item.state.code)).length;
+      const classifiedCount = missingRows.filter(item => overviewReasonReady(item.state)).length;
       const missingDetails = missingRows.map(item => {
         const state = item.state;
         return '<tr><td><strong>' + reportEscape(item.shipmentId) + '</strong></td><td>' +
@@ -877,11 +929,12 @@
         <div class="charts"><section class="panel"><h2>Qualidade por rota</h2><div class="donut-row"><div class="donut" style="background:${qualityPie}"><div>${classes}<small>rotas</small></div></div><div class="legend"><div><i style="background:#ef4444"></i> Críticas (&lt;60%) <b>${data.red}</b></div><div><i style="background:#f59e0b"></i> Atenção (60–89%) <b>${data.yellow}</b></div><div><i style="background:#22c55e"></i> Boas (≥90%) <b>${data.green}</b></div></div></div></section>
         <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${data.percent}%<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
         <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${item.pct}% concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
-        <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p><div class="missing-reasons"><div class="section-header"><h3>Motivos dos AutoAdd faltantes</h3><span>${classifiedCount}/${missingRows.length} classificados</span></div><div class="reason-list">${reasonGraph || '<p class="muted">Nenhuma pendência nas ATs validadas.</p>'}</div></div><div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo principal</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
+        <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p>${reasonGraph ? '<div class="missing-reasons"><div class="section-header"><h3>Motivos dos AutoAdd faltantes</h3><span>' + classifiedCount + '/' + missingRows.length + ' classificados</span></div><div class="reason-list">' + reasonGraph + '</div></div>' : ''}<div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo principal</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
         <section class="panel"><div class="section-header"><h2>Detalhamento das ATs validadas</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
         <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
       doc.querySelector('[data-missing-csv]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'csv');
       doc.querySelector('[data-missing-json]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'json');
+      renderOverviewLoadingPopup();
     } catch (error) { console.warn('[SPX AutoAdd] Relatório indisponível:',error); }
   }
 
@@ -905,17 +958,30 @@
         .offender{display:flex;align-items:center;gap:12px;border-top:1px solid #31415b;padding:12px 0}.offender>div{flex:1}.offender small{display:block;color:#93a6c1}.offender b{color:#fda4af}.rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#3f2636;color:#fda4af;font-weight:850}
         .missing-table-wrap{overflow-x:auto;max-height:330px;overflow-y:auto}.missing-table{width:100%;border-collapse:collapse;font-size:11px;text-align:left}.missing-table th,.missing-table td{padding:9px 8px;border-bottom:1px solid #30415b;vertical-align:top}.missing-table th{position:sticky;top:0;background:#152136;color:#93a6c1}.missing-table small{display:block;margin-top:3px;color:#93a6c1}
         .missing-reasons{padding:14px 0 18px;margin:14px 0 16px;border-top:1px solid #30415b;border-bottom:1px solid #30415b}.missing-reasons .section-header{margin-bottom:13px}.missing-reasons h3{font-size:13px;font-weight:750;margin:0}.reason-list{display:grid;grid-template-columns:minmax(0,1fr);gap:13px}.reason-row{min-width:0}.reason-info{display:flex;align-items:start;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:6px;color:#d7e5f7}.reason-info strong{font-size:13px;color:#f8fafc}.reason-track{height:9px;background:#30435f;border-radius:20px;overflow:hidden}.reason-track i{display:block;background:linear-gradient(90deg,#2563eb,#60a5fa);height:100%;border-radius:20px}.reason-row:last-child .reason-track i{background:#64748b}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.route{background:#192a42;border:1px solid #304664;border-radius:11px;padding:13px}.route-title{display:grid;grid-template-columns:1fr auto;gap:0 8px}.route-title strong{font-size:15px}.route-title small{grid-column:1;color:#93a6c1}.route-title b{grid-column:2;grid-row:1/3;font-size:17px}.bar{height:8px;border-radius:99px;overflow:hidden;background:#34455f;margin:10px 0}.bar i{display:block;height:100%;border-radius:99px}.route-meta{display:flex;justify-content:space-between;font-size:11px;color:#a6b8d0}.route-meta strong{color:#f8fafc}.section-header span{color:#94a3b8;font-size:11px}
+        #spx-report-loading-popup{position:fixed;right:18px;bottom:18px;z-index:9999;width:min(306px,calc(100vw - 36px));padding:17px;border-radius:14px;background:#14243b;border:1px solid #36516f;color:#eef5ff;box-shadow:0 18px 54px #0009}
+        #spx-report-loading-popup[hidden]{display:none!important}
+        .loading-title{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800}
+        .loading-spinner{width:16px;height:16px;flex:none;border:2px solid #466587;border-top-color:#60a5fa;border-radius:50%;animation:spin .85s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .loading-subtitle{font-size:11px;color:#a5bfdf;margin:7px 0 12px}
+        .loading-row{display:flex;justify-content:space-between;gap:16px;font-size:11px;color:#c4d3e6;margin:7px 0}
+        .loading-row strong{color:#fff;font-size:12px}
+        .loading-warning strong{color:#fbbf24}
+        .loading-progress{height:7px;overflow:hidden;background:#304560;border-radius:99px;margin-top:13px}
+        .loading-progress i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width .3s ease}
+        .loading-indeterminate{display:block;margin-top:6px;font-size:10px;color:#a5bfdf}
         footer{color:#91a5c0;font-size:11px;margin-top:20px;padding-bottom:25px} @media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.route-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){main{padding:16px}.metrics{grid-template-columns:repeat(2,1fr)}.charts,.sections,.route-grid{grid-template-columns:1fr}.donut{width:145px;height:145px}.donut>div{width:100px;height:100px}}
         body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#0b1220}main{max-width:1260px}
         .panel,.metric{border-radius:14px;background:#152238;border-color:#334155}button{background:#23344d;border:1px solid #3b4a60;border-radius:9px}button:hover{background:#30445d}
         button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
         .route{border-radius:11px;background:#1b2b43}.eyebrow{color:#93c5fd}
-                @media print{body{background:white;color:#172033}.panel,.metric,.route{background:white;color:#172033;border-color:#d0d7e0}button{display:none}.notice{color:#172033;background:white}.muted,footer{color:#475569}}
-      </style></head><body><main id="spx-report-content"></main></body></html>`);
+                @media print{#spx-report-loading-popup{display:none!important}body{background:white;color:#172033}.panel,.metric,.route{background:white;color:#172033;border-color:#d0d7e0}button{display:none}.notice{color:#172033;background:white}.muted,footer{color:#475569}}
+      </style></head><body><main id="spx-report-content"></main><aside id="spx-report-loading-popup" role="status" aria-live="off" hidden></aside></body></html>`);
       tab.document.close();
     }
     renderOverviewReport();
     queueOverviewReasonLookup();
+    renderOverviewLoadingPopup();
     tab.focus();
   }
 
@@ -975,6 +1041,8 @@
     }
     const controller = new AbortController();
     overviewController = controller;
+    overviewLoadingTargets = true;
+    renderOverviewLoadingPopup();
     overviewMessage('<span>Consultando ATs e pedidos AutoAdd da VT...</span>');
     try {
       const allAts = await fetchOverviewTargets(vt, controller.signal);
@@ -983,6 +1051,7 @@
       const rows = ats.map(item => ({ ...item, planned: null, scanned: null }));
       overviewReportRows = rows;
       overviewReportProgress = { done: 0, total: ats.length, failed: 0 };
+      overviewLoadingTargets = false;
       renderOverviewReport();
       let index = 0;
       let done = 0;
@@ -1035,6 +1104,8 @@
       if (!controller.signal.aborted) overviewMessage('<span style="color:#fca5a5">' + String(error.message || error).replace(/[&<>"]/g, '') + '</span>');
     } finally {
       if (overviewController === controller) {
+        overviewLoadingTargets = false;
+        renderOverviewLoadingPopup();
         overviewController = null;
         clearTimeout(overviewTimer);
         if (overviewKey === vt) overviewTimer = setTimeout(() => refreshOverview(vt), OVERVIEW_REFRESH_MS);
@@ -1052,6 +1123,7 @@
     overviewKey = vt || '';
     overviewReportRows = [];
     overviewReportProgress = { done: 0, total: 0, failed: 0 };
+    overviewLoadingTargets = false;
     if (overviewReportWindow && !overviewReportWindow.closed) { overviewReportWindow.close(); }
     overviewReportWindow = null;
     if (vt) void refreshOverview(vt);

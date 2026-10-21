@@ -257,7 +257,7 @@
     const loaded = rows.filter(item => item.scanned).length;
     const total = rows.length;
     const pending = Math.max(0, total - loaded);
-    const percent = total ? Math.round((loaded / total) * 100) : 100;
+    const percent = total ? loaded / total * 100 : 100;
 
     nodes.titleSmall.textContent = `${context.assignmentTaskId}${total ? ` · ${pending ? `${pending} pendente${pending === 1 ? '' : 's'}` : 'completo'}` : ''}`;
     nodes.badge.textContent = total ? (pending ? String(pending) : '✓') : '0';
@@ -270,7 +270,7 @@
       nodes.content.innerHTML = '<div class="message">Rota sem AutoAdd</div>';
     } else {
       nodes.summaryLabel.textContent = `${loaded} de ${total} carregado${loaded === 1 ? '' : 's'}`;
-      nodes.summaryValue.textContent = `${percent}%`;
+      nodes.summaryValue.textContent = formatPercent(percent);
       const list = document.createElement('div');
       list.className = 'list';
       for (const item of rows) {
@@ -418,6 +418,15 @@
     const params = new URLSearchParams(location.hash.split('?')[1] || '');
     const vt = String(params.get('vt-task-id') || params.get('vt_task_id') || params.get('task_id') || '').toUpperCase();
     return /^VT[A-Z0-9]+$/.test(vt) ? vt : null;
+  }
+
+  const percentFormatter = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  function formatPercent(value) {
+    return percentFormatter.format(Number.isFinite(Number(value)) ? Number(value) : 0) + '%';
   }
 
   function overviewColor(p) {
@@ -574,7 +583,7 @@
     const rows = reportRows().filter(item => item.validated === true && Number.isFinite(item.planned) && Number.isFinite(item.scanned));
     const active = rows.filter(item => item.planned > 0).map(item => ({
       ...item, pending: Math.max(0, item.planned - item.scanned),
-      pct: Math.round(Math.min(100, item.scanned / item.planned * 100))
+      pct: Math.min(100, item.scanned / item.planned * 100)
     }));
     const planned = active.reduce((n,item) => n + item.planned, 0);
     const scanned = active.reduce((n,item) => n + item.scanned, 0);
@@ -582,7 +591,7 @@
       shipmentId, at: item.at, route: item.route, validationTaskId: item.validationTaskId || overviewKey
     })));
     return { rows, active, missing, planned, scanned, pending: Math.max(0, planned-scanned),
-      percent: planned ? Math.round(scanned / planned * 100) : 0,
+      percent: planned ? scanned / planned * 100 : 0,
       red: active.filter(item=>item.pct<60).length,
       yellow: active.filter(item=>item.pct>=60&&item.pct<90).length,
       green: active.filter(item=>item.pct>=90).length };
@@ -1155,7 +1164,7 @@
       const ranking = [...data.active].sort((a,b)=>b.pending-a.pending || a.pct-b.pct);
       const offenders = ranking.filter(item=>item.pending>0).slice(0,8);
       const routeCards = [...data.active].sort((a,b)=>a.pct-b.pct || b.pending-a.pending).map(item => `
-        <article class="route"><div class="route-title"><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)}</small><b style="color:${overviewColor(item.pct)}">${item.pct}%</b></div>
+        <article class="route"><div class="route-title"><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)}</small><b style="color:${overviewColor(item.pct)}">${formatPercent(item.pct)}</b></div>
         <div class="bar"><i style="width:${item.pct}%;background:${overviewColor(item.pct)}"></i></div>
         <div class="route-meta"><span>${item.scanned} de ${item.planned} carregados</span><strong>${item.pending} pendentes</strong></div></article>`).join('');
       const qualityPie = `conic-gradient(#ef4444 0 ${redPercent}%,#f59e0b ${redPercent}% ${redPercent+yellowPercent}%,#22c55e ${redPercent+yellowPercent}% 100%)`;
@@ -1194,13 +1203,13 @@
         <div class="report-head"><div><div class="eyebrow">DESEMPENHO DA OPERAÇÃO</div><h1>Relatório AutoAdd das VTs</h1><p class="muted">${reportEscape(sortedReportVts().join(' · '))} · ${new Date().toLocaleString('pt-BR')} · Apenas ATs validadas</p></div>
         <div class="report-actions"><span class="muted">Somente ATs validadas</span></div></div>
         <p class="notice">${isPartial ? 'Relatório parcial: '+done+' de '+total+' ATs verificadas'+(failed?' · '+failed+' falhas de consulta':'')+'. Os percentuais usam somente ATs com dados confirmados.' : 'Relatório consolidado: '+done+' ATs verificadas.'} </p>
-        <div class="metrics"><div class="metric"><span>Pedidos AutoAdd</span><strong>${data.planned}</strong></div><div class="metric"><span>Carregados</span><strong class="green">${data.scanned}</strong></div><div class="metric"><span>Pendentes</span><strong class="red">${data.pending}</strong></div><div class="metric"><span>Taxa de carregamento</span><strong style="color:${color}">${data.percent}%</strong></div><div class="metric"><span>Rotas com AutoAdd</span><strong>${classes}</strong></div></div>
-        <div class="charts"><section class="panel"><h2>Qualidade por rota</h2><div class="donut-row"><div class="donut" style="background:${qualityPie}"><div>${classes}<small>rotas</small></div></div><div class="legend"><div><i style="background:#ef4444"></i> Críticas (&lt;60%) <b>${data.red}</b></div><div><i style="background:#f59e0b"></i> Atenção (60–89%) <b>${data.yellow}</b></div><div><i style="background:#22c55e"></i> Boas (≥90%) <b>${data.green}</b></div></div></div></section>
-        <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${data.percent}%<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
-        <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${item.pct}% concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
+        <div class="metrics"><div class="metric"><span>Pedidos AutoAdd</span><strong>${data.planned}</strong></div><div class="metric"><span>Carregados</span><strong class="green">${data.scanned}</strong></div><div class="metric"><span>Pendentes</span><strong class="red">${data.pending}</strong></div><div class="metric"><span>Taxa de carregamento</span><strong style="color:${color}">${formatPercent(data.percent)}</strong></div><div class="metric"><span>Rotas com AutoAdd</span><strong>${classes}</strong></div></div>
+        <div class="charts"><section class="panel"><h2>Qualidade por rota</h2><div class="donut-row"><div class="donut" style="background:${qualityPie}"><div>${classes}<small>rotas</small></div></div><div class="legend"><div><i style="background:#ef4444"></i> Críticas (&lt;60,00%) <b>${data.red}</b></div><div><i style="background:#f59e0b"></i> Atenção (60,00–89,99%) <b>${data.yellow}</b></div><div><i style="background:#22c55e"></i> Boas (≥90,00%) <b>${data.green}</b></div></div></div></section>
+        <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${formatPercent(data.percent)}<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
+        <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${formatPercent(item.pct)} concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
         <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p>${reasonGraph ? '<div class="missing-reasons"><div class="section-header"><h3>Motivos dos AutoAdd faltantes</h3><span>' + classifiedCount + '/' + missingRows.length + ' classificados</span></div><div class="reason-list">' + reasonGraph + '</div></div>' : ''}<div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo principal</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
         <section class="panel"><div class="section-header"><h2>Detalhamento das ATs validadas</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
-        <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60%, amarelo 60–89%, verde ≥90%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
+        <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60,00%, amarelo 60,00–89,99%, verde ≥90,00%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
       doc.querySelector('[data-missing-csv]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'csv');
       doc.querySelector('[data-missing-json]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'json');
       renderReportVtFilters();
@@ -1346,23 +1355,23 @@
         const known = rows.filter(x => x.planned !== null);
         const total = known.reduce((n,x) => n + x.planned, 0);
         const loaded = known.reduce((n,x) => n + x.scanned, 0);
-        const pct = total ? Math.round(loaded / total * 100) : 0;
+        const pct = total ? loaded / total * 100 : 0;
         const host = overviewHost();
         host.querySelector('[data-status]').textContent = done + '/' + ats.length + ' ATs ' + (overviewValidatedOnly ? 'validadas consultadas' : 'consultadas') + (failed ? ' · ' + failed + ' falhas' : '');
         host.querySelector('[data-brief]').textContent = total + ' AutoAdd · ' + loaded + ' carregados · ' + (total - loaded) + ' pendentes';
-        host.querySelector('[data-percent]').textContent = pct + '%' + (done < ats.length ? ' *' : '');
+        host.querySelector('[data-percent]').textContent = formatPercent(pct) + (done < ats.length ? ' *' : '');
         const bar = host.querySelector('[data-progress]');
         bar.style.width = pct + '%';
         bar.style.background = overviewColor(pct);
         const items = rows.filter(x => x.planned > 0).sort((x,y) => x.scanned / x.planned - y.scanned / y.planned);
         const cards = items.map(item => {
-          const progress = Math.round(item.scanned / item.planned * 100);
+          const progress = item.scanned / item.planned * 100;
           const color = overviewColor(progress);
-          return '<article class="ov-route"><div class="ov-route-head"><div><div class="ov-route-name">' + item.route.replace(/[&<>"']/g, '') + '</div><div class="ov-route-id">' + item.at + '</div></div><strong class="ov-route-percent" style="color:' + color + '">' + progress + '%</strong></div>' +
+          return '<article class="ov-route"><div class="ov-route-head"><div><div class="ov-route-name">' + item.route.replace(/[&<>"']/g, '') + '</div><div class="ov-route-id">' + item.at + '</div></div><strong class="ov-route-percent" style="color:' + color + '">' + formatPercent(progress) + '</strong></div>' +
             '<div class="ov-route-meta"><span>' + item.scanned + ' / ' + item.planned + ' carregados</span><span>' + (item.planned-item.scanned) + ' pendentes</span></div><div class="ov-bar"><i style="width:' + progress + '%;background:' + color + '"></i></div></article>';
         }).join('');
         overviewMessage('<div class="ov-metrics"><div class="ov-metric"><span>AutoAdd</span><strong>' + total + '</strong></div><div class="ov-metric"><span>Carregados</span><strong style="color:#22c55e">' + loaded + '</strong></div><div class="ov-metric"><span>Pendentes</span><strong style="color:#f59e0b">' + (total-loaded) + '</strong></div></div>' +
-          '<p style="color:#94a3b8;font-size:10px">Vermelho: &lt;60% · Amarelo: 60–89% · Verde: ≥90%. ' + (done < ats.length ? 'Resumo parcial.' : failed ? 'Algumas ATs não puderam ser consultadas.' : '') + '</p>' +
+          '<p style="color:#94a3b8;font-size:10px">Vermelho: &lt;60,00% · Amarelo: 60,00–89,99% · Verde: ≥90,00%. ' + (done < ats.length ? 'Resumo parcial.' : failed ? 'Algumas ATs não puderam ser consultadas.' : '') + '</p>' +
           (cards || '<p style="color:#94a3b8">' + (overviewValidatedOnly && !ats.length ? 'Nenhuma rota validada nesta VT.' : 'Nenhuma AT com AutoAdd identificada até o momento.') + '</p>'));
       }
       render();

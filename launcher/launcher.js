@@ -26,7 +26,7 @@ function renderModuleIcon(module) {
 function renderModuleAccess(module, permission) {
   if (module.id === 'assistente-de-devolucoes') {
     return '<div class="module-access is-limited" role="status" title="Uso condicionado às permissões da conta SPX">' +
-      moduleSvg(ACCESS_ICONS.closed) + '<span>Acesso restrito.</span></div>';
+      moduleSvg(ACCESS_ICONS.closed) + '<span>Acesso restrito à analistas.</span></div>';
   }
   if (permission.loading) {
     return '<div class="module-access is-loading" role="status"><span class="access-spinner" aria-hidden="true"></span><span>Verificando acesso...</span></div>';
@@ -141,7 +141,6 @@ function renderModules() {
         <div class="module-icon">${renderModuleIcon(module)}</div>
         <h2>${escapeHtml(module.name)}</h2>
         <p>${escapeHtml(module.description || 'Módulo operacional publicado no hub.')}</p>
-        ${module.id === 'assistente-de-devolucoes' ? '<p class="module-requirement">Somente login SPX com e-mail @shopee.com e permissões para resolver e cancelar ocorrências.</p>' : ''}
         ${renderModuleAccess(module, permission)}
         <div class="module-footer">
           <span class="module-version">v${escapeHtml(module.version)}</span>

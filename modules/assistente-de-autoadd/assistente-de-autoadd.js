@@ -548,7 +548,7 @@
   }
 
   function reportCurrentProgress() {
-    const selected = reportSelectedVts.size && overviewReportWindow && !overviewReportWindow.closed ?
+    const selected = overviewReportWindow && !overviewReportWindow.closed ?
       reportSelectedVts : new Set([overviewKey]);
     let done = 0, total = 0, failed = 0, loadingTargets = false;
     for (const vt of selected) {
@@ -830,7 +830,7 @@
     const { done, total, failed, loadingTargets } = reportCurrentProgress();
     const active = reportVtCatalogLoading || loadingTargets || done < total || historiesDone < missing.length;
     return {
-      active, targetsLoading: loadingTargets, atsDone: done, atsTotal: total,
+      active, targetsLoading: loadingTargets, catalogLoading: reportVtCatalogLoading, atsDone: done, atsTotal: total,
       failed, historiesDone, historiesTotal: missing.length, classified,
       historiesPending: missing.length - historiesDone
     };
@@ -847,12 +847,13 @@
     const percent = p.targetsLoading ? 0 :
       Math.min(99, Math.floor((p.atsDone + p.historiesDone) /
       Math.max(1, p.atsTotal + p.historiesTotal) * 100));
-    const stage = p.targetsLoading ? 'Localizando ATs validadas...' :
+    const stage = p.catalogLoading ? 'Buscando VTs disponíveis...' :
+      p.targetsLoading ? 'Localizando ATs validadas...' :
       p.atsDone < p.atsTotal ? 'Consultando ATs e pedidos...' :
       'Analisando históricos dos pedidos...';
     popup.innerHTML = `<div class="loading-title"><span class="loading-spinner" aria-hidden="true"></span>Carregando relatório AutoAdd</div>
       <p class="loading-subtitle">${stage}</p>
-      <div class="loading-row"><span>ATs consultadas</span><strong>${p.targetsLoading ? '—' : p.atsDone + '/' + p.atsTotal}</strong></div>
+      <div class="loading-row"><span>ATs consultadas</span><strong>${p.atsTotal ? p.atsDone + '/' + p.atsTotal : '—'}</strong></div>
       <div class="loading-row"><span>Históricos analisados</span><strong>${p.historiesDone}/${p.historiesTotal}</strong></div>
       <div class="loading-row"><span>Motivos classificados</span><strong>${p.classified}</strong></div>
       <div class="loading-row"><span>Históricos pendentes</span><strong>${p.historiesPending}</strong></div>
@@ -1222,6 +1223,7 @@
       reportVtHasMore = true;
       reportVtCatalogLoading = false;
       reportVtResults = new Map();
+      reportVtCatalogBusy = null;
       reportVtLoadChain = Promise.resolve();
       tab.document.open();
       tab.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoAdd · Relatório da VT</title><style>
@@ -1414,6 +1416,7 @@
     reportVtPage = 1;
     reportVtHasMore = true;
     reportVtCatalogLoading = false;
+    reportVtCatalogBusy = null;
     overviewReportProgress = { done: 0, total: 0, failed: 0 };
     overviewLoadingTargets = false;
     if (overviewReportWindow && !overviewReportWindow.closed) { overviewReportWindow.close(); }

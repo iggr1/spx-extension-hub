@@ -19,6 +19,8 @@
   const control = document.getElementById('vehicleVisibilityControl');
   if (!input || !control) return;
 
+  function installVehicleLayer() {
+
   function normalizeType(value) {
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .toUpperCase().replace(/[_-]+/g, ' ').trim();
@@ -91,4 +93,11 @@
   };
 
   syncControl();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installVehicleLayer, { once: true });
+  } else {
+    installVehicleLayer();
+  }
 })();

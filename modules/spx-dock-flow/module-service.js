@@ -273,7 +273,7 @@ async function fetchDriverRoutes(payload) {
       driverName: latest?.driver_name || '',
       details: latest ? Object.fromEntries([
         'order_count', 'assigned_order_count', 'city', 'neighborhood', 'cluster',
-        'vehicle_name', 'vehicle_type', 'planned_vehicle_type', 'agency',
+        'vehicle_name', 'vehicle_type', 'vehicle_type_name', 'vehicle_category', 'planned_vehicle_type', 'agency',
         'station_name', 'stops_number', 'total_distance', 'ctime', 'driver_assigned_time'
       ].map(key => [key, latest[key]])) : null,
       assignmentSource,

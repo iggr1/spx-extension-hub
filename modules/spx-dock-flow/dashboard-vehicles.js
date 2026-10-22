@@ -8,11 +8,12 @@
     van: 'ZOF-VAN-AR'
   });
 
-  let realVisible = false;
+  let realVisible = true;
   let demoVisible = true;
 
   try {
-    realVisible = localStorage.getItem(STORAGE_KEY) === 'true';
+    const savedVisibility = localStorage.getItem(STORAGE_KEY);
+    if (savedVisibility !== null) realVisible = savedVisibility === 'true';
   } catch {}
 
   const input = document.getElementById('vehicleVisibilityToggle');
@@ -20,6 +21,12 @@
   if (!input || !control) return;
 
   function installVehicleLayer() {
+    const VEHICLE_PATTERNS = [
+      ['fiorino', /\b(FIORINO)\b/],
+      ['van', /\b(VAN|FURGAO|SPRINTER|MASTER|DUCATO)\b/],
+      ['passeio', /\b(PASSEIO|CARRO|CAR|SEDAN|HATCH|HATCHBACK|AUTOMOVEL|4W)\b/],
+      ['moto', /\b(MOTO|MOTOCICLETA|MOTORCYCLE|SCOOTER|2W)\b/]
+    ];
 
   function normalizeType(value) {
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -27,12 +34,13 @@
   }
 
   function vehicleType(dock) {
-    if (!isDockOccupied(dock)) return '';
+    if (!isDockOccupied(dock) || (!dock?.occupied_driver_id && !String(dock?.occupied_vehicle_number || '').trim())) return '';
     const driverId = Number(dock?.occupied_driver_id) || 0;
     const route = driverId ? state.driverRoutes[driverId] : null;
     const detail = route?.ok === true ? route.details : null;
     const candidates = [
-      detail?.vehicle_type, detail?.planned_vehicle_type, detail?.vehicle_name,
+      detail?.vehicle_type_name, detail?.vehicle_type, detail?.planned_vehicle_type,
+      detail?.vehicle_name, detail?.vehicle?.type_name, detail?.vehicle?.type,
       dock?.vehicle_type_name, dock?.vehicle_type, dock?.planned_vehicle_type,
       dock?.vehicle_name
     ];
@@ -40,10 +48,9 @@
     for (const raw of candidates) {
       const type = normalizeType(raw);
       if (!type) continue;
-      if (/\b(FIORINO)\b/.test(type)) return 'fiorino';
-      if (/\b(VAN|FURGAO|SPRINTER|MASTER|DUCATO)\b/.test(type)) return 'van';
-      if (/\b(PASSEIO|CARRO|CAR|SEDAN|HATCH|HATCHBACK|AUTOMOVEL|4W)\b/.test(type)) return 'passeio';
-      if (/\b(MOTO|MOTOCICLETA|MOTORCYCLE|SCOOTER|2W)\b/.test(type)) return 'moto';
+      for (const [vehicle, pattern] of VEHICLE_PATTERNS) {
+        if (pattern.test(type)) return vehicle;
+      }
     }
     return '';
   }
@@ -62,7 +69,6 @@
   const baseRenderDockCard = renderDockCard;
   renderDockCard = function renderDockCardWithVehicle(dock, ...args) {
     const card = baseRenderDockCard.call(this, dock, ...args);
-    syncControl();
     if (!isVisible()) return card;
     const type = vehicleType(dock);
     if (!type) return card;

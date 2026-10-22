@@ -1172,8 +1172,8 @@ function loadDemoData() {
     taskId: 'VT202607200H5HB',
     startedAt: Date.now() - 4 * 60 * 1000,
     loaded: 6,
-    total: 22,
-    percentage: 27.3,
+    total: 15,
+    percentage: 40,
     fetchedAt: Date.now(),
     error: ''
   };
@@ -1191,33 +1191,36 @@ function loadDemoData() {
 }
 
 function createDemoDocks() {
-  const names = ['MESA 1', 'MESA 2', 'MESA 3', 'MESA 4', 'MESA 5', 'MESA 6', 'MESA 7', 'MESA 8', 'MESA 9'];
   const vehicles = [
-    ['RYU2C33', 'CARLOS EDUARDO MORENO SIFONTES', 436, 2500000],
+    ['RYU2C33', 'Rafael Martins', 436, 2500000, 'ZOF-MOTO-AR'],
+    ['IQN2C12', 'Daniel Ribeiro', 225, 2500001, 'ZOF-PASSEIO-AR'],
+    ['IYX4D31', 'Lucas Ferreira', 90, 2500002, 'ZOF-FIORINO-AR'],
     null,
-    ['IQN2C12', 'MARISTELA FAVERO', 86, 2500002],
+    ['QHA3B58', 'Andre Souza', 242, 2500004, 'ZOF-MOTO-AR'],
+    ['KBS4Q76', 'Daniel Ribeiro', 380, 2500005, 'ZOF-PASSEIO-AR'],
+    ['RKL3J39', 'Andre Souza', 467, 2500006, 'ZOF-VAN-AR'],
+    ['JQW8V12', 'Felipe Barbosa', 240, 2500007, 'ZOF-MOTO-AR'],
     null,
+    ['AYM6T34', 'Thiago Rocha', 477, 2500009, 'ZOF-PASSEIO-AR'],
+    ['GHT3M52', 'Ricardo Mendes', 245, 2500010, 'ZOF-MOTO-AR'],
+    ['FDL7P45', 'Gustavo Cardoso', 127, 2500011, 'ZOF-FIORINO-AR'],
     null,
-    ['IYX4D31', 'JOSE MIGUEL CORTEZ VARGAS', 376, 2572011],
-    ['QHA3B58', 'CAYO GABRIEL DE BEM ALMEIDA', 463, 986414],
-    null,
-    null
+    ['JKM2Q98', 'Thiago Rocha', 244, 2500013, 'ZOF-PASSEIO-AR'],
+    ['JYD9G52', 'Lucas Ferreira', 417, 2500014, 'ZOF-VAN-AR']
   ];
 
-  return names.map((dockName, index) => {
-    const vehicle = vehicles[index];
-    return {
-      dock_id: 1936 + index,
-      dock_name: dockName,
-      dock_status: vehicle ? 1 : 2,
-      occupied_vehicle_number: vehicle?.[0] || '',
-      occupation_time: vehicle?.[2] || 0,
-      dock_active_status: 1,
-      idle_time: vehicle ? 0 : [0, 691, 0, 211, 751, 0, 0, 691, 151][index],
-      occupied_driver_id: vehicle?.[3] || 0,
-      occupied_driver_name: vehicle?.[1] || ''
-    };
-  });
+  return vehicles.map((vehicle, index) => ({
+    dock_id: 1936 + index,
+    dock_name: 'MESA ' + (index + 1),
+    dock_status: vehicle ? 1 : 2,
+    occupied_vehicle_number: vehicle?.[0] || '',
+    occupation_time: vehicle?.[2] || 0,
+    dock_active_status: 1,
+    idle_time: vehicle ? 0 : [236, 691, 291][index % 3],
+    occupied_driver_id: vehicle?.[3] || 0,
+    occupied_driver_name: vehicle?.[1] || '',
+    vehicle_type_name: vehicle?.[4] || ''
+  }));
 }
 
 function createDemoQueues() {
@@ -1229,22 +1232,22 @@ function createDemoQueues() {
         {
           queue_sequence: 1,
           waiting_time: 1055,
-          driver_id: 986414,
-          driver_name: 'CAYO GABRIEL DE BEM ALMEIDA',
+          driver_id: 2500022,
+          driver_name: 'Motorista em espera',
           is_frozen: 1,
-          frozen_dock_id: 1937,
+          frozen_dock_id: 1939,
           is_prioritized: 2,
           is_blocked_by_dual_cage: 0
         },
         {
           queue_sequence: 3,
           waiting_time: 164,
-          driver_id: 2572011,
-          driver_name: 'JOSE MIGUEL CORTEZ VARGAS',
+          driver_id: 2500023,
+          driver_name: 'Motorista na fila',
           is_frozen: 2,
           frozen_dock_id: 0,
           is_prioritized: 1,
-          corridor_cage: 'C-32',
+          corridor_cage: 'P-16',
           is_blocked_by_dual_cage: 0
         }
       ]
@@ -1253,27 +1256,38 @@ function createDemoQueues() {
 }
 
 function createDemoRoutes() {
-  return {
-    2500000: { ok: true, found: true, route: 'A-01', assignmentTaskId: 'ATDEMO00001', driverAssignedTime: 1782138000, details: { vehicle_type: 'ZOF-MOTO-AR' } },
-    2500002: { ok: true, found: true, route: 'B-14', assignmentTaskId: 'ATDEMO00002', driverAssignedTime: 1782138100, details: { vehicle_type: 'ZOF-PASSEIO-AR' } },
-    2572011: { ok: true, found: true, route: 'C-32', assignmentTaskId: 'ATDEMO00003', driverAssignedTime: 1782138980, details: { vehicle_type: 'ZOF-FIORINO-AR' } },
-    986414: { ok: true, found: true, route: 'D-07', assignmentTaskId: 'ATDEMO00004', driverAssignedTime: 1782138200, details: { vehicle_type: 'ZOF-VAN-AR' } }
-  };
+  return Object.fromEntries(state.docks.filter(dock => dock.occupied_driver_id).map(dock => {
+    const index = Number(dock.dock_id) - 1936;
+    const assignmentTaskId = 'ATDEMO' + String(index + 1).padStart(5, '0');
+    return [dock.occupied_driver_id, {
+      ok: true,
+      found: true,
+      route: String.fromCharCode(65 + index) + '-' + String(index + 1).padStart(2, '0'),
+      assignmentTaskId,
+      driverAssignedTime: Math.floor(Date.now() / 1000) - 1200,
+      details: {
+        vehicle_type: dock.vehicle_type_name,
+        vehicle_type_name: dock.vehicle_type_name
+      }
+    }];
+  }));
 }
 
 function createDemoAssignmentStats() {
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
-  const examples = [
-    ['ATDEMO00001', 68, 3],
-    ['ATDEMO00002', 84, 8],
-    ['ATDEMO00003', 107, 15],
-    ['ATDEMO00004', 120, 22]
-  ];
-
-  return Object.fromEntries(examples.map(([assignmentTaskId, totalOrders, bulkyOrders]) => [
-    assignmentTaskId,
-    { status: 'ready', assignmentTaskId, totalOrders, bulkyOrders, expiresAt, cached: false }
-  ]));
+  return Object.fromEntries(Object.values(state.driverRoutes).map(route => {
+    const index = Number(route.assignmentTaskId.slice(-5));
+    const totalOrders = Math.min(120, 35 + (index * 19) % 86);
+    const bulkyOrders = Math.min(totalOrders, (index * 7) % 16);
+    return [route.assignmentTaskId, {
+      status: 'ready',
+      assignmentTaskId: route.assignmentTaskId,
+      totalOrders,
+      bulkyOrders,
+      expiresAt,
+      cached: false
+    }];
+  }));
 }
 
 function createEmptyValidationProgress() {

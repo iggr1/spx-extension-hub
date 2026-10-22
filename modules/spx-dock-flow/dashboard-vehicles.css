@@ -82,20 +82,25 @@
 .dock-card > .dock-vehicle-art {
   position: absolute;
   z-index: 0;
-  inset: 14% -2% 12% 20%;
+  inset: 14% 15% 12% 3%;
   pointer-events: none;
-  opacity: .4;
+  opacity: .22;
   background-position: center right;
   background-repeat: no-repeat;
   background-size: contain;
-  filter: none;
+  filter:
+    drop-shadow(1px 0 0 var(--status-accent))
+    drop-shadow(-1px 0 0 var(--status-accent))
+    drop-shadow(0 1px 0 var(--status-accent))
+    drop-shadow(0 -1px 0 var(--status-accent))
+    drop-shadow(0 0 5px var(--status-accent));
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.62) 24%, #000 47%, #000 84%, rgba(0,0,0,.75) 100%);
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.62) 24%, #000 47%, #000 84%, rgba(0,0,0,.75) 100%);
   transition: opacity .22s ease;
 }
 
-.dock-card.occupied > .dock-vehicle-art { opacity: .42; }
-.dock-card.next > .dock-vehicle-art { opacity: .36; }
+.dock-card.occupied > .dock-vehicle-art { opacity: .24; }
+.dock-card.next > .dock-vehicle-art { opacity: .2; }
 
 .dock-vehicle-art.vehicle-moto { background-image: url('./assets/moto.png?v=1.10.6'); }
 .dock-vehicle-art.vehicle-passeio { background-image: url('./assets/passeio.png?v=1.10.6'); }

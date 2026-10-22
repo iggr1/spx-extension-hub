@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" role="img" aria-label="Veículo Shopee" preserveAspectRatio="xMidYMid meet">
+<defs>
+ <linearGradient id="paint" x1="0" x2=".86" y1="0" y2="1"><stop stop-color="#ff7a4d"/><stop offset=".34" stop-color="#f7532e"/><stop offset=".83" stop-color="#c92e19"/><stop offset="1" stop-color="#8f1d15"/></linearGradient>
+ <linearGradient id="hood" x1=".1" y1="0" x2=".85" y2="1"><stop stop-color="#ff9271"/><stop offset=".48" stop-color="#fc5832"/><stop offset="1" stop-color="#a72c1d"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#85adba"/><stop offset=".32" stop-color="#3d5967"/><stop offset="1" stop-color="#14222f"/></linearGradient>
+ <linearGradient id="tire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#23262b"/><stop offset=".6" stop-color="#080a0d"/><stop offset="1" stop-color="#33363c"/></linearGradient>
+ <radialGradient id="rims"><stop stop-color="#f1f2f2"/><stop offset=".56" stop-color="#b3b8be"/><stop offset=".82" stop-color="#424953"/><stop offset="1" stop-color="#161b20"/></radialGradient>
+ <linearGradient id="black" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#4d5258"/><stop offset="1" stop-color="#14191e"/></linearGradient>
+ <filter id="shadow" x="-30%" width="160%" y="-80%" height="240%"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<ellipse cx="355" cy="368" rx="265" ry="20" fill="#111111" opacity=".21" filter="url(#shadow)"/>
+
+ <path d="M95 246 165 187 243 119 486 105 552 156 607 250 611 334 111 350 54 319 62 275Z" fill="url(#paint)" stroke="#9f2919" stroke-width="5" stroke-linejoin="round"/>
+ <path d="M255 118 485 109 546 151 574 316 261 321Z" fill="url(#paint)" stroke="#aa311e" stroke-width="5"/>
+ <path d="M115 249 173 193 228 147 247 218 161 260Z" fill="url(#glass)" stroke="#25343e" stroke-width="9"/>
+ <path d="m173 200 56-50 5 59-64 39Z" fill="#8baab1" opacity=".35"/>
+ <path d="M258 122l-4 212" stroke="#a63222" stroke-width="6"/>
+ <path d="M93 262l160-33 4 106-153 7-49-30Z" fill="url(#hood)" stroke="#b03a25" stroke-width="4"/>
+ <path d="M70 282 125 269 160 277 142 301 62 302Z" fill="#d4e6ef" stroke="#8397a3" stroke-width="5"/>
+ <path d="M57 319 125 314 177 326 172 338 89 340Z" fill="#151e25"/>
+ <path d="M70 342 609 339 590 357 102 362Z" fill="#1b232b"/>
+ <path d="M285 124l201-8M293 296l270-6M521 150l41 152" fill="none" stroke="#ffb18d" stroke-width="3" opacity=".30"/>
+ <path d="M262 252l30 8-2 15-30-9Z" fill="#1d262c"/>
+ <path d="M282 168 284 312" stroke="#b1311f" stroke-width="4"/>
+ <g transform="translate(350 207) scale(1.1)"><g transform="translate(0 0) scale(0.82)"><path d="M6 17h38l-2 40H8z" fill="#fff"/><path d="M16 19V12a9 9 0 0 1 18 0v7" fill="none" stroke="#fff" stroke-width="5"/><text x="25" y="46" font-family="Arial,sans-serif" font-size="23" font-weight="bold" text-anchor="middle" fill="#ed4d2d">S</text></g><text x="49" y="43" fill="#fff" font-size="35" font-weight="650" font-family="Arial,Helvetica,sans-serif" letter-spacing="-1.4">Shopee</text></g>
+ <g><ellipse cx="174" cy="343" rx="51" ry="52.785" fill="#111215" stroke="#31363c" stroke-width="7"/><ellipse cx="174" cy="343" rx="33.660000000000004" ry="35.19" fill="url(#rims)" stroke="#111519" stroke-width="5"/><ellipse cx="174" cy="343" rx="19.38" ry="20.400000000000002" fill="#555e67"/><ellipse cx="174" cy="343" rx="7.6499999999999995" ry="7.6499999999999995" fill="#c6ccd0"/><path d="M152.58 321.58 L195.42 364.42 M152.58 364.42 L195.42 321.58" stroke="#cdd2d6" stroke-width="6.12" opacity=".85"/></g> <g><ellipse cx="530" cy="339" rx="53" ry="54.855" fill="#111215" stroke="#31363c" stroke-width="7"/><ellipse cx="530" cy="339" rx="34.980000000000004" ry="36.57" fill="url(#rims)" stroke="#111519" stroke-width="5"/><ellipse cx="530" cy="339" rx="20.14" ry="21.200000000000003" fill="#555e67"/><ellipse cx="530" cy="339" rx="7.949999999999999" ry="7.949999999999999" fill="#c6ccd0"/><path d="M507.74 316.74 L552.26 361.26 M507.74 361.26 L552.26 316.74" stroke="#cdd2d6" stroke-width="6.359999999999999" opacity=".85"/></g>
+
+</svg>

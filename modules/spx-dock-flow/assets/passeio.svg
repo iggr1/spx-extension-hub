@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" role="img" aria-label="Veículo Shopee" preserveAspectRatio="xMidYMid meet">
+<defs>
+ <linearGradient id="paint" x1="0" x2=".86" y1="0" y2="1"><stop stop-color="#ff7a4d"/><stop offset=".34" stop-color="#f7532e"/><stop offset=".83" stop-color="#c92e19"/><stop offset="1" stop-color="#8f1d15"/></linearGradient>
+ <linearGradient id="hood" x1=".1" y1="0" x2=".85" y2="1"><stop stop-color="#ff9271"/><stop offset=".48" stop-color="#fc5832"/><stop offset="1" stop-color="#a72c1d"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#85adba"/><stop offset=".32" stop-color="#3d5967"/><stop offset="1" stop-color="#14222f"/></linearGradient>
+ <linearGradient id="tire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#23262b"/><stop offset=".6" stop-color="#080a0d"/><stop offset="1" stop-color="#33363c"/></linearGradient>
+ <radialGradient id="rims"><stop stop-color="#f1f2f2"/><stop offset=".56" stop-color="#b3b8be"/><stop offset=".82" stop-color="#424953"/><stop offset="1" stop-color="#161b20"/></radialGradient>
+ <linearGradient id="black" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#4d5258"/><stop offset="1" stop-color="#14191e"/></linearGradient>
+ <filter id="shadow" x="-30%" width="160%" y="-80%" height="240%"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<ellipse cx="355" cy="368" rx="265" ry="20" fill="#111111" opacity=".21" filter="url(#shadow)"/>
+
+ <path d="M73 275 147 249 187 200 296 154 444 155 557 208 598 260 608 304 585 337 102 339 58 316Z" fill="url(#paint)" stroke="#a82f22" stroke-width="5" stroke-linejoin="round"/>
+ <path d="M176 222 290 162 431 164 521 210 522 230 159 249Z" fill="url(#glass)" stroke="#1b3036" stroke-width="8"/>
+ <path d="M295 166 277 240M432 165l47 65" stroke="#182c35" stroke-width="10"/>
+ <path d="M84 267 169 251 276 243 317 312 100 315 55 297Z" fill="url(#hood)" stroke="#be3d25" stroke-width="3"/>
+ <path d="M83 286 134 275 160 284 147 302 78 308Z" fill="#dcecf0" stroke="#687e87" stroke-width="6"/>
+ <path d="M61 310 174 314 158 330 84 329Z" fill="url(#black)"/>
+ <path d="M55 302 73 301 81 332 97 343 201 348 583 341 612 311 601 330 588 354 111 356 63 338Z" fill="#242b31"/>
+ <path d="M286 249l225-7M448 242l27 104M306 249l-17 101" stroke="#a42c21" stroke-width="4" opacity=".7"/>
+ <path d="M457 249h21M325 255h21" stroke="#292e31" stroke-width="7" stroke-linecap="round"/>
+ <path d="M551 236l43 28-9 14-43-26" fill="#7c2930" stroke="#451b20" stroke-width="3"/>
+ <path d="M160 217 266 171 418 174" stroke="#e6fbff" stroke-width="3" opacity=".25" fill="none"/>
+ <path d="M251 252 278 259 277 266 255 262Z" fill="#24282b"/>
+ <path d="M111 291 182 275M328 183l51 0" fill="none" stroke="#ffe4d1" opacity=".25" stroke-width="5"/>
+ <g transform="translate(355 257) scale(0.8)"><g transform="translate(0 0) scale(0.82)"><path d="M6 17h38l-2 40H8z" fill="#fff"/><path d="M16 19V12a9 9 0 0 1 18 0v7" fill="none" stroke="#fff" stroke-width="5"/><text x="25" y="46" font-family="Arial,sans-serif" font-size="23" font-weight="bold" text-anchor="middle" fill="#ed4d2d">S</text></g><text x="49" y="43" fill="#fff" font-size="35" font-weight="650" font-family="Arial,Helvetica,sans-serif" letter-spacing="-1.4">Shopee</text></g>
+ <g><ellipse cx="175" cy="333" rx="50" ry="51.74999999999999" fill="#111215" stroke="#31363c" stroke-width="7"/><ellipse cx="175" cy="333" rx="33" ry="34.5" fill="url(#rims)" stroke="#111519" stroke-width="5"/><ellipse cx="175" cy="333" rx="19" ry="20" fill="#555e67"/><ellipse cx="175" cy="333" rx="7.5" ry="7.5" fill="#c6ccd0"/><path d="M154 312 L196 354 M154 354 L196 312" stroke="#cdd2d6" stroke-width="6" opacity=".85"/></g> <g><ellipse cx="529" cy="332" rx="49" ry="50.714999999999996" fill="#111215" stroke="#31363c" stroke-width="7"/><ellipse cx="529" cy="332" rx="32.34" ry="33.809999999999995" fill="url(#rims)" stroke="#111519" stroke-width="5"/><ellipse cx="529" cy="332" rx="18.62" ry="19.6" fill="#555e67"/><ellipse cx="529" cy="332" rx="7.35" ry="7.35" fill="#c6ccd0"/><path d="M508.42 311.42 L549.58 352.58 M508.42 352.58 L549.58 311.42" stroke="#cdd2d6" stroke-width="5.88" opacity=".85"/></g>
+
+</svg>

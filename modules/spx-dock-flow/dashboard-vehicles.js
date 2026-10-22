@@ -1,6 +1,5 @@
 (() => {
   const STORAGE_KEY = 'spxDockFlowShowVehiclesV1';
-  const VEHICLE_SPRITE = './assets/vehicles.webp';
   const TYPE_LABELS = Object.freeze({
     moto: 'ZOF-MOTO-AR',
     passeio: 'ZOF-PASSEIO-AR',
@@ -39,10 +38,11 @@
     const route = driverId ? state.driverRoutes[driverId] : null;
     const detail = route?.ok === true ? route.details : null;
     const candidates = [
-      detail?.vehicle_type_name, detail?.vehicle_type, detail?.planned_vehicle_type,
-      detail?.vehicle_name, detail?.vehicle?.type_name, detail?.vehicle?.type,
-      dock?.vehicle_type_name, dock?.vehicle_type, dock?.planned_vehicle_type,
-      dock?.vehicle_name
+      detail?.vehicle_type_name, detail?.vehicle_category_name,
+      detail?.planned_vehicle_type, detail?.vehicle_name, detail?.vehicle_type,
+      detail?.vehicle_category, detail?.vehicle?.type_name, detail?.vehicle?.type,
+      dock?.vehicle_type_name, dock?.vehicle_category_name,
+      dock?.planned_vehicle_type, dock?.vehicle_name, dock?.vehicle_type
     ];
 
     for (const raw of candidates) {

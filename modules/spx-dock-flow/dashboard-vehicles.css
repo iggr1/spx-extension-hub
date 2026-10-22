@@ -82,22 +82,25 @@
 .dock-card > .dock-vehicle-art {
   position: absolute;
   z-index: 0;
-  inset: 15% 1% 13% 15%;
+  inset: 18% 1% 13% 23%;
   pointer-events: none;
-  opacity: .24;
-  background-image: url('./assets/vehicles.webp?v=1.10.4');
+  opacity: .49;
+  background-position: center right;
   background-repeat: no-repeat;
-  background-size: 400% 100%;
-  background-position-y: center;
-  filter: saturate(.9);
-  -webkit-mask-image: radial-gradient(ellipse 69% 73% at 53% 48%, #000 35%, transparent 100%);
-  mask-image: radial-gradient(ellipse 69% 73% at 53% 48%, #000 35%, transparent 100%);
+  background-size: contain;
+  filter: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.62) 24%, #000 47%, #000 84%, rgba(0,0,0,.75) 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.62) 24%, #000 47%, #000 84%, rgba(0,0,0,.75) 100%);
+  transition: opacity .22s ease;
 }
 
-.dock-vehicle-art.vehicle-moto { background-position-x: 0; }
-.dock-vehicle-art.vehicle-passeio { background-position-x: 33.333333%; }
-.dock-vehicle-art.vehicle-fiorino { background-position-x: 66.666667%; }
-.dock-vehicle-art.vehicle-van { background-position-x: 100%; }
+.dock-card.occupied > .dock-vehicle-art { opacity: .51; }
+.dock-card.next > .dock-vehicle-art { opacity: .43; }
+
+.dock-vehicle-art.vehicle-moto { background-image: url('./assets/moto.svg?v=1.10.5'); }
+.dock-vehicle-art.vehicle-passeio { background-image: url('./assets/passeio.svg?v=1.10.5'); }
+.dock-vehicle-art.vehicle-fiorino { background-image: url('./assets/fiorino.svg?v=1.10.5'); }
+.dock-vehicle-art.vehicle-van { background-image: url('./assets/van.svg?v=1.10.5'); }
 
 .dock-card > :not(.dock-vehicle-art) {
   position: relative;
@@ -106,7 +109,7 @@
 
 .dock-card .assignment-stats,
 .dock-card .time-item {
-  backdrop-filter: blur(3px);
+  background-color: color-mix(in srgb, var(--surface) 94%, transparent);
 }
 
 @media (max-width: 1190px) {

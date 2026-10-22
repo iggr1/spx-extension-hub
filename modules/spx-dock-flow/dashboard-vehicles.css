@@ -84,13 +84,14 @@
   z-index: 0;
   inset: 15% 1% 13% 15%;
   pointer-events: none;
-  opacity: .23;
-  background-image: url('./assets/vehicles.webp');
+  opacity: .24;
+  background-image: url('./assets/vehicles.webp?v=1.10.4');
   background-repeat: no-repeat;
   background-size: 400% 100%;
   background-position-y: center;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 27%, #000 68%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 27%, #000 68%, transparent 100%);
+  filter: saturate(.9);
+  -webkit-mask-image: radial-gradient(ellipse 69% 73% at 53% 48%, #000 35%, transparent 100%);
+  mask-image: radial-gradient(ellipse 69% 73% at 53% 48%, #000 35%, transparent 100%);
 }
 
 .dock-vehicle-art.vehicle-moto { background-position-x: 0; }

@@ -412,8 +412,8 @@
       .filter(Boolean))];
 
     assignmentTaskIds.forEach((assignmentTaskId, index) => {
-      const totalOrders = 240 + ((index * 73 + 41) % 430);
-      const bulkyOrders = 4 + ((index * 11 + 3) % 38);
+      const totalOrders = Math.min(120, 35 + ((index * 19) % 86));
+      const bulkyOrders = Math.min(totalOrders, 4 + ((index * 11 + 3) % 38));
 
       state.assignmentStats[assignmentTaskId] = {
         status: 'ready',

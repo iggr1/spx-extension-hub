@@ -82,9 +82,9 @@
 .dock-card > .dock-vehicle-art {
   position: absolute;
   z-index: 0;
-  inset: 18% 1% 13% 23%;
+  inset: 14% -2% 12% 20%;
   pointer-events: none;
-  opacity: .49;
+  opacity: .4;
   background-position: center right;
   background-repeat: no-repeat;
   background-size: contain;
@@ -94,17 +94,24 @@
   transition: opacity .22s ease;
 }
 
-.dock-card.occupied > .dock-vehicle-art { opacity: .51; }
-.dock-card.next > .dock-vehicle-art { opacity: .43; }
+.dock-card.occupied > .dock-vehicle-art { opacity: .42; }
+.dock-card.next > .dock-vehicle-art { opacity: .36; }
 
-.dock-vehicle-art.vehicle-moto { background-image: url('./assets/moto.svg?v=1.10.5'); }
-.dock-vehicle-art.vehicle-passeio { background-image: url('./assets/passeio.svg?v=1.10.5'); }
-.dock-vehicle-art.vehicle-fiorino { background-image: url('./assets/fiorino.svg?v=1.10.5'); }
-.dock-vehicle-art.vehicle-van { background-image: url('./assets/van.svg?v=1.10.5'); }
+.dock-vehicle-art.vehicle-moto { background-image: url('./assets/moto.png?v=1.10.6'); }
+.dock-vehicle-art.vehicle-passeio { background-image: url('./assets/passeio.png?v=1.10.6'); }
+.dock-vehicle-art.vehicle-fiorino { background-image: url('./assets/fiorino.png?v=1.10.6'); }
+.dock-vehicle-art.vehicle-van { background-image: url('./assets/van.png?v=1.10.6'); }
 
-.dock-card > :not(.dock-vehicle-art) {
+.dock-card > :not(.dock-vehicle-art):not(.dock-selection-checkbox) {
   position: relative;
   z-index: 1;
+}
+
+.dock-card.has-vehicle-art .route-block {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--surface-soft) 96%, transparent),
+    color-mix(in srgb, var(--surface-soft) 72%, transparent) 40%,
+    color-mix(in srgb, var(--surface-soft) 18%, transparent));
 }
 
 .dock-card .assignment-stats,

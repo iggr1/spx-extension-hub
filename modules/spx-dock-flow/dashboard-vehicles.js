@@ -75,7 +75,8 @@
     if (!type) return card;
     const art = '<span class="dock-vehicle-art vehicle-' + type +
       '" title="' + TYPE_LABELS[type] + '" aria-hidden="true"></span>';
-    return card.replace(/(<article\b[^>]*\bdock-card\b[^>]*>)/, '$1' + art);
+    return card.replace(/(<article\b[^>]*\bdock-card\b[^>]*>)/,
+      opening => opening.replace(/\bdock-card\b/, 'dock-card has-vehicle-art') + art);
   };
 
   input.addEventListener('change', () => {

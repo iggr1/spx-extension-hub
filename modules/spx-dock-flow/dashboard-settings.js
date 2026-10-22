@@ -403,6 +403,15 @@
   }
 
   function configuredHandleSecondTick() {
+    if (state.demo) {
+      state.countdown = settings.refreshIntervalSeconds;
+      updateCountdown();
+      if (state.docks.length) {
+        updateLiveTimes();
+        updateSummaryTimes();
+      }
+      return;
+    }
     if (!state.loading && settings.autoRefreshEnabled) {
       state.countdown -= 1;
       if (state.countdown <= 0) {
@@ -428,7 +437,9 @@
       ? Math.max(0, Math.min(100, countdown / settings.refreshIntervalSeconds * 100))
       : 0;
     elements.countdownRing.style.setProperty('--countdown-progress', `${progress * 3.6}deg`);
-    elements.countdownRing.setAttribute('aria-label', state.loading
+    elements.countdownRing.setAttribute('aria-label', state.demo
+      ? 'Modo demonstração, sem atualização automática'
+      : state.loading
       ? 'Atualizando dados da operação'
       : settings.autoRefreshEnabled
         ? `Atualização automática em ${countdown} segundo${countdown === 1 ? '' : 's'}`

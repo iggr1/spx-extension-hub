@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" role="img" aria-label="Veículo Shopee" preserveAspectRatio="xMidYMid meet">
+<defs>
+ <linearGradient id="paint" x1="0" x2=".86" y1="0" y2="1"><stop stop-color="#ff7a4d"/><stop offset=".34" stop-color="#f7532e"/><stop offset=".83" stop-color="#c92e19"/><stop offset="1" stop-color="#8f1d15"/></linearGradient>
+ <linearGradient id="hood" x1=".1" y1="0" x2=".85" y2="1"><stop stop-color="#ff9271"/><stop offset=".48" stop-color="#fc5832"/><stop offset="1" stop-color="#a72c1d"/></linearGradient>
+ <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#85adba"/><stop offset=".32" stop-color="#3d5967"/><stop offset="1" stop-color="#14222f"/></linearGradient>
+ <linearGradient id="tire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#23262b"/><stop offset=".6" stop-color="#080a0d"/><stop offset="1" stop-color="#33363c"/></linearGradient>
+ <radialGradient id="rims"><stop stop-color="#f1f2f2"/><stop offset=".56" stop-color="#b3b8be"/><stop offset=".82" stop-color="#424953"/><stop offset="1" stop-color="#161b20"/></radialGradient>
+ <linearGradient id="black" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#4d5258"/><stop offset="1" stop-color="#14191e"/></linearGradient>
+ <filter id="shadow" x="-30%" width="160%" y="-80%" height="240%"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<ellipse cx="355" cy="368" rx="265" ry="20" fill="#111111" opacity=".21" filter="url(#shadow)"/>
+
+ <path d="M101 234 174 193 267 158 499 163 573 188 602 279 587 339 119 346 62 316 66 273Z" fill="url(#paint)" stroke="#a42c1a" stroke-width="5" stroke-linejoin="round"/>
+ <path d="M272 163 483 164 565 186 572 306 281 314Z" fill="url(#paint)" stroke="#9b291d" stroke-width="5"/>
+ <path d="M125 237 181 201 258 171 273 231 156 257Z" fill="url(#glass)" stroke="#152530" stroke-width="8"/>
+ <path d="M181 209 244 181 255 224Z" fill="#627b85" opacity=".65"/>
+ <path d="M281 167 275 335" stroke="#952e23" stroke-width="5"/>
+ <path d="M82 269 151 256 270 239 278 337 113 337 57 311Z" fill="url(#hood)" stroke="#ad3823" stroke-width="4"/>
+ <path d="M72 280 136 266 156 270 151 288 65 302Z" fill="#d4e4ec" stroke="#60747d" stroke-width="5"/>
+ <path d="M59 312 118 306 184 310 174 329 85 329Z" fill="#252b33"/>
+ <path d="M100 335H591L580 355H115L68 332Z" fill="#252a30"/>
+ <path d="M301 178 496 177M292 292 550 283" fill="none" stroke="#ff9c77" opacity=".34" stroke-width="3"/>
+ <path d="M322 181l-1 114M556 196l3 97" stroke="#a22a20" stroke-width="4"/>
+ <path d="M277 247l26 7-1 12-24-5Z" fill="#23292f"/>
+ <g transform="translate(335 219) scale(0.99)"><g transform="translate(0 0) scale(0.82)"><path d="M6 17h38l-2 40H8z" fill="#fff"/><path d="M16 19V12a9 9 0 0 1 18 0v7" fill="none" stroke="#fff" stroke-width="5"/><text x="25" y="46" font-family="Arial,sans-serif" font-size="23" font-weight="bold" text-anchor="middle" fill="#ed4d2d">S</text></g><text x="49" y="43" fill="#fff" font-size="35" font-weight="650" font-family="Arial,Helvetica,sans-serif" letter-spacing="-1.4">Shopee</text></g>
+ <g><ellipse cx="172" cy="338" rx="50" ry="51.74999999999999" fill="#111215" stroke="#31363c" stroke-width="7"/><ellipse cx="172" cy="338" rx="33" ry="34.5" fill="url(#rims)" stroke="#111519" stroke-width="5"/><ellipse cx="172" cy="338" rx="19" ry="20" fill="#555e67"/><ellipse cx="172" cy="338" rx="7.5" ry="7.5" fill="#c6ccd0"/><path d="M151 317 L193 359 M151 359 L193 317" stroke="#cdd2d6" stroke-width="6" opacity=".85"/></g> <g><ellipse cx="526" cy="339" rx="50" ry="51.74999999999999" fill="#111215" stroke="#31363c" stroke-width="7"/><ellipse cx="526" cy="339" rx="33" ry="34.5" fill="url(#rims)" stroke="#111519" stroke-width="5"/><ellipse cx="526" cy="339" rx="19" ry="20" fill="#555e67"/><ellipse cx="526" cy="339" rx="7.5" ry="7.5" fill="#c6ccd0"/><path d="M505 318 L547 360 M505 360 L547 318" stroke="#cdd2d6" stroke-width="6" opacity=".85"/></g>
+
+</svg>

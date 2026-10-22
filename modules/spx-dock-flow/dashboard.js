@@ -335,6 +335,7 @@ async function loadDocks(manual = false) {
     if (state.demo) {
       resetLoadingHistory();
       state.validationProgress = createEmptyValidationProgress();
+      state.assignmentStats = {};
     }
     state.demo = false;
     applyValidationProgress(validationResult);
@@ -1164,6 +1165,7 @@ function loadDemoData() {
   state.dockQueues = createDemoQueues();
   state.waitingVehicles = Object.values(state.dockQueues).find(queue => !queue.error && Array.isArray(queue.items))?.items.length ?? null;
   state.driverRoutes = createDemoRoutes();
+  state.assignmentStats = createDemoAssignmentStats();
   state.validationProgress = {
     available: true,
     stale: false,
@@ -1252,11 +1254,26 @@ function createDemoQueues() {
 
 function createDemoRoutes() {
   return {
-    2500000: { ok: true, route: 'A-01', driverAssignedTime: 1782138000 },
-    2500002: { ok: true, route: 'B-14', driverAssignedTime: 1782138100 },
-    2572011: { ok: true, route: 'C-32', driverAssignedTime: 1782138980 },
-    986414: { ok: true, route: 'D-07', driverAssignedTime: 1782138200 }
+    2500000: { ok: true, found: true, route: 'A-01', assignmentTaskId: 'ATDEMO00001', driverAssignedTime: 1782138000, details: { vehicle_type: 'ZOF-MOTO-AR' } },
+    2500002: { ok: true, found: true, route: 'B-14', assignmentTaskId: 'ATDEMO00002', driverAssignedTime: 1782138100, details: { vehicle_type: 'ZOF-PASSEIO-AR' } },
+    2572011: { ok: true, found: true, route: 'C-32', assignmentTaskId: 'ATDEMO00003', driverAssignedTime: 1782138980, details: { vehicle_type: 'ZOF-FIORINO-AR' } },
+    986414: { ok: true, found: true, route: 'D-07', assignmentTaskId: 'ATDEMO00004', driverAssignedTime: 1782138200, details: { vehicle_type: 'ZOF-VAN-AR' } }
   };
+}
+
+function createDemoAssignmentStats() {
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+  const examples = [
+    ['ATDEMO00001', 68, 3],
+    ['ATDEMO00002', 84, 8],
+    ['ATDEMO00003', 107, 15],
+    ['ATDEMO00004', 120, 22]
+  ];
+
+  return Object.fromEntries(examples.map(([assignmentTaskId, totalOrders, bulkyOrders]) => [
+    assignmentTaskId,
+    { status: 'ready', assignmentTaskId, totalOrders, bulkyOrders, expiresAt, cached: false }
+  ]));
 }
 
 function createEmptyValidationProgress() {

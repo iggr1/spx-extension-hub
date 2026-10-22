@@ -33,7 +33,8 @@
   }
 
   function vehicleType(dock) {
-    if (!isDockOccupied(dock) || (!dock?.occupied_driver_id && !String(dock?.occupied_vehicle_number || '').trim())) return '';
+    if (Number(dock?.dock_status) === 2 || !isDockOccupied(dock) ||
+        (!dock?.occupied_driver_id && !String(dock?.occupied_vehicle_number || '').trim())) return '';
     const driverId = Number(dock?.occupied_driver_id) || 0;
     const route = driverId ? state.driverRoutes[driverId] : null;
     const detail = route?.ok === true ? route.details : null;

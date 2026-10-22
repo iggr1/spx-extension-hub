@@ -255,6 +255,18 @@
     const assignments = collectVisibleAssignments();
 
     for (const assignmentTaskId of assignments) {
+      if (state.demo) {
+        const demo = {
+          ATDEMO00001: { loaded: 3, total: 4, pending: 1 },
+          ATDEMO00002: { loaded: 6, total: 6, pending: 0 },
+          ATDEMO00003: { loaded: 8, total: 10, pending: 2 },
+          ATDEMO00004: { loaded: 4, total: 5, pending: 1 }
+        };
+        const progress = { status: 'ready', ...(demo[assignmentTaskId] || { loaded: 0, total: 0, pending: 0 }) };
+        renderCardProgress(assignmentTaskId, progress);
+        renderModalProgress(assignmentTaskId, progress);
+        continue;
+      }
       const key = validationTaskId ? `${validationTaskId}|${assignmentTaskId}` : '';
       const cached = key ? progressCache.get(key) : null;
 

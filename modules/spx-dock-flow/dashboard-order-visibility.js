@@ -256,13 +256,10 @@
 
     for (const assignmentTaskId of assignments) {
       if (state.demo) {
-        const demo = {
-          ATDEMO00001: { loaded: 3, total: 4, pending: 1 },
-          ATDEMO00002: { loaded: 6, total: 6, pending: 0 },
-          ATDEMO00003: { loaded: 8, total: 10, pending: 2 },
-          ATDEMO00004: { loaded: 4, total: 5, pending: 1 }
-        };
-        const progress = { status: 'ready', ...(demo[assignmentTaskId] || { loaded: 0, total: 0, pending: 0 }) };
+        const index = Number(assignmentTaskId.match(/^ATDEMO(\d{5})$/)?.[1] || 0);
+        const total = index > 0 ? Math.min(10, (index * 3) % 11) : 0;
+        const loaded = Math.max(0, total - (index % 3));
+        const progress = { status: 'ready', loaded, total, pending: total - loaded };
         renderCardProgress(assignmentTaskId, progress);
         renderModalProgress(assignmentTaskId, progress);
         continue;

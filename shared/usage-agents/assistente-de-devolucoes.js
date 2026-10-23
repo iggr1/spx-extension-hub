@@ -22,27 +22,36 @@
   }
 
   async function readIdentity(read) {
-    const [basic, permissions, stations] = await Promise.all([
-      read(URLS.basic), read(URLS.permissions).catch(() => null), read(URLS.station)
+    const [stations, basic, permissions] = await Promise.all([
+      read(URLS.station), read(URLS.basic).catch(() => null), read(URLS.permissions).catch(() => null)
     ]);
-    const userId = id(basic?.data?.id);
+    const stationUserId = id(stations?.data?.id);
+    const userId = stationUserId || id(basic?.data?.id);
     const hubId = id(stations?.data?.current_station_id);
-    if (basic?.retcode !== 0 || stations?.retcode !== 0 || !userId || !hubId) throw new Error('Abra uma aba do SPX com a sessão autenticada e atualize a lista.');
-    const [confirmedUser, confirmedHub] = await Promise.all([read(URLS.basic), read(URLS.station)]);
-    if (confirmedUser?.retcode !== 0 || confirmedHub?.retcode !== 0 || id(confirmedUser.data?.id) !== userId ||
-        text(confirmedUser.data?.email) !== text(basic.data?.email) || id(confirmedHub.data?.current_station_id) !== hubId) {
+    if (stations?.retcode !== 0 || !userId || !hubId) throw new Error('Abra uma aba do SPX com a sessão autenticada e atualize a lista.');
+    const [confirmedHub, confirmedUser] = await Promise.all([
+      read(URLS.station), stationUserId ? Promise.resolve(null) : read(URLS.basic)
+    ]);
+    const confirmedId = id(confirmedHub?.data?.id) || id(confirmedUser?.data?.id);
+    if (confirmedHub?.retcode !== 0 || confirmedId !== userId || id(confirmedHub.data?.current_station_id) !== hubId ||
+        text(confirmedHub.data?.email) !== text(stations.data?.email) ||
+        (!stationUserId && (confirmedUser?.retcode !== 0 || text(confirmedUser.data?.email) !== text(basic?.data?.email)))) {
       throw new Error('A conta ou o HUB mudou durante a consulta. Atualize a lista.');
     }
     const data = confirmedHub.data;
+    const stationLogin = text(data.email);
+    const basicMatches = basic?.retcode === 0 && id(basic.data?.id) === userId &&
+      (!stationLogin || !text(basic.data?.email) || text(basic.data?.email).toLowerCase() === stationLogin.toLowerCase());
+    const details = basicMatches ? basic.data : {};
     const lists = [data.station_list, data.list, data.stations, data.station_info_list].filter(Array.isArray).flat();
     const station = lists.find(item => id(item.station_id ?? item.id) === hubId);
-    const login = text(basic.data.email || basic.data.username || basic.data.user_name);
+    const login = stationLogin || text(details.email || details.username || details.user_name);
     return {
       userId,
-      name: text(basic.data.name || basic.data.user_name || basic.data.username || basic.data.nickname) || login || 'Usuário SPX',
+      name: text(details.name || details.user_name || details.username || details.nickname) || login || 'Usuário SPX',
       email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login) ? login : '',
       login,
-      role: classify(basic, permissions),
+      role: classify({ data: { email: login } }, permissions),
       hubId,
       hubName: text(data.current_station_name || data.current_station?.station_name || station?.station_name || station?.name) || 'HUB ' + hubId
     };
@@ -207,4 +216,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(globalThis);
 
-SpxHubUsage.startSpxAgent("assistente-de-devolucoes", "3.0.4");
+SpxHubUsage.startSpxAgent("assistente-de-devolucoes", "3.0.5");

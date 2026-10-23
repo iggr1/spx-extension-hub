@@ -23,7 +23,7 @@
     const settings = await client.getConfig().catch(() => null);
     if (!settings?.enabled) return;
     const account = await getProfile().catch(() => null);
-    if (account && !state.demo) await client.record('spx-dock-flow', '1.10.8', 'module_active', account).catch(() => {});
+    if (account && !state.demo) await client.record('spx-dock-flow', '1.10.9', 'module_active', account).catch(() => {});
     await client.flush();
   };
   void tick();

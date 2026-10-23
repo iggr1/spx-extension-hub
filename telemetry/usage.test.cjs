@@ -27,6 +27,27 @@ test('HUB é current_station_id; troca de conta ou de estação cancela a leitur
  const absent = await usage.readIdentity(async url => url === usage.URLS.station ? { retcode: 0, data: { current_station_id: 99, station_list: stations.data.station_list } } : reader(url));
  assert.equal(absent.hubName, 'HUB 99');
 });
+test('station_list fornece conta e HUB mesmo sem basic_info', async () => {
+ const current = { retcode: 0, data: { id: 635217, email: 'account@shopee.com', current_station_id: 5264, current_station_name: 'HUB atual de teste', station_list: [{ id: 1, station_name: 'admin' }] } };
+ const result = await usage.readIdentity(async url => {
+  if (url === usage.URLS.station) return current;
+  if (url === usage.URLS.permissions) return permissions;
+  throw Error('basic_info indisponível');
+ });
+ assert.equal(result.email, 'account@shopee.com'); assert.equal(result.userId, '635217');
+ assert.equal(result.hubName, 'HUB atual de teste'); assert.equal(result.hubId, '5264'); assert.equal(result.role, 'Analista');
+ const mismatch = await usage.readIdentity(async url => url === usage.URLS.station ? current : url === usage.URLS.permissions ? permissions : basic);
+ assert.equal(mismatch.email, 'account@shopee.com'); assert.equal(mismatch.name, 'account@shopee.com');
+});
+test('mudança de ID ou e-mail na estação cancela o registro', async () => {
+ for (const change of [{ id: 124 }, { email: 'other@shopee.com' }]) {
+  let calls = 0;
+  await assert.rejects(usage.readIdentity(async url => {
+   if (url === usage.URLS.station) return { retcode: 0, data: { id: 123, email: 'test@shopee.com', current_station_id: 5264, ...(++calls > 1 ? change : {}) } };
+   return url === usage.URLS.permissions ? permissions : basic;
+  }), /mudou/);
+ }
+});
 test('data usa São Paulo e URL aceita apenas implantação exec', () => {
  assert.equal(usage.dayOf(new Date('2026-10-23T01:30:00Z')), '2026-10-22');
  assert(usage.endpointAllowed('https://script.google.com/macros/s/TestId/exec'));

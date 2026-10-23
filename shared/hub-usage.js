@@ -11,6 +11,11 @@
   const EVENTS = ['catalog_open', 'catalog_active', 'module_open', 'module_active', 'module_enabled'];
   const text = value => typeof value === 'string' ? value.trim().slice(0, 200) : '';
   const id = value => /^\d{1,18}$/.test(String(value)) && Number(value) > 0 ? String(value) : '';
+  const accountLogin = value => {
+    const login = text(value);
+    const ops = /^(?:\[(ops\d+)\].*|(ops\d+))$/i.exec(login);
+    return (ops ? ops[1] || ops[2] : login).toLowerCase();
+  };
 
   function classify(basic, permissions) {
     if (permissions?.retcode !== 0 || !Array.isArray(permissions.data?.perm_list)) return 'Não identificado';
@@ -41,14 +46,14 @@
     const data = confirmedHub.data;
     const stationLogin = text(data.email);
     const basicMatches = basic?.retcode === 0 && id(basic.data?.id) === userId &&
-      (!stationLogin || !text(basic.data?.email) || text(basic.data?.email).toLowerCase() === stationLogin.toLowerCase());
+      (!stationLogin || !text(basic.data?.email) || accountLogin(basic.data.email) === accountLogin(stationLogin));
     const details = basicMatches ? basic.data : {};
     const lists = [data.station_list, data.list, data.stations, data.station_info_list].filter(Array.isArray).flat();
     const station = lists.find(item => id(item.station_id ?? item.id) === hubId);
     const login = stationLogin || text(details.email || details.username || details.user_name);
     return {
       userId,
-      name: text(details.name || details.user_name || details.username || details.nickname) || login || 'Usuário SPX',
+      name: text(details.user_name || details.name || details.username || details.nickname) || login || 'Usuário SPX',
       email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login) ? login : '',
       login,
       role: classify({ data: { email: login } }, permissions),

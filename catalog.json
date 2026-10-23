@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-10-23T09:50:27-03:00",
+  "updatedAt": "2026-10-23T12:05:14-03:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20261023-2"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20261023-3"
   },
   "modules": [
     {
       "id": "spx-dock-flow",
       "name": "SPX Dock Flow",
       "description": "Dashboard em tempo real para mesas, motoristas, rotas, carregamento e volumetria por AT.",
-      "version": "1.10.10",
+      "version": "1.10.11",
       "enabled": true,
       "type": "web_app",
-      "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/?v=1.10.10",
+      "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/?v=1.10.11",
       "permissions": [
         "storage",
         "cookies",
@@ -89,7 +89,7 @@
       "id": "spx-dock-flow-autoadd",
       "name": "Assistênte de AutoAdd",
       "description": "Acompanha AutoAdd em ATs e VTs e notifica AutoAdd no recebimento.",
-      "version": "1.2.11",
+      "version": "1.2.12",
       "enabled": true,
       "type": "user_script",
       "permissions": [
@@ -147,7 +147,7 @@
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
       "description": "Histórico de tentativas e tratativa de endereço no recebimento.",
-      "version": "3.0.5",
+      "version": "3.0.6",
       "enabled": true,
       "type": "user_script",
       "permissions": [

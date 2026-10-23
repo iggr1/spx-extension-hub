@@ -48,6 +48,33 @@ test('mudança de ID ou e-mail na estação cancela o registro', async () => {
   }), /mudou/);
  }
 });
+test('nome vem de basic_info para OPS simples e e-mail corporativo', async () => {
+ for (const login of ['Ops32436', 'igor.camara@shopee.com']) {
+  const current = { retcode: 0, data: { id: 72777, email: login, current_station_id: 5264, current_station_name: 'HUB de teste' } };
+  const account = { retcode: 0, data: { id: 72777, email: login.startsWith('Ops') ? '[oPS32436]Igor Gabriel Camara' : login.toUpperCase(), user_name: 'Igor Gabriel Camara', name: 'Nome legado' } };
+  const calls = [];
+  const result = await usage.readIdentity(async url => { calls.push(url); return url === usage.URLS.station ? current : url === usage.URLS.basic ? account : permissions; });
+  assert(calls.includes(usage.URLS.basic));
+  assert.equal(result.name, 'Igor Gabriel Camara'); assert.equal(result.login, login);
+  assert.equal(result.email, login.includes('@') ? login : '');
+  assert.equal(result.role, login.includes('@') ? 'Analista' : 'Operador');
+  const storage = store();
+  const client = usage.createClient({ storage, getProfile: async () => result, fetch: async (_, options) => {
+   if (options.method) throw Error('offline');
+   return { ok: true, json: async () => ({ enabled: true, endpoint: 'https://script.google.com/macros/s/TestId/exec' }) };
+  } });
+  await client.record('launcher', '1', 'catalog_open'); await client.flush();
+  const event = JSON.parse(storage.getItem('spxHubUsagePendingV1'))[0];
+  assert.equal(event.name, 'Igor Gabriel Camara'); assert.equal(event.login, login);
+ }
+});
+test('OPS de outra conta ou ID diferente não fornece o nome do perfil', async () => {
+ const current = { retcode: 0, data: { id: 72777, email: 'Ops32436', current_station_id: 5264 } };
+ for (const details of [{ id: 72777, email: '[Ops99999]Outra pessoa' }, { id: 99999, email: '[Ops32436]Outra pessoa' }]) {
+  const result = await usage.readIdentity(async url => url === usage.URLS.station ? current : url === usage.URLS.basic ? { retcode: 0, data: { ...details, user_name: 'Outra pessoa' } } : permissions);
+  assert.equal(result.name, 'Ops32436');
+ }
+});
 test('data usa São Paulo e URL aceita apenas implantação exec', () => {
  assert.equal(usage.dayOf(new Date('2026-10-23T01:30:00Z')), '2026-10-22');
  assert(usage.endpointAllowed('https://script.google.com/macros/s/TestId/exec'));

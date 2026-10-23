@@ -27,8 +27,8 @@ const server = http.createServer((request, response) => {
      if(operation==='network.fetchBatch'){
       if(window.testScenario==='offline')return {ok:false,results:{account:{ok:false}}};
       const url=payload.requests[0].url; const key=payload.requests[0].key;
-      let data=url.includes('basic_info')?{id:123,name:window.testScenario==='xss'?'<img src=x onerror="window.xss=1">':'Conta de teste',email:window.testScenario==='operator'?'[ops123]Operador':'test@shopee.com'}:
-       url.includes('station_list')?{current_station_id:5264,station_list:[{station_id:1,station_name:'Outro HUB'},{station_id:5264,station_name:'HUB de teste'}]}:
+      let data=url.includes('basic_info')?{id:123,user_name:window.testScenario==='xss'?'<img src=x onerror="window.xss=1">':window.testScenario==='operator'?'Igor Gabriel Camara':'Conta de teste',name:'Nome legado',email:window.testScenario==='operator'?'[Ops32436]Igor Gabriel Camara':'test@shopee.com'}:
+       url.includes('station_list')?{id:123,email:window.testScenario==='operator'?'Ops32436':'test@shopee.com',current_station_id:5264,station_list:[{station_id:1,station_name:'Outro HUB'},{station_id:5264,station_name:'HUB de teste'}]}:
        {perm_list:[{perm_alias:window.testScenario==='operator'?[]:['RESOLVE_EO','CANCEL_EO_REASON']}]};
       return {ok:true,results:{[key]:{ok:window.testScenario!=='unknown'||!url.includes('user_permission_info'),data:{retcode:0,data}}}};
      }
@@ -44,6 +44,8 @@ const server = http.createServer((request, response) => {
   await page.waitForSelector('#accountButton[data-state="ready"]');
   await page.locator('#accountButton').click();
   assert.equal(await page.locator('#accountRole').textContent(), 'Analista');
+  assert.equal(await page.locator('#accountName').textContent(), 'Conta de teste');
+  assert(posts.flatMap(body => body.events).some(event => event.name === 'Conta de teste' && event.email === 'test@shopee.com'));
   assert.equal(await page.locator('#accountHub').textContent(), 'HUB de teste');
   assert.equal(await page.locator('.module-card').count(), 3);
   await page.screenshot({ path: process.env.SPX_PROFILE_PREVIEW || '/tmp/spx-account-profile.png' });
@@ -52,6 +54,10 @@ const server = http.createServer((request, response) => {
    await page.evaluate(value => { window.testScenario = value; }, scenario);
    await page.locator('#refreshButton').click(); await page.waitForSelector('#accountButton[data-state="ready"]');
    assert.equal(await page.locator('#accountRole').textContent(), role);
+   if (scenario === 'operator') {
+    assert.equal(await page.locator('#accountName').textContent(), 'Igor Gabriel Camara');
+    assert.equal(await page.locator('#accountLogin').textContent(), 'Ops32436');
+   }
   }
   assert.equal(await page.evaluate(() => window.xss), undefined);
   assert.equal(await page.locator('#accountName img').count(), 0);

@@ -89,6 +89,8 @@ async function loadModules(forceRefresh) {
     }
 
     currentLoaderVersion = loaderResponse?.ok ? String(loaderResponse.version || '0.0.0') : '0.0.0';
+    window.HubAccount?.configure(catalogResponse.catalog, currentLoaderVersion);
+    void window.HubAccount?.refresh(forceRefresh);
     currentModules = catalogResponse.catalog.modules
       .filter(module => module.enabled && !SUSPENDED_MODULES.has(module.id))
       .map(module => ({
@@ -156,7 +158,10 @@ function renderModules() {
     button.addEventListener('click', async () => {
       button.disabled = true;
       try {
-        if (await HubAuth.authorize(button.dataset.moduleId)) LoaderBridge.openModule(button.dataset.moduleId);
+        if (await HubAuth.authorize(button.dataset.moduleId)) {
+          void window.HubAccount?.record(button.dataset.moduleId, 'module_open');
+          LoaderBridge.openModule(button.dataset.moduleId);
+        }
         else status.textContent = HubAuth.access(button.dataset.moduleId).message;
       } finally { renderModules(); }
     });
@@ -339,6 +344,7 @@ async function toggleUserScript(module, enabled) {
         : `Desligado. ${formatReloadedTabs(response.reloadedTabs, module)}`
     });
     status.textContent = `${module.name} ${enabled ? 'ativado' : 'desativado'} com sucesso.`;
+    if (response.enabled) void window.HubAccount?.record(module.id, 'module_enabled');
   } catch (error) {
     userScriptStates.set(module.id, {
       ...previous,

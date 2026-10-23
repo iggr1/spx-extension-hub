@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
   "name": "SPX Extension Hub",
-  "updatedAt": "2026-10-22T14:52:17-03:00",
+  "updatedAt": "2026-10-23T09:11:19-03:00",
   "launcher": {
-    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20261021-2"
+    "url": "https://iggr1.github.io/spx-extension-hub/launcher/?v=20261023-1"
   },
   "modules": [
     {
       "id": "spx-dock-flow",
       "name": "SPX Dock Flow",
       "description": "Dashboard em tempo real para mesas, motoristas, rotas, carregamento e volumetria por AT.",
-      "version": "1.10.7",
+      "version": "1.10.8",
       "enabled": true,
       "type": "web_app",
-      "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/?v=1.10.7",
+      "entry": "https://iggr1.github.io/spx-extension-hub/modules/spx-dock-flow/?v=1.10.8",
       "permissions": [
         "storage",
         "cookies",
@@ -89,7 +89,7 @@
       "id": "spx-dock-flow-autoadd",
       "name": "Assistênte de AutoAdd",
       "description": "Acompanha AutoAdd em ATs e VTs e notifica AutoAdd no recebimento.",
-      "version": "1.2.9",
+      "version": "1.2.10",
       "enabled": true,
       "type": "user_script",
       "permissions": [
@@ -128,6 +128,17 @@
           "runAt": "document_idle",
           "world": "MAIN",
           "allFrames": false
+        },
+        {
+          "id": "spx-usage-spx-dock-flow-autoadd",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/shared/usage-agents/spx-dock-flow-autoadd.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
         }
       ],
       "descriptionPdf": "https://iggr1.github.io/spx-extension-hub/modules/assistente-de-autoadd/descricao.pdf?docs=20261020"
@@ -136,7 +147,7 @@
       "id": "assistente-de-devolucoes",
       "name": "Assistente de devoluções",
       "description": "Histórico de tentativas e tratativa de endereço no recebimento.",
-      "version": "3.0.3",
+      "version": "3.0.4",
       "enabled": true,
       "type": "user_script",
       "permissions": [
@@ -182,6 +193,17 @@
         {
           "id": "recebimento-onhold-report",
           "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/modules/assistente-de-devolucoes/onhold-report.js",
+          "matches": [
+            "https://spx.shopee.com.br/*"
+          ],
+          "excludeMatches": [],
+          "runAt": "document_idle",
+          "world": "MAIN",
+          "allFrames": false
+        },
+        {
+          "id": "spx-usage-assistente-de-devolucoes",
+          "url": "https://raw.githubusercontent.com/iggr1/spx-extension-hub/main/shared/usage-agents/assistente-de-devolucoes.js",
           "matches": [
             "https://spx.shopee.com.br/*"
           ],

@@ -30,6 +30,12 @@ O catálogo consumido pelo loader será:
 
 Altere os arquivos do módulo e incremente o campo `version` correspondente em `catalog.json`. O loader busca o catálogo novamente a cada cinco minutos e também permite atualização manual.
 
+## Conta SPX e registro de uso
+
+O ícone de usuário no cabeçalho do catálogo mostra a conta autenticada, o HUB atual e o perfil de acesso às ferramentas. A coleta de adoção pode registrar atividade do catálogo e dos três módulos em uma planilha Google, sem formulário por acesso.
+
+O receptor está em [Coleta_Hubs_SPX.gs](telemetry/Coleta_Hubs_SPX.gs). Consulte o [tutorial de implantação e configuração](telemetry/README.md). A configuração inicial em `launcher/usage-config.json` vem desativada até a publicação do WebApp e inclusão da URL `/exec`.
+
 ## Adicionar um módulo web
 
 1. Crie uma pasta em `modules/<id>/`.

@@ -27,12 +27,19 @@ const server = http.createServer((request, response) => {
       if(window.testScenario==='old-loader')return {ok:false,code:'CAPABILITY_NOT_ALLOWED'};
       return this.requestForModule('spx-dock-flow','network.fetchBatch',{requests:[{key:'account',url:SpxHubUsage.URLS[payload.resource]}]});
      }
-     if(operation==='loader.info')return {ok:true,version:window.testScenario==='up-to-date'?'1.2.3':'1.2.2'};
+     if(operation==='loader.info')return {ok:true,version:['up-to-date','status-unavailable'].includes(window.testScenario)?'1.2.4':'1.2.2'};
      const responseCatalog=${JSON.stringify(catalog)};
      if(window.testScenario==='legacy-catalog')delete responseCatalog.minimumLoaderVersion;
      return {ok:true,catalog:responseCatalog};
     },
     async requestForModule(moduleId,operation,payload){
+     if(operation==='userscripts.status')return window.testScenario==='status-unavailable'
+      ?{ok:true,enabled:false,registered:null,statusKnown:false}
+      :{ok:true,enabled:false,registered:false,statusKnown:true};
+     if(operation==='userscripts.setEnabled'){
+      window.userScriptEnableCalls=(window.userScriptEnableCalls||0)+1;
+      return {ok:true,enabled:payload.enabled,registered:true,reloadedTabs:0};
+     }
      if(operation==='network.fetchBatch'){
       if(window.testScenario==='offline')return {ok:false,results:{account:{ok:false}}};
       const url=payload.requests[0].url; const key=payload.requests[0].key;
@@ -51,7 +58,7 @@ const server = http.createServer((request, response) => {
   });
   await page.goto('http://127.0.0.1:' + server.address().port + '/launcher/');
   await page.waitForSelector('#accountButton[data-state="ready"]');
-  assert.equal(await page.locator('#requiredLoaderVersion').textContent(), '1.2.3');
+  assert.equal(await page.locator('#requiredLoaderVersion').textContent(), '1.2.4');
   assert(await page.locator('#loaderUpdateNotice').isVisible());
   assert((await page.locator('#loaderUpdateNotice').textContent()).includes('melhorias e ferramentas'));
   await page.locator('#installLoaderNotice').click();
@@ -74,6 +81,15 @@ const server = http.createServer((request, response) => {
   assert(posts.flatMap(body => body.events).some(event => event.name === 'Conta de teste' && event.email === 'test@shopee.com'));
   assert.equal(await page.locator('#accountHub').textContent(), 'HUB de teste');
   assert.equal(await page.locator('.module-card').count(), 3);
+  await page.evaluate(() => { window.testScenario = 'status-unavailable'; });
+  await page.locator('#refreshButton').click();
+  const autoAddSwitch = page.locator('[data-user-script-toggle="spx-dock-flow-autoadd"]');
+  await autoAddSwitch.waitFor();
+  assert.equal(await autoAddSwitch.isDisabled(), false);
+  assert((await page.locator('[data-module-card="spx-dock-flow-autoadd"]').textContent()).includes('Clique para tentar ativar'));
+  await page.locator('[data-module-card="spx-dock-flow-autoadd"] label.module-toggle').click({ position: { x: 8, y: 14 } });
+  assert.equal(await page.evaluate(() => window.userScriptEnableCalls), 1);
+  assert((await page.locator('#status').textContent()).includes('ativado com sucesso'));
   await page.screenshot({ path: process.env.SPX_PROFILE_PREVIEW || '/tmp/spx-account-profile.png' });
   await page.keyboard.press('Escape'); assert(await page.locator('#accountPanel').isHidden());
   for (const [scenario, role] of [['operator', 'Operador'], ['unknown', 'Não identificado'], ['xss', 'Analista']]) {
@@ -128,9 +144,9 @@ const server = http.createServer((request, response) => {
    <script>
     window.calls=[]; window.chrome={runtime:{lastError:null,sendMessage(message,callback){
      calls.push(message);
-     if(message.type==='LOADER_BOOTSTRAP')return callback({ok:true,loader:{version:'1.2.3'},catalog:${JSON.stringify(loaderCatalog)}});
+     if(message.type==='LOADER_BOOTSTRAP')return callback({ok:true,loader:{version:'1.2.4'},catalog:${JSON.stringify(loaderCatalog)}});
      if(message.operation==='catalog.get'||message.operation==='catalog.refresh')return callback({ok:true,catalog:${JSON.stringify(catalog)}});
-     if(message.operation==='loader.info')return callback({ok:true,version:'1.2.3'});
+     if(message.operation==='loader.info')return callback({ok:true,version:'1.2.4'});
      if(message.operation==='account.read'){
       if(window.legacy)return callback({ok:false,code:'CAPABILITY_NOT_ALLOWED'});
       const data=message.payload.resource==='basic'?{id:72777,email:'[Ops32436]Igor Gabriel Camara',user_name:'Igor Gabriel Camara'}:

@@ -1,7 +1,7 @@
 const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
-const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.1.0';
-const REQUIRED_LOADER_VERSION = '1.2.3';
+const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.2.4';
+const REQUIRED_LOADER_VERSION = '1.2.4';
 const SUSPENDED_MODULES = new Set(['importador-de-planilhas']);
 
 const MODULE_ICON_PATHS = Object.freeze({
@@ -245,7 +245,7 @@ function renderUserScriptSwitch(module) {
     message: 'Consultando estado do módulo...'
   };
   const loaderSupported = compareVersions(currentLoaderVersion, USER_SCRIPT_SWITCH_MIN_LOADER_VERSION) >= 0;
-  const disabled = state.loading || state.busy || state.unavailable || !loaderSupported;
+  const disabled = state.busy || !loaderSupported;
   const message = !loaderSupported
     ? `Clique em “Atualizar loader” no topo para instalar a versão atual.`
     : state.message || (state.enabled ? activeScriptMessage(module) : 'Desativado.');
@@ -261,7 +261,7 @@ function renderUserScriptSwitch(module) {
       >
       <span class="module-toggle-track" aria-hidden="true"><span></span></span>
       <span class="module-toggle-copy">
-        <strong>${state.busy ? 'Aplicando...' : state.enabled ? 'Ligado' : 'Desligado'}</strong>
+        <strong>${state.busy ? 'Aplicando...' : state.unavailable ? 'Estado desconhecido' : state.enabled ? 'Ligado' : 'Desligado'}</strong>
         <small>${escapeHtml(message)}</small>
       </span>
     </label>
@@ -311,7 +311,10 @@ async function loadUserScriptStates() {
         userScriptStates.set(module.id, {
           enabled: response.enabled === true,
           registered: response.registered === true,
-          message: response.enabled ? activeScriptMessage(module) : 'Desativado.'
+          unavailable: response.statusKnown === false,
+          message: response.statusKnown === false
+            ? `Estado não confirmado. Clique para tentar ${response.enabled ? 'desativar' : 'ativar'}; o Chrome validará a operação.`
+            : response.enabled ? activeScriptMessage(module) : 'Desativado.'
         });
         renderModules();
         return;
@@ -328,7 +331,7 @@ async function loadUserScriptStates() {
           unavailable: true,
           error: true,
           loading: false,
-          message: 'Não foi possível confirmar o estado. Clique em “Atualizar lista” para tentar novamente.'
+          message: `Estado não confirmado. Você ainda pode clicar para tentar ${original?.enabled ? 'desativar' : 'ativar'}; o Chrome validará a operação.`
         });
         renderModules();
       }

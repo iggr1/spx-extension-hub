@@ -693,13 +693,7 @@ async function ensureUserScriptsAvailable() {
   if (!chrome.userScripts) {
     return failure('USER_SCRIPTS_DISABLED', 'Ative “Permitir scripts de usuário” nos detalhes da extensão no Chrome.', { supportEmail: SUPPORT_EMAIL });
   }
-
-  try {
-    await chrome.userScripts.getScripts();
-    return null;
-  } catch {
-    return failure('USER_SCRIPTS_DISABLED', 'Ative “Permitir scripts de usuário” nos detalhes da extensão no Chrome.', { supportEmail: SUPPORT_EMAIL });
-  }
+  return null;
 }
 
 async function getUserScriptsStatus(module) {
@@ -708,23 +702,28 @@ async function getUserScriptsStatus(module) {
     return failure('INVALID_MODULE_TYPE', 'Este módulo não é um user script.');
   }
 
-  const unavailable = await ensureUserScriptsAvailable();
-  if (unavailable) return unavailable;
-
   const stateKey = userScriptsStateKey(module.id);
-  const [stored, existing] = await Promise.all([
-    chrome.storage.local.get({ [stateKey]: false }),
-    chrome.userScripts.getScripts()
-  ]);
-  const prefix = userScriptPrefix(module.id);
-  const registered = existing.some(script => script.id.startsWith(prefix));
-
-  return {
-    ok: true,
-    enabled: stored[stateKey] === true,
-    registered,
-    scripts: existing.filter(script => script.id.startsWith(prefix)).length
-  };
+  const stored = await chrome.storage.local.get({ [stateKey]: false });
+  try {
+    if (!chrome.userScripts) throw new Error('API indisponível.');
+    const existing = await chrome.userScripts.getScripts();
+    const prefix = userScriptPrefix(module.id);
+    return {
+      ok: true,
+      enabled: stored[stateKey] === true,
+      statusKnown: true,
+      registered: existing.some(script => script.id.startsWith(prefix)),
+      scripts: existing.filter(script => script.id.startsWith(prefix)).length
+    };
+  } catch {
+    return {
+      ok: true,
+      enabled: stored[stateKey] === true,
+      statusKnown: false,
+      registered: null,
+      scripts: null
+    };
+  }
 }
 
 async function setUserScriptsEnabled(module, enabled) {
@@ -793,11 +792,7 @@ async function registerUserScripts(module) {
 
 async function unregisterUserScripts(module) {
   const prefix = userScriptPrefix(module.id);
-  const existing = await chrome.userScripts.getScripts();
-  const ids = existing
-    .filter(script => script.id.startsWith(prefix))
-    .map(script => script.id);
-
+  const ids = module.userScripts.map(script => `${prefix}${script.id}`);
   if (ids.length) await chrome.userScripts.unregister({ ids });
   return ids.length;
 }

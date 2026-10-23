@@ -33,17 +33,21 @@
   }
 
   function vehicleType(dock) {
-    if (Number(dock?.dock_status) === 2 || !isDockOccupied(dock) ||
-        (!dock?.occupied_driver_id && !String(dock?.occupied_vehicle_number || '').trim())) return '';
-    const driverId = Number(dock?.occupied_driver_id) || 0;
+    const occupied = isDockOccupied(dock);
+    const nextDriver = occupied ? null : getNextDriver(dock);
+    const status = getDisplayStatus(dock, nextDriver).key;
+    if (status !== 'occupied' && status !== 'next') return '';
+    const driverId = Number(occupied ? dock?.occupied_driver_id : nextDriver?.driver_id) || 0;
     const route = driverId ? state.driverRoutes[driverId] : null;
     const detail = route?.ok === true ? route.details : null;
+    // A vacant dock may retain fields from its previous vehicle. Only use the called driver.
+    const vehicle = occupied ? dock : nextDriver;
     const candidates = [
       detail?.vehicle_type_name, detail?.vehicle_category_name,
       detail?.planned_vehicle_type, detail?.vehicle_name, detail?.vehicle_type,
       detail?.vehicle_category, detail?.vehicle?.type_name, detail?.vehicle?.type,
-      dock?.vehicle_type_name, dock?.vehicle_category_name,
-      dock?.planned_vehicle_type, dock?.vehicle_name, dock?.vehicle_type
+      vehicle?.vehicle_type_name, vehicle?.vehicle_category_name,
+      vehicle?.planned_vehicle_type, vehicle?.vehicle_name, vehicle?.vehicle_type
     ];
 
     for (const raw of candidates) {

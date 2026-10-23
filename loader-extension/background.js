@@ -767,7 +767,7 @@ async function setUserScriptsEnabled(module, enabled) {
 async function registerUserScripts(module) {
   if (!module.userScripts.length) return 0;
 
-  await unregisterUserScripts(module);
+  await unregisterUserScripts(module, { allowUnknown: true });
   const prefix = userScriptPrefix(module.id);
   const registrations = [];
 
@@ -790,10 +790,25 @@ async function registerUserScripts(module) {
   return registrations.length;
 }
 
-async function unregisterUserScripts(module) {
+async function unregisterUserScripts(module, { allowUnknown = false } = {}) {
   const prefix = userScriptPrefix(module.id);
-  const ids = module.userScripts.map(script => `${prefix}${script.id}`);
-  if (ids.length) await chrome.userScripts.unregister({ ids });
+  let ids;
+  try {
+    const existing = await chrome.userScripts.getScripts();
+    ids = existing.filter(script => script.id.startsWith(prefix)).map(script => script.id);
+  } catch (error) {
+    if (!allowUnknown) throw error;
+    ids = module.userScripts.map(script => `${prefix}${script.id}`);
+  }
+
+  for (const id of ids) {
+    try {
+      await chrome.userScripts.unregister({ ids: [id] });
+    } catch (error) {
+      const nonexistent = /Nonexistent script ID/i.test(String(error?.message || error));
+      if (!nonexistent && !allowUnknown) throw error;
+    }
+  }
   return ids.length;
 }
 

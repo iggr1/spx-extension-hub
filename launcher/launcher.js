@@ -1,7 +1,7 @@
 const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
-const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.2.4';
-const REQUIRED_LOADER_VERSION = '1.2.4';
+const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.2.5';
+const REQUIRED_LOADER_VERSION = '1.2.5';
 const SUSPENDED_MODULES = new Set(['importador-de-planilhas']);
 
 const MODULE_ICON_PATHS = Object.freeze({

@@ -27,7 +27,7 @@ const server = http.createServer((request, response) => {
       if(window.testScenario==='old-loader')return {ok:false,code:'CAPABILITY_NOT_ALLOWED'};
       return this.requestForModule('spx-dock-flow','network.fetchBatch',{requests:[{key:'account',url:SpxHubUsage.URLS[payload.resource]}]});
      }
-     if(operation==='loader.info')return {ok:true,version:['up-to-date','status-unavailable'].includes(window.testScenario)?'1.2.4':'1.2.2'};
+     if(operation==='loader.info')return {ok:true,version:['up-to-date','status-unavailable'].includes(window.testScenario)?'1.2.5':'1.2.2'};
      const responseCatalog=${JSON.stringify(catalog)};
      if(window.testScenario==='legacy-catalog')delete responseCatalog.minimumLoaderVersion;
      return {ok:true,catalog:responseCatalog};
@@ -58,7 +58,7 @@ const server = http.createServer((request, response) => {
   });
   await page.goto('http://127.0.0.1:' + server.address().port + '/launcher/');
   await page.waitForSelector('#accountButton[data-state="ready"]');
-  assert.equal(await page.locator('#requiredLoaderVersion').textContent(), '1.2.4');
+  assert.equal(await page.locator('#requiredLoaderVersion').textContent(), '1.2.5');
   assert(await page.locator('#loaderUpdateNotice').isVisible());
   assert((await page.locator('#loaderUpdateNotice').textContent()).includes('melhorias e ferramentas'));
   await page.locator('#installLoaderNotice').click();
@@ -144,9 +144,9 @@ const server = http.createServer((request, response) => {
    <script>
     window.calls=[]; window.chrome={runtime:{lastError:null,sendMessage(message,callback){
      calls.push(message);
-     if(message.type==='LOADER_BOOTSTRAP')return callback({ok:true,loader:{version:'1.2.4'},catalog:${JSON.stringify(loaderCatalog)}});
+     if(message.type==='LOADER_BOOTSTRAP')return callback({ok:true,loader:{version:'1.2.5'},catalog:${JSON.stringify(loaderCatalog)}});
      if(message.operation==='catalog.get'||message.operation==='catalog.refresh')return callback({ok:true,catalog:${JSON.stringify(catalog)}});
-     if(message.operation==='loader.info')return callback({ok:true,version:'1.2.4'});
+     if(message.operation==='loader.info')return callback({ok:true,version:'1.2.5'});
      if(message.operation==='account.read'){
       if(window.legacy)return callback({ok:false,code:'CAPABILITY_NOT_ALLOWED'});
       const data=message.payload.resource==='basic'?{id:72777,email:'[Ops32436]Igor Gabriel Camara',user_name:'Igor Gabriel Camara'}:

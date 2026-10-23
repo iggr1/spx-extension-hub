@@ -29,7 +29,7 @@ function backend() {
 test('catálogo usa uma operação própria, limitada às três consultas GET da conta', async () => {
   const worker = backend();
   const catalogResponse = await worker.read({ moduleId: 'launcher', operation: 'catalog.get' });
-  assert.equal(catalogResponse.catalog.minimumLoaderVersion, '1.2.4');
+  assert.equal(catalogResponse.catalog.minimumLoaderVersion, '1.2.5');
   const expected = { basic: 'basic_info', permissions: 'user_permission_info', station: 'station_list/?count=50&status_list=0' };
   for (const [resource, suffix] of Object.entries(expected)) {
     const response = await worker.read({ moduleId: 'launcher', operation: 'account.read', payload: { resource, method: 'DELETE', url: 'https://example.test/', body: { ignored: true } } });
@@ -97,7 +97,10 @@ test('estado user script desconhecido não bloqueia ativação; registro confirm
       tabs: { query: async () => [], reload: async () => {} },
       userScripts: {
         getScripts: async () => { throw new Error('O Chrome não retornou o estado.'); },
-        unregister: async filter => events.push({ type: 'unregister', ids: filter.ids }),
+        unregister: async filter => {
+          events.push({ type: 'unregister', ids: filter.ids });
+          throw new Error(`Nonexistent script ID '${filter.ids[0]}'`);
+        },
         register: async scripts => events.push({ type: 'register', scripts })
       }
     }
@@ -114,13 +117,13 @@ test('estado user script desconhecido não bloqueia ativação; registro confirm
   assert.equal(activated.ok, true);
   assert.equal(activated.enabled, true);
   assert.equal(activated.scripts, catalog.modules.find(module => module.id === 'spx-dock-flow-autoadd').userScripts.length);
-  assert.equal(events[0].type, 'unregister');
-  assert.equal(events[1].type, 'register');
+  assert(events.some(event => event.type === 'unregister'));
+  assert(events.some(event => event.type === 'register'));
   assert.equal(saved['module:spx-dock-flow-autoadd:userScriptsEnabled'], true);
 });
 
-test('patch 1.2.4 inclui os scripts exigidos pelo service worker e a página do loader', () => {
-  const patchPath = path.join(root, 'downloads/spx-extension-loader-v1.2.4-patch.zip');
+test('patch 1.2.5 inclui os scripts exigidos pelo service worker e a página do loader', () => {
+  const patchPath = path.join(root, 'downloads/spx-extension-loader-v1.2.5-patch.zip');
   const entries = execFileSync('unzip', ['-Z1', patchPath], { encoding: 'utf8' }).trim().split('\n');
   for (const file of ['background.js', 'loader.js', 'manifest.json', 'dock-alarm-background.js', 'dock-alarm-audio.js', 'dock-alarm-audio.html', 'loader.html']) {
     assert(entries.includes(file), `patch não contém ${file}`);
@@ -130,5 +133,5 @@ test('patch 1.2.4 inclui os scripts exigidos pelo service worker e a página do 
   assert(importedBackground.length > 0);
   assert(importedAudio.length > 0);
   const manifest = JSON.parse(require('node:child_process').execFileSync('unzip', ['-p', patchPath, 'manifest.json'], { encoding: 'utf8' }));
-  assert.equal(manifest.version, '1.2.4');
+  assert.equal(manifest.version, '1.2.5');
 });

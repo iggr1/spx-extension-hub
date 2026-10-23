@@ -1,6 +1,10 @@
-# SPX Extension Loader 1.2.4
+# SPX Extension Loader 1.2.5
 
 Loader modular para ferramentas operacionais publicadas no repositório `iggr1/spx-extension-hub`.
+
+## Novidades da versão 1.2.5
+
+- A ativação tenta remover cada ID conhecido separadamente quando o Chrome não consegue listar os registros. IDs ainda inexistentes são ignorados; erros reais de registro continuam sendo exibidos.
 
 ## Novidades da versão 1.2.4
 

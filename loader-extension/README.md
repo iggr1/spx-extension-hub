@@ -1,12 +1,13 @@
-# SPX Extension Loader 1.2.2
+# SPX Extension Loader 1.2.3
 
 Loader modular para ferramentas operacionais publicadas no repositório `iggr1/spx-extension-hub`.
 
-## Novidades da versão 1.2.2
+## Novidades da versão 1.2.3
 
 - Consulta da conta autenticada no catálogo pela operação `account.read`, limitada a `basic_info`, `station_list` e `user_permission_info`, via GET.
 - Preserva a verificação de permissões do módulo e o bloqueio de chamadas genéricas de rede pelo catálogo.
 - Atualize os arquivos da pasta instalada e recarregue a extensão em `chrome://extensions`. O perfil do catálogo depende desta versão; os agentes de telemetria nas abas SPX funcionam independentemente dessa consulta.
+- O manifesto mantém o domínio SPX necessário e disponibiliza permissões opcionais de host para páginas HTTP e HTTPS. O Chrome só libera páginas adicionais quando o usuário concede esse acesso; a extensão não recebe acesso silencioso a todos os sites.
 
 ## Novidades da versão 1.2.0
 

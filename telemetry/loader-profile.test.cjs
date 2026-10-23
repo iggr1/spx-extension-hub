@@ -27,6 +27,8 @@ function backend() {
 
 test('catálogo usa uma operação própria, limitada às três consultas GET da conta', async () => {
   const worker = backend();
+  const catalogResponse = await worker.read({ moduleId: 'launcher', operation: 'catalog.get' });
+  assert.equal(catalogResponse.catalog.minimumLoaderVersion, '1.2.3');
   const expected = { basic: 'basic_info', permissions: 'user_permission_info', station: 'station_list/?count=50&status_list=0' };
   for (const [resource, suffix] of Object.entries(expected)) {
     const response = await worker.read({ moduleId: 'launcher', operation: 'account.read', payload: { resource, method: 'DELETE', url: 'https://example.test/', body: { ignored: true } } });

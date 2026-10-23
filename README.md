@@ -34,7 +34,7 @@ Altere os arquivos do módulo e incremente o campo `version` correspondente em `
 
 O ícone de usuário no cabeçalho do catálogo mostra a conta autenticada, o HUB atual e o perfil de acesso às ferramentas. A coleta de adoção pode registrar atividade do catálogo e dos três módulos em uma planilha Google, sem formulário por acesso.
 
-O perfil do catálogo exige o **Loader 1.2.2 ou superior**. A consulta usa `account.read` para ler somente os três endpoints de identidade do SPX. Em versões anteriores, os agentes nas abas SPX podem registrar uso na planilha enquanto o perfil do catálogo permanece indisponível. Use **Atualizar loader** e recarregue a extensão para aplicar a correção.
+O perfil do catálogo exige o **Loader 1.2.3 ou superior**. A consulta usa `account.read` para ler somente os três endpoints de identidade do SPX. Em versões anteriores, os agentes nas abas SPX podem registrar uso na planilha enquanto o perfil do catálogo permanece indisponível. Use **Atualizar loader** e recarregue a extensão para aplicar a correção. As permissões de host HTTP/HTTPS continuam opcionais e o Chrome só concede acesso às páginas que o usuário autorizar.
 
 O receptor está em [Coleta_Hubs_SPX.gs](telemetry/Coleta_Hubs_SPX.gs). Consulte o [tutorial de implantação e configuração](telemetry/README.md). A configuração inicial em `launcher/usage-config.json` vem desativada até a publicação do WebApp e inclusão da URL `/exec`.
 

@@ -229,6 +229,7 @@ function validateCatalog(input) {
     schemaVersion: 1,
     name: String(input.name || 'SPX Extension Hub'),
     updatedAt: input.updatedAt || null,
+    minimumLoaderVersion: String(input.minimumLoaderVersion || '0.0.0'),
     launcher: { url: launcherUrl },
     modules
   };
@@ -836,6 +837,7 @@ function publicCatalog(catalog) {
     schemaVersion: catalog.schemaVersion,
     name: catalog.name,
     updatedAt: catalog.updatedAt,
+    minimumLoaderVersion: catalog.minimumLoaderVersion,
     modules: catalog.modules.map(publicModule)
   };
 }

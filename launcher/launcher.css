@@ -236,4 +236,13 @@ button:disabled {
 
 .header-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 #updateLoaderButton { background: #ff6500; }
+.loader-update-wrap { position: relative; }
+.loader-update-notice { position: absolute; z-index: 120; top: calc(100% + 14px); right: 0; width: min(370px, calc(100vw - 28px)); padding: 18px; border: 1px solid #f28a4b; border-radius: 14px; background: #202632; color: #f5f7fb; box-shadow: 0 16px 44px #0009; }
+.loader-update-notice[hidden] { display: none; }
+.loader-update-notice::before { position: absolute; top: -8px; right: 29px; width: 14px; height: 14px; border-top: 1px solid #f28a4b; border-left: 1px solid #f28a4b; background: #202632; content: ''; transform: rotate(45deg); }
+.loader-update-notice strong { display: block; padding-right: 22px; color: #ffad78; font-size: 14px; }
+.loader-update-notice p { margin: 8px 0 14px; color: #d3d9e3; font-size: 12px; line-height: 1.55; }
+.loader-update-notice b { color: #fff; }
+.loader-update-notice .loader-notice-dismiss { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; padding: 0; border: 1px solid #485265; background: #2a3342; font-size: 19px; line-height: 1; }
+.loader-update-notice .loader-notice-install { padding: 8px 12px; background: #ff6500; font-size: 12px; }
 @media (max-width: 700px) { .page-shell > header { flex-wrap: wrap; }.header-actions { width: 100%; } }

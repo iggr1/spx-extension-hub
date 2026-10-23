@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20261023-1">
-  <link rel="stylesheet" href="account.css?v=20261023-1">
+  <link rel="stylesheet" href="launcher.css?v=20261023-5">
+  <link rel="stylesheet" href="account.css?v=20261023-5">
 </head>
 <body>
   <main class="page-shell">
@@ -17,7 +17,15 @@
       </div>
       <div class="header-actions">
         <button id="refreshButton" type="button">Atualizar lista</button>
-        <button id="updateLoaderButton" type="button">Atualizar loader</button>
+        <div class="loader-update-wrap">
+          <button id="updateLoaderButton" type="button">Atualizar loader</button>
+          <aside id="loaderUpdateNotice" class="loader-update-notice" role="status" aria-live="polite" hidden>
+            <button id="dismissLoaderNotice" class="loader-notice-dismiss" type="button" aria-label="Dispensar aviso">×</button>
+            <strong>Atualização importante disponível</strong>
+            <p>Algumas melhorias e ferramentas aguardam a versão <b id="requiredLoaderVersion">—</b> do loader. Instale agora para aproveitá-las.</p>
+            <button id="installLoaderNotice" class="loader-notice-install" type="button">Ver como instalar</button>
+          </aside>
+        </div>
         <div class="account-control">
           <button id="accountButton" type="button" aria-label="Informações da conta SPX" title="Informações da conta SPX" aria-haspopup="dialog" aria-expanded="false" aria-controls="accountPanel" data-state="loading">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
@@ -87,8 +95,8 @@
   <script src="../shared/spx-access.js?v=20260916-8"></script>
   <script src="spx-auth.js?v=20260930-4"></script>
   <script src="../shared/hub-usage.js?v=20261023-3"></script>
-  <script src="account.js?v=20261023-4"></script>
-  <script src="launcher.js?v=20261023-1"></script>
+  <script src="account.js?v=20261023-5"></script>
+  <script src="launcher.js?v=20261023-5"></script>
   <script>
     (() => {
       const MIGRATION_KEY = 'spxAutoAddAssistantMigrationV112';

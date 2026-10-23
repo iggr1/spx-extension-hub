@@ -40,6 +40,8 @@ function renderModuleAccess(module, permission) {
 const grid = document.getElementById('moduleGrid');
 const status = document.getElementById('status');
 const loaderVersion = document.getElementById('loaderVersion');
+const loaderUpdateNotice = document.getElementById('loaderUpdateNotice');
+const LOADER_NOTICE_KEY = 'spxLoaderUpdateDismissedVersionV1';
 const workspace = document.getElementById('workspace');
 const descriptionSidebar = document.getElementById('descriptionSidebar');
 const descriptionTitle = document.getElementById('descriptionTitle');
@@ -61,11 +63,18 @@ const userScriptStates = new Map();
 let userScriptStatusGeneration = 0;
 
 document.getElementById('refreshButton').addEventListener('click', () => loadModules(true));
-document.getElementById('updateLoaderButton').addEventListener('click', () => {
+function showLoaderUpdateInstructions() {
   const dialog = document.getElementById('loaderUpdateDialog');
   const frame = dialog.querySelector('iframe');
   if (!frame.getAttribute('src')) frame.src = 'atualizar-loader.html';
   dialog.showModal();
+}
+document.getElementById('updateLoaderButton').addEventListener('click', showLoaderUpdateInstructions);
+document.getElementById('installLoaderNotice').addEventListener('click', showLoaderUpdateInstructions);
+document.getElementById('dismissLoaderNotice').addEventListener('click', () => {
+  const version = loaderUpdateNotice.dataset.version;
+  try { localStorage.setItem(LOADER_NOTICE_KEY, version); } catch {}
+  loaderUpdateNotice.hidden = true;
 });
 closeDescriptionButton.addEventListener('click', closeDescription);
 openPdfButton.addEventListener('click', () => {
@@ -89,6 +98,7 @@ async function loadModules(forceRefresh) {
     }
 
     currentLoaderVersion = loaderResponse?.ok ? String(loaderResponse.version || '0.0.0') : '0.0.0';
+    updateLoaderNotice(catalogResponse.catalog.minimumLoaderVersion, currentLoaderVersion);
     window.HubAccount?.configure(catalogResponse.catalog, currentLoaderVersion);
     void window.HubAccount?.refresh(forceRefresh);
     currentModules = catalogResponse.catalog.modules
@@ -119,6 +129,26 @@ async function loadModules(forceRefresh) {
     status.textContent = normalizeSwitchError(error);
     grid.innerHTML = '<div class="empty">Não foi possível carregar a lista de módulos.</div>';
   }
+}
+
+function updateLoaderNotice(requiredVersion, installedVersion) {
+  const required = String(requiredVersion || '0.0.0');
+  const installed = String(installedVersion || '0.0.0');
+  const outdated = compareVersions(installed, required) < 0;
+  loaderUpdateNotice.dataset.version = required;
+  document.getElementById('requiredLoaderVersion').textContent = required;
+  let dismissed = '';
+  try { dismissed = localStorage.getItem(LOADER_NOTICE_KEY) || ''; } catch {}
+  loaderUpdateNotice.hidden = !outdated || dismissed === required;
+}
+
+function compareVersions(left, right) {
+  const a = String(left).split('.').map(part => Number.parseInt(part, 10) || 0);
+  const b = String(right).split('.').map(part => Number.parseInt(part, 10) || 0);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) - (b[i] || 0);
+  }
+  return 0;
 }
 
 function renderModules() {

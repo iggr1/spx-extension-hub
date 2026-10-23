@@ -1,6 +1,7 @@
 const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.1.0';
+const REQUIRED_LOADER_VERSION = '1.2.3';
 const SUSPENDED_MODULES = new Set(['importador-de-planilhas']);
 
 const MODULE_ICON_PATHS = Object.freeze({
@@ -98,7 +99,7 @@ async function loadModules(forceRefresh) {
     }
 
     currentLoaderVersion = loaderResponse?.ok ? String(loaderResponse.version || '0.0.0') : '0.0.0';
-    updateLoaderNotice(catalogResponse.catalog.minimumLoaderVersion, currentLoaderVersion);
+    updateLoaderNotice(catalogResponse.catalog.minimumLoaderVersion || REQUIRED_LOADER_VERSION, currentLoaderVersion);
     window.HubAccount?.configure(catalogResponse.catalog, currentLoaderVersion);
     void window.HubAccount?.refresh(forceRefresh);
     currentModules = catalogResponse.catalog.modules

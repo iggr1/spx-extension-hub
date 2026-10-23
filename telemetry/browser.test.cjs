@@ -27,7 +27,10 @@ const server = http.createServer((request, response) => {
       if(window.testScenario==='old-loader')return {ok:false,code:'CAPABILITY_NOT_ALLOWED'};
       return this.requestForModule('spx-dock-flow','network.fetchBatch',{requests:[{key:'account',url:SpxHubUsage.URLS[payload.resource]}]});
      }
-     if(operation==='loader.info')return {ok:true,version:window.testScenario==='up-to-date'?'1.2.3':'1.2.2'};return {ok:true,catalog:${JSON.stringify(catalog)}};
+     if(operation==='loader.info')return {ok:true,version:window.testScenario==='up-to-date'?'1.2.3':'1.2.2'};
+     const responseCatalog=${JSON.stringify(catalog)};
+     if(window.testScenario==='legacy-catalog')delete responseCatalog.minimumLoaderVersion;
+     return {ok:true,catalog:responseCatalog};
     },
     async requestForModule(moduleId,operation,payload){
      if(operation==='network.fetchBatch'){
@@ -61,6 +64,9 @@ const server = http.createServer((request, response) => {
   await page.evaluate(() => { window.testScenario = 'up-to-date'; });
   await page.locator('#refreshButton').click(); await page.waitForSelector('#accountButton[data-state="ready"]');
   assert(await page.locator('#loaderUpdateNotice').isHidden());
+  await page.evaluate(() => { localStorage.removeItem('spxLoaderUpdateDismissedVersionV1'); window.testScenario = 'legacy-catalog'; });
+  await page.locator('#refreshButton').click(); await page.waitForSelector('#accountButton[data-state="ready"]');
+  assert(await page.locator('#loaderUpdateNotice').isVisible());
   await page.evaluate(() => { window.testScenario = 'analyst'; });
   await page.locator('#accountButton').click();
   assert.equal(await page.locator('#accountRole').textContent(), 'Analista');

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'catalog.json')));
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'loader-extension/manifest.json')));
@@ -81,4 +82,16 @@ test('ponte real do iframe encaminha account.read e mantém bloqueio à rede de 
   assert.equal(worker.calls.length, 1);
   await context.handleFrameMessage({ source: {}, origin: 'https://hub.test', data: { channel: 'spx-extension-loader', type: 'BRIDGE_REQUEST', moduleId: 'launcher', operation: 'account.read', payload: { resource: 'basic' } } });
   assert.equal(worker.calls.length, 1);
+});
+
+test('patch 1.2.3 inclui os scripts exigidos pelo service worker e a página do loader', () => {
+  const patchPath = path.join(root, 'downloads/spx-extension-loader-v1.2.3-patch.zip');
+  const entries = execFileSync('unzip', ['-Z1', patchPath], { encoding: 'utf8' }).trim().split('\n');
+  for (const file of ['background.js', 'loader.js', 'manifest.json', 'dock-alarm-background.js', 'dock-alarm-audio.js', 'dock-alarm-audio.html', 'loader.html']) {
+    assert(entries.includes(file), `patch não contém ${file}`);
+  }
+  const importedBackground = fs.readFileSync(path.join(root, 'loader-extension/dock-alarm-background.js'));
+  const importedAudio = fs.readFileSync(path.join(root, 'loader-extension/dock-alarm-audio.js'));
+  assert(importedBackground.length > 0);
+  assert(importedAudio.length > 0);
 });

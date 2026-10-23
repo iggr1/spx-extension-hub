@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPX Extension Loader</title>
+  <link rel="stylesheet" href="loader.css">
+</head>
+<body>
+  <main class="loader-shell">
+    <iframe id="moduleFrame" title="SPX Extension Loader" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads allow-popups" allow="clipboard-read; clipboard-write" allowfullscreen></iframe>
+
+    <section class="loader-state" id="loaderState">
+      <div class="spinner" aria-hidden="true"></div>
+      <strong id="stateTitle">Carregando catálogo</strong>
+      <p id="stateMessage">Consultando os módulos publicados no GitHub.</p>
+      <div class="state-actions hidden" id="stateActions">
+        <button id="retryButton" type="button">Tentar novamente</button>
+        <button class="secondary" id="optionsButton" type="button">Configurar repositório</button>
+      </div>
+    </section>
+
+    <section class="permission-dialog hidden" id="permissionDialog" role="dialog" aria-modal="true" aria-labelledby="permissionTitle">
+      <div class="dialog-card">
+        <span class="dialog-label">PERMISSÃO DO MÓDULO</span>
+        <h1 id="permissionTitle">Acesso adicional necessário</h1>
+        <p id="permissionMessage"></p>
+        <div class="permission-list" id="permissionList"></div>
+        <div class="dialog-actions">
+          <button class="secondary" id="permissionCancel" type="button">Cancelar</button>
+          <button id="permissionConfirm" type="button">Conceder acesso</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="loader.js"></script>
+</body>
+</html>

@@ -8,6 +8,7 @@ Loader modular para ferramentas operacionais publicadas no repositório `iggr1/s
 - Preserva a verificação de permissões do módulo e o bloqueio de chamadas genéricas de rede pelo catálogo.
 - Atualize os arquivos da pasta instalada e recarregue a extensão em `chrome://extensions`. O perfil do catálogo depende desta versão; os agentes de telemetria nas abas SPX funcionam independentemente dessa consulta.
 - O manifesto mantém o domínio SPX necessário e disponibiliza permissões opcionais de host para páginas HTTP e HTTPS. O Chrome só libera páginas adicionais quando o usuário concede esse acesso; a extensão não recebe acesso silencioso a todos os sites.
+- O ZIP incremental 1.2.3 inclui também `dock-alarm-background.js`, `dock-alarm-audio.js`, `dock-alarm-audio.html` e `loader.html`. Copie os sete arquivos do patch para a pasta original do loader. `background.js` importa o primeiro desses arquivos ao iniciar o service worker; sem ele, o Chrome falha ao registrar o worker (erro de status 15). `loader.html` remove um atributo de iframe redundante que gerava um aviso no console.
 
 ## Novidades da versão 1.2.0
 

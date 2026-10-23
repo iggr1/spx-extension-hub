@@ -45,3 +45,35 @@ test('fora da retenção e chave divergente são recusados', () => {
  assert.equal(r.send([old]).ok, false); assert.equal(r.send([{ ...event(), key: 'forged' }]).ok, false);
  assert.equal(r.sheets.Acessos.length, 1);
 });
+test('ID interno antigo é preservado e a planilha recebe o nome assistente-de-autoadd', () => {
+ const r = receiver(); const old = event('spx-dock-flow-autoadd'); old.events = ['module_active'];
+ const ack = r.send([old]);
+ assert(ack.ok); assert.deepEqual(ack.accepted, [old.key]);
+ assert.equal(r.sheets.Acessos[1][0], old.key);
+ assert.equal(r.sheets.Acessos[1][9], 'assistente-de-autoadd');
+ assert.equal(r.sheets.Hubs[1][4], 'assistente-de-autoadd');
+});
+test('os dois identificadores são consolidados e cada envio recebe sua chave original', () => {
+ const r = receiver(); const old = event('spx-dock-flow-autoadd'); old.events = ['module_active'];
+ const alias = { ...old, moduleId: 'assistente-de-autoadd', key: old.key.replace('spx-dock-flow-autoadd', 'assistente-de-autoadd') };
+ assert.deepEqual(r.send([old, alias]).accepted.sort(), [old.key, alias.key].sort());
+ assert(r.send([alias, old]).ok);
+ assert.equal(r.sheets.Acessos.length, 2); assert.equal(r.sheets.Hubs.length, 2);
+ assert.equal(r.sheets.Acessos[1][0], old.key); assert.equal(r.sheets.Hubs[1][4], 'assistente-de-autoadd');
+});
+test('nomes históricos são atualizados sem alterar chaves e horários', () => {
+ const r = receiver(); const old = event('spx-dock-flow-autoadd'); old.events = ['module_active'];
+ assert(r.send([old]).ok);
+ const firstSeen = r.sheets.Acessos[1][11].getTime(); const lastSeen = r.sheets.Acessos[1][12].getTime();
+ r.sheets.Acessos[1][9] = 'spx-dock-flow-autoadd';
+ r.sheets.Hubs[1][4] = 'spx-dock-flow-autoadd, assistente-de-autoadd';
+ assert(r.send([event()]).ok);
+ assert.equal(r.sheets.Acessos[1][9], 'assistente-de-autoadd'); assert.equal(r.sheets.Acessos[1][0], old.key);
+ assert.equal(r.sheets.Acessos[1][11].getTime(), firstSeen); assert.equal(r.sheets.Acessos[1][12].getTime(), lastSeen);
+ assert.equal(r.sheets.Hubs[1][4], 'assistente-de-autoadd, launcher');
+});
+test('o nome exibido não permite uma chave incompatível no envio', () => {
+ const r = receiver(); const old = event('spx-dock-flow-autoadd');
+ assert.equal(r.send([{ ...old, moduleId: 'assistente-de-autoadd' }]).ok, false);
+ assert.equal(r.sheets.Acessos.length, 1);
+});

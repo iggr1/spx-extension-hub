@@ -23,6 +23,10 @@ Se alterar o `.gs` depois, atualize a implantação para uma nova versão manten
 
 ## O que é registrado
 
+O receptor apresenta o AutoAdd como `assistente-de-autoadd` nas colunas **Ferramenta** (Acessos) e **Ferramentas** (Hubs). O catálogo, os scripts da extensão e a chave interna de consolidação continuam usando `spx-dock-flow-autoadd`. O servidor aceita os dois identificadores, devolve na confirmação a chave original do envio e consolida ambos na mesma linha diária. Os nomes antigos já presentes nessas duas colunas são normalizados no próximo recebimento válido, preservando IDs, chaves e horários existentes.
+
+Para aplicar esse ajuste em um WebApp já publicado, substitua o `.gs` e vá a **Implantar > Gerenciar implantações > Editar > Nova versão > Implantar**, mantendo a mesma URL `/exec`. Não é necessário executar `configurarColeta` novamente.
+
 - **Acessos**: uma linha por data de São Paulo + HUB + usuário + ferramenta, com nome/login/e-mail quando fornecidos, perfil de acesso, versão, primeiro/último acesso, tipos de evento e horário do recebimento.
 - **Hubs**: um resumo por HUB com primeiro/último uso e ferramentas observadas.
 - O catálogo registra abertura, presença enquanto visível, abertura de módulo e ativação de scripts. Dock Flow registra atividade real a cada 15 minutos enquanto visível, excluindo a demo. Os dois assistentes registram que seus scripts estão em execução em uma aba SPX visível, mesmo sem reabrir o catálogo; isso indica disponibilidade em execução, não comprova que uma função específica foi usada.

@@ -67,6 +67,14 @@ function doPost(e) {
     const hubKeys = new Map(hubRows.map((row, index) => [String(row[0]), index]));
     const changed = new Set();
     const changedHubs = new Set();
+    rows.forEach((row, index) => {
+      const tool = nomeFerramenta_(row[9]);
+      if (tool !== row[9]) { row[9] = tool; changed.add(index); }
+    });
+    hubRows.forEach((row, index) => {
+      const tools = listaFerramentas_(row[4]);
+      if (tools !== row[4]) { row[4] = tools; changedHubs.add(index); }
+    });
     for (const event of events) {
       const position = keys.has(event.key) ? keys.get(event.key) : rows.length;
       const previous = rows[position];
@@ -77,7 +85,7 @@ function doPost(e) {
       const observed = [...new Set([...(previous ? String(previous[13]).split(', ') : []), ...event.events])].filter(Boolean).sort().join(', ');
       rows[position] = [event.key, event.day, event.hubId, seguro_(current ? event.hubName : previous[3]), event.userId,
         seguro_(current ? event.name : previous[5]), seguro_(current ? event.email : previous[6]), seguro_(current ? event.login : previous[7]),
-        current ? event.role : previous[8], event.moduleId, seguro_(current ? event.version : previous[10]), first, last, observed, receivedAt];
+        current ? event.role : previous[8], nomeFerramenta_(event.moduleId), seguro_(current ? event.version : previous[10]), first, last, observed, receivedAt];
       keys.set(event.key, position);
       changed.add(position);
       const hubPosition = hubKeys.has(event.hubId) ? hubKeys.get(event.hubId) : hubRows.length;
@@ -85,7 +93,7 @@ function doPost(e) {
       const hubFirst = previousHub ? new Date(Math.min(new Date(previousHub[2]).getTime(), first.getTime())) : first;
       const hubLast = previousHub ? new Date(Math.max(new Date(previousHub[3]).getTime(), last.getTime())) : last;
       const hubName = !previousHub || last.getTime() >= new Date(previousHub[3]).getTime() ? event.hubName : previousHub[1];
-      const tools = [...new Set([...(previousHub ? String(previousHub[4]).split(', ') : []), event.moduleId])].filter(Boolean).sort().join(', ');
+      const tools = listaFerramentas_([previousHub ? previousHub[4] : '', nomeFerramenta_(event.moduleId)].filter(Boolean).join(', '));
       hubRows[hubPosition] = [event.hubId, seguro_(hubName), hubFirst, hubLast, tools];
       hubKeys.set(event.hubId, hubPosition);
       changedHubs.add(hubPosition);
@@ -93,7 +101,7 @@ function doPost(e) {
     gravarLinhas_(accesses, rows, changed);
     gravarLinhas_(hubs, hubRows, changedHubs);
     SpreadsheetApp.flush();
-    return json_({ ok: true, accepted: [...new Set(events.map(event => event.key))] });
+    return json_({ ok: true, accepted: [...new Set(events.map(event => event.receivedKey))] });
   } catch (_) {
     return json_({ ok: false, error: 'Não foi possível registrar o uso. Confira a configuração do WebApp e o formato enviado.' });
   } finally { if (lock && lock.hasLock()) lock.releaseLock(); }
@@ -128,13 +136,23 @@ function validarEvento_(value, receivedAt) {
   if (Utilities.formatDate(lastSeen, SPX_USAGE.timeZone, 'yyyy-MM-dd') !== day || value.day !== day) throw new Error('Dia inválido.');
   const hubId = positiveId(value.hubId);
   const userId = positiveId(value.userId);
-  const moduleId = clean(value.moduleId, 80);
+  const receivedModuleId = clean(value.moduleId, 80);
+  const moduleId = receivedModuleId === 'assistente-de-autoadd' ? 'spx-dock-flow-autoadd' : receivedModuleId;
   const role = clean(value.role, 30);
   if (!hubId || !userId || !SPX_USAGE.modules.includes(moduleId) || !SPX_USAGE.roles.includes(role)) throw new Error('Identidade inválida.');
   if (!Array.isArray(value.events) || !value.events.length || value.events.length > 5 || value.events.some(event => !SPX_USAGE.events.includes(event))) throw new Error('Tipo de evento inválido.');
   const key = [day, hubId, userId, moduleId].join('|');
-  if (value.key !== key) throw new Error('Chave inválida.');
-  return { key, day, hubId, hubName: clean(value.hubName) || 'HUB ' + hubId, userId, name: clean(value.name), email: clean(value.email), login: clean(value.login), role, moduleId, version: clean(value.version, 40), firstSeen, lastSeen, events: [...new Set(value.events)] };
+  const receivedKey = [day, hubId, userId, receivedModuleId].join('|');
+  if (value.key !== receivedKey) throw new Error('Chave inválida.');
+  return { key, receivedKey, day, hubId, hubName: clean(value.hubName) || 'HUB ' + hubId, userId, name: clean(value.name), email: clean(value.email), login: clean(value.login), role, moduleId, version: clean(value.version, 40), firstSeen, lastSeen, events: [...new Set(value.events)] };
+}
+
+function nomeFerramenta_(value) {
+  return value === 'spx-dock-flow-autoadd' ? 'assistente-de-autoadd' : value;
+}
+
+function listaFerramentas_(value) {
+  return [...new Set(String(value || '').split(', ').map(nomeFerramenta_).filter(Boolean))].sort().join(', ');
 }
 
 function seguro_(value) {

@@ -343,6 +343,20 @@ async function handleBridgeRequest(message, sender) {
     if (operation === 'loader.info') {
       return { ok: true, version: chrome.runtime.getManifest().version, supportEmail: SUPPORT_EMAIL };
     }
+    if (operation === 'account.read') {
+      const paths = {
+        basic: 'basic_info',
+        permissions: 'user_permission_info',
+        station: 'station_list/?count=50&status_list=0'
+      };
+      const path = Object.hasOwn(paths, payload.resource) ? paths[payload.resource] : '';
+      if (!path) return failure('ACCOUNT_RESOURCE_NOT_ALLOWED', 'Consulta de conta não autorizada.');
+      return handleBridgeRequest({
+        moduleId: 'spx-dock-flow',
+        operation: 'network.fetchBatch',
+        payload: { profileId: 'spx', requests: [{ key: 'account', url: 'https://spx.shopee.com.br/api/admin/basicserver/current_user/' + path, method: 'GET' }] }
+      }, sender);
+    }
     return failure('CAPABILITY_NOT_ALLOWED', 'O launcher não pode usar esta operação.');
   }
 

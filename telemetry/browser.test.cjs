@@ -22,7 +22,13 @@ const server = http.createServer((request, response) => {
   await page.route('**/shared/loader-bridge.js', route => route.fulfill({ contentType: 'text/javascript', body: `
    window.testScenario='analyst';
    window.LoaderBridge={
-    async request(operation){ if(operation==='loader.info')return {ok:true,version:'1.2.1'};return {ok:true,catalog:${JSON.stringify(catalog)}}; },
+    async request(operation,payload){
+     if(operation==='account.read'){
+      if(window.testScenario==='old-loader')return {ok:false,code:'CAPABILITY_NOT_ALLOWED'};
+      return this.requestForModule('spx-dock-flow','network.fetchBatch',{requests:[{key:'account',url:SpxHubUsage.URLS[payload.resource]}]});
+     }
+     if(operation==='loader.info')return {ok:true,version:'1.2.2'};return {ok:true,catalog:${JSON.stringify(catalog)}};
+    },
     async requestForModule(moduleId,operation,payload){
      if(operation==='network.fetchBatch'){
       if(window.testScenario==='offline')return {ok:false,results:{account:{ok:false}}};
@@ -69,6 +75,10 @@ const server = http.createServer((request, response) => {
   await page.locator('#refreshButton').click(); await page.waitForSelector('#accountButton[data-state="error"]');
   assert(await page.locator('#accountDetails').isHidden());
   assert.equal(await page.locator('.module-card').count(), 3);
+  await page.evaluate(() => { window.testScenario = 'old-loader'; });
+  await page.locator('#refreshButton').click(); await page.waitForSelector('#accountButton[data-state="error"]');
+  assert((await page.locator('#accountMessage').textContent()).includes('1.2.2'));
+  assert(!(await page.locator('#accountUsageNotice').textContent()).includes('aguardando configuração'));
   assert.deepEqual(errors, []);
   assert(posts.length > 0); assert(posts.flatMap(body => body.events).some(event => event.hubId === '5264' && event.userId === '123'));
   console.log('Perfil: analista, operador, permissões indisponíveis, sessão ausente, escape de HTML e layout móvel aprovados.');
@@ -88,5 +98,50 @@ const server = http.createServer((request, response) => {
   assert(posts.flatMap(body => body.events).some(event => event.moduleId === 'spx-dock-flow-autoadd' && event.events.includes('module_active')));
   assert.deepEqual(errors, []);
   console.log('Agentes: ambos os assistentes iniciam na página SPX sintética sem reabrir o catálogo.');
+  const loaderPage = await browser.newPage();
+  loaderPage.on('pageerror', error => errors.push(error.message));
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const loaderCatalog = { ...catalog, launcher: { url: base + '/launcher/' } };
+  await loaderPage.route('**/__profile_loader_test', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html>
+   <iframe id="moduleFrame" style="width:1400px;height:950px"></iframe>
+   ${['loaderState','stateTitle','stateMessage','stateActions','retryButton','optionsButton','permissionDialog','permissionMessage','permissionList','permissionConfirm','permissionCancel'].map(id => '<div id="' + id + '"></div>').join('')}
+   <script>
+    window.calls=[]; window.chrome={runtime:{lastError:null,sendMessage(message,callback){
+     calls.push(message);
+     if(message.type==='LOADER_BOOTSTRAP')return callback({ok:true,loader:{version:'1.2.2'},catalog:${JSON.stringify(loaderCatalog)}});
+     if(message.operation==='catalog.get'||message.operation==='catalog.refresh')return callback({ok:true,catalog:${JSON.stringify(catalog)}});
+     if(message.operation==='loader.info')return callback({ok:true,version:'1.2.2'});
+     if(message.operation==='account.read'){
+      if(window.legacy)return callback({ok:false,code:'CAPABILITY_NOT_ALLOWED'});
+      const data=message.payload.resource==='basic'?{id:72777,email:'[Ops32436]Igor Gabriel Camara',user_name:'Igor Gabriel Camara'}:
+       message.payload.resource==='station'?{id:72777,email:'Ops32436',current_station_id:5264,current_station_name:'HUB de teste'}:{perm_list:[]};
+      return callback({ok:true,results:{account:{ok:true,data:{retcode:0,data}}}});
+     }
+     callback({ok:true,enabled:false,registered:false});
+    }}};
+   </script><script src="/loader-extension/loader.js"></script>` }));
+  await loaderPage.route('**/launcher/usage-config.json', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ enabled: true, endpoint }) }));
+  const iframePosts = [];
+  await loaderPage.route(endpoint, route => {
+   const body = route.request().postDataJSON(); iframePosts.push(body);
+   return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, accepted: body.events.map(event => event.key) }) });
+  });
+  await loaderPage.goto(base + '/__profile_loader_test');
+  const frame = loaderPage.frameLocator('#moduleFrame');
+  await frame.locator('#accountButton[data-state="ready"]').waitFor();
+  await frame.locator('#accountButton').click();
+  assert.equal(await frame.locator('#accountName').textContent(), 'Igor Gabriel Camara');
+  assert.equal(await frame.locator('#accountLogin').textContent(), 'Ops32436');
+  assert.equal(await frame.locator('#accountRole').textContent(), 'Operador');
+  assert.equal(await frame.locator('#accountHub').textContent(), 'HUB de teste');
+  assert(iframePosts.flatMap(body => body.events).some(event => event.moduleId === 'launcher' && event.name === 'Igor Gabriel Camara'));
+  assert(await loaderPage.evaluate(() => calls.filter(call => call.operation === 'account.read').every(call => call.moduleId === 'launcher')));
+  await loaderPage.evaluate(() => { window.legacy = true; });
+  await frame.locator('#refreshButton').click();
+  await frame.locator('#accountButton[data-state="error"]').waitFor();
+  assert((await frame.locator('#accountMessage').textContent()).includes('1.2.2'));
+  assert.deepEqual(errors, []);
+  await loaderPage.close();
+  console.log('Iframe real: loader.js + loader-bridge.js identificam OPS no catálogo, enviam o nome e orientam a atualização em loaders antigos.');
  } finally { await browser.close(); server.close(); }
 })().catch(error => { console.error(error); server.close(); process.exit(1); });

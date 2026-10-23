@@ -35,11 +35,15 @@
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && opened) showPanel(false); });
 
   async function read(url) {
+    const resource = Object.keys(SpxHubUsage.URLS).find(key => SpxHubUsage.URLS[key] === url);
+    if (!resource) throw new Error('Consulta de conta não autorizada.');
     let timer;
     const response = await Promise.race([
-      LoaderBridge.requestForModule('spx-dock-flow', 'network.fetchBatch', { profileId: 'spx', requests: [{ key: 'account', url, method: 'GET' }] }),
+      LoaderBridge.request('account.read', { resource }),
       new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('A consulta da conta demorou. Atualize a lista para tentar novamente.')), 15000); })
     ]).finally(() => clearTimeout(timer));
+    if (response?.code === 'CAPABILITY_NOT_ALLOWED') throw new Error('Atualize o loader para a versão 1.2.2 ou superior pelo botão Atualizar loader.');
+    if (!response?.ok) throw new Error(response?.error || 'Não foi possível consultar a conta SPX pelo loader.');
     const item = response?.results?.account;
     if (!item?.ok || item.data?.retcode !== 0) throw new Error('Abra uma aba do SPX com a sessão autenticada e atualize a lista.');
     return item.data;
@@ -94,6 +98,7 @@
     catalogVersion = String(catalog.updatedAt || '').slice(0, 40);
     loaderVersion = loader;
     for (const module of catalog.modules || []) versions.set(module.id, module.version);
+    void client.getConfig().catch(() => set('accountUsageNotice', 'Não foi possível consultar a configuração do registro de uso.'));
   }
   window.HubAccount = Object.freeze({ configure, refresh, record });
   window.addEventListener('online', () => { void client.flush(true); });

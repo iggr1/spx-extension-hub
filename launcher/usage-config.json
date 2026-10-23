@@ -1,4 +1,4 @@
 {
-  "enabled": false,
-  "endpoint": ""
+  "enabled": true,
+  "endpoint": "https://script.google.com/macros/s/AKfycbzq9-zgtkuorkYyqFTUM4t1hBIT3di-6C8CDNKczwbXFZdKcoOoeFhXvTNPMjYMVQbAAA/exec"
 }

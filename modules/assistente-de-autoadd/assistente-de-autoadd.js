@@ -711,6 +711,7 @@
       reason = 'Missing — sem regularização posterior identificada';
       outcome = 'Sem replanejamento ou saída para entrega identificados';
     }
+    if (!departure) confidence = 'probable'; // Histórico sem saída não prova que ela não ocorreu.
     const resolution = departure || lastConfirmation || replanning || null;
     return {
       ...build(code, reason, missing, confidence, targetAt !== at ? targetAt : ''),

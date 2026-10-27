@@ -657,6 +657,75 @@
     return { ...build(code, overviewEhaReason(message), cause), exceptionEvent: cause, ehaEvent };
   }
 
+  // Um Missing comprova a ocorrência (581), mas não a etapa física da falha.
+  // A recuperação só é considerada expedição quando há saída para entrega (2).
+  function classifyOverviewMissing(after, missingIndex, at, sourceContext, build) {
+    const missing = after[missingIndex];
+    const later = after.slice(missingIndex + 1);
+    const getAts = event => String(event?.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
+    const missingCount = after.filter(event =>
+      Number(event.status) === 581 || /order marked as missing/i.test(String(event.message || ''))).length;
+    const departureIndex = later.findIndex(event => Number(event.status) === 2);
+    const departure = departureIndex < 0 ? null : later[departureIndex];
+    const considered = departureIndex < 0 ? later : later.slice(0, departureIndex + 1);
+    const confirmations = considered.filter(event => Number(event.status) === 50 && getAts(event).length);
+    const lastConfirmation = confirmations.at(-1) || null;
+    const confirmedAt = lastConfirmation ? getAts(lastConfirmation)[0] : '';
+    const replanning = considered.filter(event =>
+      Number(event.status) === 49 && getAts(event).some(value => value !== at)).at(-1) || null;
+    const plannedAt = replanning ? getAts(replanning).find(value => value !== at) : '';
+    const targetAt = confirmedAt || plannedAt || '';
+    const dayNumber = timestamp => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).formatToParts(new Date(Number(timestamp) * 1000));
+      const value = key => Number(parts.find(part => part.type === key)?.value || 0);
+      return Date.UTC(value('year'), value('month') - 1, value('day')) / 86400000;
+    };
+    let code, reason, outcome, confidence = 'confirmed';
+    if (departure && confirmedAt === at) {
+      code = 'MISSING_RECUPERADO_MESMA_AT';
+      reason = 'Missing — expedido na AT original';
+      outcome = 'Saída para entrega após regularização na própria AT';
+    } else if (departure && targetAt && targetAt !== at) {
+      const days = Math.max(0, dayNumber(departure.timestamp) - dayNumber(missing.timestamp));
+      code = days === 0 ? 'MISSING_REPLANEJADO_D0' : days === 1 ? 'MISSING_REPLANEJADO_D1' : 'MISSING_REPLANEJADO_DN';
+      reason = days === 0 ? 'Missing — expedido em outra AT no mesmo dia' :
+        days === 1 ? 'Missing — expedido em outra AT em D+1' : 'Missing — expedido em outra AT após D+1';
+      outcome = 'Saída para entrega em ' + targetAt + (days === 0 ? ' no mesmo dia' : ' após ' + days + ' dia(s)');
+      if (!confirmedAt) confidence = 'probable'; // AT planejada, mas sem evento 50.
+    } else if (departure) {
+      code = 'MISSING_SAIDA_SEM_AT';
+      reason = 'Missing — saída posterior sem AT confirmada';
+      outcome = 'Saída para entrega registrada; AT de expedição não identificada';
+    } else if (confirmedAt === at) {
+      code = 'MISSING_REGULARIZADO_SEM_SAIDA';
+      reason = 'Missing — adicionado à AT original sem saída registrada';
+      outcome = 'Adicionado à AT original; saída para entrega não encontrada';
+    } else if (targetAt && targetAt !== at) {
+      code = 'MISSING_OUTRA_AT_SEM_SAIDA';
+      reason = 'Missing — replanejado sem saída registrada';
+      outcome = (confirmedAt ? 'Adicionado' : 'Planejado') + ' em ' + targetAt + '; saída para entrega não encontrada';
+    } else {
+      code = 'MISSING_SEM_DESFECHO';
+      reason = 'Missing — sem regularização posterior identificada';
+      outcome = 'Sem replanejamento ou saída para entrega identificados';
+    }
+    const resolution = departure || lastConfirmation || replanning || null;
+    return {
+      ...build(code, reason, missing, confidence, targetAt !== at ? targetAt : ''),
+      details: 'Missing (581) registrado após AutoAdd. Causa física da falha não comprovada pelo rastreamento.',
+      origin: sourceContext.fromOnHold ? 'Retorno de On Hold' : 'Recebimento sem On Hold associado',
+      occurrence: 'Missing após AutoAdd',
+      outcome,
+      physicalCause: 'Não comprovada pelo histórico',
+      physicalCauseConfidence: 'unknown',
+      missingCount,
+      resolutionEvent: resolution,
+      resolutionTimestamp: resolution?.timestamp || null
+    };
+  }
+
   function classifyAutoAddHistory(events, assignmentTaskId) {
     const at = String(assignmentTaskId || '').toUpperCase();
     const getAts = event => String(event?.message || '').toUpperCase().match(/\bAT[A-Z0-9]+\b/g) || [];
@@ -690,9 +759,7 @@
       if (status === 1 && Number(event.timestamp) > Number(origin.timestamp) &&
           Number(event.station_id) === Number(origin.station_id) && !firstRemoval) firstRemoval = event;
       if (status === 581 || /order marked as missing/i.test(message)) {
-        return build(sourceContext.fromOnHold ? 'MISSING_DEVOLUCOES' : 'MISSING_SEPARACAO',
-          sourceContext.fromOnHold ? 'Recebido na devolução e não alocado na gaiola' :
-            'Pedido não separado ou separado incorretamente', event, 'probable');
+        return classifyOverviewMissing(after, i, at, sourceContext, build);
       }
       if (/pacote n[aã]o coube no ve[ií]culo/i.test(message)) return build('CAPACIDADE', 'Não coube no veículo — capacidade insuficiente', event);
       if (/etiqueta avariada/i.test(message)) return build('ETIQUETA', 'Etiqueta avariada', event);
@@ -1115,6 +1182,24 @@
     return time ? new Date(time * 1000).toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo', hour12:false}) : '';
   }
 
+  function overviewMissingBatchCounts(rows) {
+    const counts = new Map();
+    for (const item of rows) {
+      const state = item.state;
+      if (!String(state?.code || '').startsWith('MISSING_') ||
+          Number(state?.evidenceEvent?.status) !== 581) continue;
+      const key = item.at + '|' + Number(state.evidenceEvent.timestamp);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    for (const item of rows) {
+      const state = item.state;
+      const key = item.at + '|' + Number(state?.evidenceEvent?.timestamp);
+      item.missingBatchCount = String(state?.code || '').startsWith('MISSING_') ?
+        (counts.get(key) || 1) : 0;
+    }
+    return rows;
+  }
+
   function downloadOverviewMissing(doc, vt, rows, format) {
     const records = rows.map(item => {
       const state = item.state || {};
@@ -1122,6 +1207,18 @@
         vt: item.validationTaskId || vt, shipmentId: item.shipmentId, at: item.at, route: item.route,
         validated: true, reason: state.reason || 'Aguardando consulta',
         reasonCode: state.code || 'PENDING', confidence: state.confidence || 'unknown',
+        origin: state.origin || '', occurrence: state.occurrence || '',
+        outcome: state.outcome || '', physicalCause: state.physicalCause || '',
+        physicalCauseConfidence: state.physicalCauseConfidence || '',
+        missingRepeatCount: state.missingCount || 0,
+        missingBatchCount: item.missingBatchCount || 0,
+        patterns: [
+          ...(Number(state.missingCount) > 1 ? ['Missing reincidente'] : []),
+          ...(Number(item.missingBatchCount) > 1 ? ['Missing em lote'] : [])
+        ].join(' | '),
+        resolutionTimestamp: state.resolutionTimestamp || null,
+        resolutionDateTime: overviewDate(state.resolutionTimestamp),
+        resolutionEvent: state.resolutionEvent || null,
         explanation: state.details || '', generatedAt: new Date().toISOString(),
         autoAddTimestamp: state.originEvent?.timestamp || null,
         autoAddDateTime: overviewDate(state.originEvent?.timestamp),
@@ -1158,7 +1255,7 @@
     let content, type, extension;
     if (format === 'json') {
       content = JSON.stringify({
-        schema:'spx-autoadd-vt-missing-v4', exportedAt:new Date().toISOString(),
+        schema:'spx-autoadd-vt-missing-v5', exportedAt:new Date().toISOString(),
         timezone:'America/Sao_Paulo', validatedATsOnly:true, selectedVTs:sortedReportVts(),
         total:records.length, records
       },null,2);
@@ -1167,7 +1264,12 @@
       const cols = [
         ['vt','VT'], ['shipmentId','BR'], ['at','AT original'], ['route','Rota'],
         ['validated','AT validada'], ['reason','Motivo principal'], ['reasonCode','Código motivo'],
-        ['confidence','Confiança'], ['autoAddDateTime','AutoAdd data/hora'], ['causeDateTime','Causa data/hora'],
+        ['confidence','Confiança'], ['origin','Origem'], ['occurrence','Ocorrência'],
+        ['outcome','Desfecho posterior'], ['physicalCause','Causa física'],
+        ['physicalCauseConfidence','Confiança causa física'], ['patterns','Padrões'],
+        ['missingRepeatCount','Marcações Missing'], ['missingBatchCount','Missing simultâneos na AT'],
+        ['resolutionDateTime','Última regularização/saída'],
+        ['autoAddDateTime','AutoAdd data/hora'], ['causeDateTime','Causa data/hora'],
         ['elapsedMinutes','Intervalo minutos'], ['sourceFromOnHold','Veio de On Hold'],
         ['priorOnHoldDateTime','On Hold anterior data/hora'], ['priorOnHoldReason','Motivo On Hold anterior'],
         ['priorOnHoldOperator','Motorista do On Hold'], ['priorReceiptDateTime','Recebido antes AutoAdd'],
@@ -1212,9 +1314,9 @@
         <div class="route-meta"><span>${item.scanned} de ${item.planned} carregados</span><strong>${item.pending} pendentes</strong></div></article>`).join('');
       const qualityPie = `conic-gradient(#ef4444 0 ${redPercent}%,#f59e0b ${redPercent}% ${redPercent+yellowPercent}%,#22c55e ${redPercent+yellowPercent}% 100%)`;
       const loadedPie = `conic-gradient(#22c55e 0 ${data.percent}%,#ef4444 ${data.percent}% 100%)`;
-      const missingRows = data.missing.map(item => ({
+      const missingRows = overviewMissingBatchCounts(data.missing.map(item => ({
         ...item, state: overviewReasons.get(item.shipmentId + '|' + item.at) || null
-      }));
+      })));
       const reasonCounts = new Map();
       missingRows.forEach(item => {
         if (!overviewReasonReady(item.state)) return;
@@ -1235,8 +1337,14 @@
           reportEscape(item.at) + '<small>' + reportEscape(item.route) + '</small></td>' +
           '<td>' + reportEscape(state?.reason || 'Aguardando consulta...') +
           (state?.destinationAt ? '<small>AT posterior: ' + reportEscape(state.destinationAt) + '</small>' : '') +
-          (state?.sourceContext?.fromOnHold && state?.code === 'MISSING_DEVOLUCOES' ? '<small>On Hold anterior: ' +
+          (state?.sourceContext?.fromOnHold ? '<small>On Hold anterior: ' +
             reportEscape(overviewDate(state.sourceContext.onHoldEvent?.timestamp)) + '</small>' : '') +
+          (state?.origin ? '<small>Origem: ' + reportEscape(state.origin) + '</small>' : '') +
+          (state?.occurrence ? '<small>Ocorrência: ' + reportEscape(state.occurrence) + '</small>' : '') +
+          (state?.outcome ? '<small>Desfecho: ' + reportEscape(state.outcome) + '</small>' : '') +
+          (state?.physicalCause ? '<small>Causa física: ' + reportEscape(state.physicalCause) + '</small>' : '') +
+          (Number(item.missingBatchCount) > 1 ? '<small>Missing em lote: ' + reportEscape(item.missingBatchCount) + ' pedidos na mesma AT/segundo</small>' : '') +
+          (Number(state?.missingCount) > 1 ? '<small>Missing reincidente: ' + reportEscape(state.missingCount) + ' marcações</small>' : '') +
           (state?.elapsedMinutes != null ? '<small>Tempo até ocorrência: ' + reportEscape(state.elapsedMinutes) + ' min</small>' : '') +
           '</td><td><small>AutoAdd: ' + reportEscape(overviewDate(state?.originEvent?.timestamp) || '—') + '</small>' +
           '<small>Causa: ' + reportEscape(overviewDate(state?.evidenceEvent?.timestamp) || '—') +
@@ -1250,9 +1358,9 @@
         <div class="charts"><section class="panel"><h2>Qualidade por rota</h2><div class="donut-row"><div class="donut" style="background:${qualityPie}"><div>${classes}<small>rotas</small></div></div><div class="legend"><div><i style="background:#ef4444"></i> Críticas (&lt;60,00%) <b>${data.red}</b></div><div><i style="background:#f59e0b"></i> Atenção (60,00–89,99%) <b>${data.yellow}</b></div><div><i style="background:#22c55e"></i> Boas (≥90,00%) <b>${data.green}</b></div></div></div></section>
         <section class="panel"><h2>Carregamento dos pedidos</h2><div class="donut-row"><div class="donut" style="background:${loadedPie}"><div>${formatPercent(data.percent)}<small>carregado</small></div></div><div class="legend"><div><i style="background:#22c55e"></i> Carregados <b>${data.scanned}</b></div><div><i style="background:#ef4444"></i> Pendentes <b>${data.pending}</b></div></div></div></section></div>
         <div class="sections"><section class="panel"><h2>Rotas ofensoras</h2><p class="muted">Classificadas pela maior quantidade de pedidos AutoAdd pendentes.</p>${offenders.length ? offenders.map((item,i)=>`<div class="offender"><span class="rank">${i+1}</span><div><strong>${reportEscape(item.route)}</strong><small>${reportEscape(item.at)} · ${formatPercent(item.pct)} concluído</small></div><b>${item.pending} pendentes</b></div>`).join('') : '<p class="muted">Nenhuma pendência identificada nas ATs consultadas.</p>'}</section>
-        <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p>${reasonGraph ? '<div class="missing-reasons"><div class="section-header"><h3>Motivos dos AutoAdd faltantes</h3><span>' + classifiedCount + '/' + missingRows.length + ' classificados</span></div><div class="reason-list">' + reasonGraph + '</div></div>' : ''}<div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Motivo principal</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
+        <section class="panel"><div class="section-header"><h2>Pedidos AutoAdd faltantes</h2><div class="report-actions"><button type="button" data-missing-csv>Exportar CSV</button><button type="button" data-missing-json>Exportar JSON</button></div></div><p class="muted">Somente ATs validadas · ${missingRows.length} pedidos pendentes · ${classifiedCount} com motivo mapeado. Datas e horários de Brasília.</p>${reasonGraph ? '<div class="missing-reasons"><div class="section-header"><h3>Ocorrências e desfechos dos AutoAdd faltantes</h3><span>' + classifiedCount + '/' + missingRows.length + ' classificados</span></div><div class="reason-list">' + reasonGraph + '</div></div>' : ''}<div class="missing-table-wrap"><table class="missing-table"><thead><tr><th>Pedido</th><th>AT / Rota</th><th>Ocorrência / desfecho</th><th>Quando</th></tr></thead><tbody>${missingDetails || '<tr><td colspan="4">Nenhuma pendência encontrada nas ATs validadas.</td></tr>'}</tbody></table></div></section></div>
         <section class="panel"><div class="section-header"><h2>Detalhamento das ATs validadas</h2><span>${classes} rotas com AutoAdd · ${data.rows.length} ATs consultadas</span></div><div class="route-grid">${routeCards || '<p class="muted">Nenhum pedido AutoAdd identificado nos dados consultados.</p>'}</div></section>
-        <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60,00%, amarelo 60,00–89,99%, verde ≥90,00%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final.</footer>`;
+        <footer>Fonte: consultas da VT feitas pelo Assistente de AutoAdd. Classificação visual: vermelho &lt;60,00%, amarelo 60,00–89,99%, verde ≥90,00%. Meta operacional: 100% dos AutoAdd carregados. Status parcial não deve ser interpretado como resultado final. Missing (581) não comprova falha física de alocação em gaiola.</footer>`;
       doc.querySelector('[data-missing-csv]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'csv');
       doc.querySelector('[data-missing-json]').onclick = () => downloadOverviewMissing(doc, overviewKey, missingRows, 'json');
       renderReportVtFilters();

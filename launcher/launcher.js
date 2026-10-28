@@ -1,7 +1,6 @@
 const PDFJS_MODULE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 const USER_SCRIPT_SWITCH_MIN_LOADER_VERSION = '1.2.5';
-const REQUIRED_LOADER_VERSION = '1.2.5';
 const SUSPENDED_MODULES = new Set(['importador-de-planilhas']);
 
 const MODULE_ICON_PATHS = Object.freeze({
@@ -41,8 +40,6 @@ function renderModuleAccess(module, permission) {
 const grid = document.getElementById('moduleGrid');
 const status = document.getElementById('status');
 const loaderVersion = document.getElementById('loaderVersion');
-const loaderUpdateNotice = document.getElementById('loaderUpdateNotice');
-const LOADER_NOTICE_KEY = 'spxLoaderUpdateDismissedVersionV1';
 const workspace = document.getElementById('workspace');
 const descriptionSidebar = document.getElementById('descriptionSidebar');
 const descriptionTitle = document.getElementById('descriptionTitle');
@@ -71,12 +68,20 @@ function showLoaderUpdateInstructions() {
   dialog.showModal();
 }
 document.getElementById('updateLoaderButton').addEventListener('click', showLoaderUpdateInstructions);
-document.getElementById('installLoaderNotice').addEventListener('click', showLoaderUpdateInstructions);
-document.getElementById('dismissLoaderNotice').addEventListener('click', () => {
-  const version = loaderUpdateNotice.dataset.version;
-  try { localStorage.setItem(LOADER_NOTICE_KEY, version); } catch {}
-  loaderUpdateNotice.hidden = true;
-});
+document.getElementById('openMigrationGuideButton').addEventListener('click', showLoaderUpdateInstructions);
+
+const migrationBanner = document.getElementById('migrationBanner');
+const isLocalLoader = new URLSearchParams(location.search).has('loaderVersion')
+  && new URLSearchParams(location.search).get('loaderModule') === 'launcher';
+if (isLocalLoader) {
+  let dismissed = false;
+  try { dismissed = sessionStorage.getItem('spxStoreMigrationDismissedV1') === '1'; } catch {}
+  migrationBanner.hidden = dismissed;
+  document.getElementById('dismissMigrationBanner').addEventListener('click', () => {
+    migrationBanner.hidden = true;
+    try { sessionStorage.setItem('spxStoreMigrationDismissedV1', '1'); } catch {}
+  });
+}
 closeDescriptionButton.addEventListener('click', closeDescription);
 openPdfButton.addEventListener('click', () => {
   if (activePdfUrl) window.open(activePdfUrl, '_blank', 'noopener,noreferrer');
@@ -99,7 +104,6 @@ async function loadModules(forceRefresh) {
     }
 
     currentLoaderVersion = loaderResponse?.ok ? String(loaderResponse.version || '0.0.0') : '0.0.0';
-    updateLoaderNotice(catalogResponse.catalog.minimumLoaderVersion || REQUIRED_LOADER_VERSION, currentLoaderVersion);
     window.HubAccount?.configure(catalogResponse.catalog, currentLoaderVersion);
     void window.HubAccount?.refresh(forceRefresh);
     currentModules = catalogResponse.catalog.modules
@@ -123,24 +127,13 @@ async function loadModules(forceRefresh) {
       const state = await LoaderBridge.requestForModule(id, 'userscripts.status');
       if (state?.ok && (state.enabled || state.registered)) {
         const result = await LoaderBridge.requestForModule(id, 'userscripts.setEnabled', { enabled: false });
-        if (!result?.ok) status.textContent += ' · Atualize o loader para concluir a desativação do Importador de Planilhas.';
+        if (!result?.ok) status.textContent += ' · Migre para o TRILHO da Chrome Web Store para continuar utilizando as ferramentas.';
       }
     }
   } catch (error) {
     status.textContent = normalizeSwitchError(error);
     grid.innerHTML = '<div class="empty">Não foi possível carregar a lista de módulos.</div>';
   }
-}
-
-function updateLoaderNotice(requiredVersion, installedVersion) {
-  const required = String(requiredVersion || '0.0.0');
-  const installed = String(installedVersion || '0.0.0');
-  const outdated = compareVersions(installed, required) < 0;
-  loaderUpdateNotice.dataset.version = required;
-  document.getElementById('requiredLoaderVersion').textContent = required;
-  let dismissed = '';
-  try { dismissed = localStorage.getItem(LOADER_NOTICE_KEY) || ''; } catch {}
-  loaderUpdateNotice.hidden = !outdated || dismissed === required;
 }
 
 function compareVersions(left, right) {
@@ -247,7 +240,7 @@ function renderUserScriptSwitch(module) {
   const loaderSupported = compareVersions(currentLoaderVersion, USER_SCRIPT_SWITCH_MIN_LOADER_VERSION) >= 0;
   const disabled = state.busy || !loaderSupported;
   const message = !loaderSupported
-    ? `Clique em “Atualizar loader” no topo para instalar a versão atual.`
+    ? `Migre para o TRILHO da Chrome Web Store. Use “Como migrar” no topo.`
     : state.message || (state.enabled ? activeScriptMessage(module) : 'Desativado.');
 
   return `
@@ -282,7 +275,7 @@ async function loadUserScriptStates() {
       userScriptStates.set(module.id, {
         enabled: false,
         unavailable: true,
-        message: 'Clique em “Atualizar loader” no topo para instalar a versão atual.'
+        message: 'Migre para o TRILHO da Chrome Web Store. Use “Como migrar” no topo.'
       });
     }
     renderModules();
@@ -407,7 +400,7 @@ function formatReloadedTabs(value, module) {
 
 function normalizeSwitchError(error) {
   const message = String(error?.message || error || 'Falha desconhecida.');
-  const guidance = 'Clique em “Atualizar loader” no topo, substitua os arquivos e recarregue a extensão.';
+  const guidance = 'Use “Como migrar” no topo para instalar a versão da Chrome Web Store.';
   if (/permissões necessárias|acesso não possa ser liberado|launcher não pode|capability/i.test(message)) {
     return `O módulo não pôde ser iniciado. ${guidance}`;
   }

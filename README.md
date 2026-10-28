@@ -1,5 +1,10 @@
 # SPX Extension Hub
 
+> **Distribuição atual:** [TRILHO na Chrome Web Store](https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml). Esta documentação descreve também o loader local legado.
+>
+> Para migrar, instale o TRILHO pela loja, remova **SPX Extension Loader** em `chrome://extensions` e recarregue as abas SPX. O catálogo remoto da versão local apresenta um aviso de migração; não é necessário instalar patches ZIP para receber esse aviso.
+
+
 Este repositório contém todo o conteúdo remoto usado pelo **SPX Extension Loader**:
 
 - `catalog.json`: catálogo e permissões declaradas pelos módulos.

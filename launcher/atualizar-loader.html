@@ -2,22 +2,28 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atualizar loader · SPX Extension Hub</title>
+<title>Migrar para Chrome Web Store · TRILHO</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#101815;color:#edf5ef}*{box-sizing:border-box}body{margin:0;padding:28px;line-height:1.6}main{max-width:680px;margin:auto}h1{font-size:26px;line-height:1.2;margin:0 0 12px}p{color:#b9c9bf}a{color:#ffc29b}.download{display:inline-block;padding:12px 20px;border-radius:10px;background:#ff6500;color:white;font-weight:750;text-decoration:none;margin:6px 0 16px}.download:focus-visible{outline:3px solid white;outline-offset:3px}ol{padding-left:24px}li{padding:0 0 16px 6px}strong{color:#fff}code{overflow-wrap:anywhere}.note{padding:14px;border:1px solid #46584b;border-radius:10px;font-size:14px}@media(max-width:500px){body{padding:20px}h1{font-size:23px}}
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#101815;color:#edf5ef}
+*{box-sizing:border-box}body{margin:0;padding:28px;line-height:1.6}main{max-width:650px;margin:auto}
+.eyebrow{font-size:11px;letter-spacing:.13em;color:#ffa96c;font-weight:800}
+h1{font-size:27px;line-height:1.25;margin:6px 0 10px}p,li{color:#c4d0c8}
+a{color:#ffbf8b}.cta{display:inline-block;padding:12px 18px;border-radius:10px;background:#ff762b;color:#1b110a;font-weight:800;text-decoration:none}
+ol{padding-left:24px;margin-top:22px}li{padding:0 0 16px 7px}li strong{color:#fff}
+code{padding:2px 6px;border:1px solid #41544b;border-radius:5px;color:#fff}
+.note{font-size:13px;padding:12px 14px;border:1px solid #3a5144;border-radius:10px}
+@media(max-width:500px){body{padding:20px}h1{font-size:23px}}
 </style>
 </head>
 <body><main>
-<h1>Atualize em poucos passos</h1>
-<p>Atualize para a versão <strong>1.2.5</strong>. Ela permite ativar os scripts quando o estado é desconhecido e ignora IDs que ainda não foram registrados.</p>
-<a class="download" href="../downloads/spx-extension-loader-v1.2.5-patch.zip" download="spx-extension-loader-v1.2.5-patch.zip">Baixar correção 1.2.5 (.zip)</a>
-<p>Este é um pacote incremental para o loader já instalado. Ele inclui os arquivos do service worker e do monitor de alarmes, que precisam ficar juntos na pasta da extensão.</p>
+<span class="eyebrow">TRILHO · MIGRAÇÃO</span>
+<h1>Instale a versão da Chrome Web Store</h1>
+<p>A instalação local pelo modo desenvolvedor foi substituída pela versão publicada na loja. A migração é manual e não precisa baixar arquivos ZIP.</p>
+<a class="cta" href="https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml" target="_blank" rel="noopener noreferrer">Abrir TRILHO na Chrome Web Store</a>
 <ol>
-<li><strong>Baixe e extraia o ZIP da correção.</strong></li>
-<li><strong>Atualize os arquivos na pasta original.</strong> Copie <code>background.js</code>, <code>loader.js</code>, <code>manifest.json</code>, <code>dock-alarm-background.js</code>, <code>dock-alarm-audio.js</code>, <code>dock-alarm-audio.html</code> e <code>loader.html</code> para a pasta original do loader, usada em “Carregar sem compactação”, e confirme a substituição. Não carregue o ZIP incremental como uma nova extensão.</li>
-<li><strong>Recarregue a extensão.</strong> Abra <code>chrome://extensions</code>, ative o “Modo do desenvolvedor” e clique em <strong>Recarregar</strong> no SPX Extension Loader.</li>
-<li><strong>Volte ao HUB.</strong> Mantenha uma aba SPX autenticada aberta, abra novamente a tela inicial, clique em <strong>Atualizar lista</strong> e confirme <strong>Loader 1.2.5</strong> no rodapé. O ícone de usuário deve exibir nome, login, HUB e perfil.</li>
+<li><strong>Instale o novo TRILHO.</strong> Na página da loja, clique em <b>Usar no Chrome</b> e confirme a instalação.</li>
+<li><strong>Remova a versão antiga.</strong> Digite <code>chrome://extensions</code> na barra de endereço do Chrome. Localize <b>SPX Extension Loader</b> (instalado localmente) e clique em <b>Remover</b>. Confira o nome antes de remover, para manter o novo TRILHO instalado.</li>
+<li><strong>Reabra o SPX.</strong> Atualize as abas do SPX e ative as ferramentas na nova extensão, conforme necessário.</li>
 </ol>
-<p class="note">Ainda não instalou o loader, ou a pasta atual não tem esses arquivos? <a href="../downloads/spx-extension-loader.zip" download="spx-extension-loader.zip">Baixe o pacote completo 1.2.5</a>, extraia e use “Carregar sem compactação” em <code>chrome://extensions</code>. Para instalações gerenciadas pela empresa, solicite a atualização ao responsável.</p>
-<p>Se o Chrome realmente desabilitou a permissão, habilite “Permitir scripts de usuário” nos detalhes da extensão. O erro temporário de consulta não deve mais ser apresentado como uma desativação confirmada.</p>
+<p class="note">Não mantenha as duas extensões habilitadas ao mesmo tempo: elas podem executar as mesmas ferramentas em duplicidade. Se a instalação for gerenciada pela empresa, solicite a migração ao responsável.</p>
 </main></body></html>

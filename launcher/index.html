@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20261028-1">
+  <link rel="stylesheet" href="launcher.css?v=20261029-1">
   <link rel="stylesheet" href="account.css?v=20261023-5">
 </head>
 <body>
@@ -17,7 +17,7 @@
       </div>
       <div class="header-actions">
         <button id="refreshButton" type="button">Atualizar lista</button>
-        <button id="updateLoaderButton" type="button">Como migrar</button>
+        <button id="updateLoaderButton" type="button">Migração obrigatória</button>
         <div class="account-control">
           <button id="accountButton" type="button" aria-label="Informações da conta SPX" title="Informações da conta SPX" aria-haspopup="dialog" aria-expanded="false" aria-controls="accountPanel" data-state="loading">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
@@ -38,16 +38,18 @@
       </div>
     </header>
 
-    <aside class="migration-banner" id="migrationBanner" aria-label="Aviso de migração do TRILHO" hidden>
+    <aside class="migration-banner" id="migrationBanner" role="alert" aria-label="Migração obrigatória do SPX Extension Loader" hidden>
       <div class="migration-banner-copy">
-        <strong>TRILHO agora na Chrome Web Store</strong>
-        <p>Esta instalação local foi substituída pela versão da loja. Instale a nova extensão e remova o antigo SPX Extension Loader para evitar conflitos.</p>
+        <span class="migration-eyebrow">VERSÃO LOCAL SERÁ DESCONTINUADA</span>
+        <strong>Migração obrigatória até sábado, 31/10/2026</strong>
+        <p>O <b>SPX Extension Loader</b> instalado manualmente será descontinuado. <b>Após 31/10, os módulos desta versão serão removidos e deixarão de funcionar.</b> Para continuar usando as ferramentas, instale o <b>TRILHO</b> pela Chrome Web Store e remova a extensão antiga.</p>
+        <p class="migration-support">Suporte para migração: <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a></p>
       </div>
       <div class="migration-banner-actions">
-        <a class="migration-store-link" href="https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml" target="_blank" rel="noopener noreferrer">Instalar versão oficial</a>
-        <button id="openMigrationGuideButton" type="button">Ver passos</button>
+        <span class="migration-deadline">Prazo final · 31/10/2026</span>
+        <a class="migration-store-link" href="https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml" target="_blank" rel="noopener noreferrer">Instalar TRILHO agora</a>
+        <button id="openMigrationGuideButton" type="button">Ver tutorial</button>
       </div>
-      <button id="dismissMigrationBanner" class="migration-dismiss" type="button" aria-label="Dispensar aviso de migração">×</button>
     </aside>
 
     <div class="workspace" id="workspace">
@@ -85,13 +87,13 @@
     </div>
 
     <footer>
-      <p>Esta é a versão local antiga. Para migrar, clique em <strong>Como migrar</strong> no topo. Dúvidas: <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
+      <p>Esta versão local será descontinuada após <strong>31/10/2026</strong>. Para continuar usando os módulos, instale o TRILHO pela loja. Suporte para migração: <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
       <span id="loaderVersion"></span>
     </footer>
   </main>
 
   <dialog class="loader-update-dialog" id="loaderUpdateDialog" aria-labelledby="loaderUpdateTitle">
-    <header><h2 id="loaderUpdateTitle">Migrar para Chrome Web Store</h2><form method="dialog"><button type="submit" autofocus>Fechar</button></form></header>
+    <header><h2 id="loaderUpdateTitle">Migração obrigatória até 31/10/2026</h2><form method="dialog"><button type="submit" autofocus>Fechar</button></form></header>
     <iframe title="Tutorial para migrar para a Chrome Web Store"></iframe>
   </dialog>
 
@@ -100,7 +102,7 @@
   <script src="spx-auth.js?v=20260930-4"></script>
   <script src="../shared/hub-usage.js?v=20261023-3"></script>
   <script src="account.js?v=20261023-5"></script>
-  <script src="launcher.js?v=20261028-1"></script>
+  <script src="launcher.js?v=20261029-1"></script>
   <script>
     (() => {
       const MIGRATION_KEY = 'spxAutoAddAssistantMigrationV112';

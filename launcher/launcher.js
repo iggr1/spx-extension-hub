@@ -70,18 +70,11 @@ function showLoaderUpdateInstructions() {
 document.getElementById('updateLoaderButton').addEventListener('click', showLoaderUpdateInstructions);
 document.getElementById('openMigrationGuideButton').addEventListener('click', showLoaderUpdateInstructions);
 
+// O aviso permanece visível em todas as visitas ao catálogo pelo loader local.
 const migrationBanner = document.getElementById('migrationBanner');
-const isLocalLoader = new URLSearchParams(location.search).has('loaderVersion')
-  && new URLSearchParams(location.search).get('loaderModule') === 'launcher';
-if (isLocalLoader) {
-  let dismissed = false;
-  try { dismissed = sessionStorage.getItem('spxStoreMigrationDismissedV1') === '1'; } catch {}
-  migrationBanner.hidden = dismissed;
-  document.getElementById('dismissMigrationBanner').addEventListener('click', () => {
-    migrationBanner.hidden = true;
-    try { sessionStorage.setItem('spxStoreMigrationDismissedV1', '1'); } catch {}
-  });
-}
+const query = new URLSearchParams(location.search);
+const isLocalLoader = query.has('loaderVersion') && query.get('loaderModule') === 'launcher';
+if (migrationBanner) migrationBanner.hidden = !isLocalLoader;
 closeDescriptionButton.addEventListener('click', closeDescription);
 openPdfButton.addEventListener('click', () => {
   if (activePdfUrl) window.open(activePdfUrl, '_blank', 'noopener,noreferrer');

@@ -1,133 +1,68 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPX Extension Hub</title>
-  <link rel="stylesheet" href="launcher.css?v=20261029-1">
-  <link rel="stylesheet" href="account.css?v=20261023-5">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>SPX Extension Hub descontinuado — Migração obrigatória</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color-scheme:dark;background:#0e1513;color:#f0f6f2}
+    *{box-sizing:border-box}body{margin:0;padding:32px 18px;min-height:100vh;display:grid;place-items:center}
+    main{max-width:740px;width:100%;padding:32px;border:1px solid #35473e;border-radius:20px;background:#17201b;box-shadow:0 14px 50px #0004}
+    .eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;color:#ffad81}
+    h1{font-size:clamp(24px,4vw,38px);line-height:1.13;margin:10px 0 14px}
+    p,li{color:#c6d2cc;line-height:1.65}strong{color:#fff}
+    .notice{padding:14px 16px;border-left:4px solid #ff7b35;background:#352418;border-radius:8px;margin:22px 0}
+    .cta{display:inline-flex;justify-content:center;align-items:center;text-decoration:none;background:#f66a2f;color:#17120e;border-radius:12px;padding:15px 22px;font-weight:800;margin:10px 0 16px}
+    .cta:hover{background:#ff8553}.secondary{font-size:14px}.secondary a{color:#ffb48d}
+    ol{margin:14px 0;padding-left:23px}li{margin:10px 0}code{background:#26342c;padding:2px 6px;border-radius:4px}
+    .status{border-top:1px solid #34453a;padding-top:16px;font-size:13px;color:#a9b8ae;min-height:40px}
+    @media(max-width:600px){body{padding:14px}main{padding:23px}}
+  </style>
 </head>
 <body>
-  <main class="page-shell">
-    <header>
-      <div>
-        <span class="eyebrow">FERRAMENTAS OPERACIONAIS</span>
-        <h1>SPX Extension Hub</h1>
-        <p>Os módulos são publicados e atualizados diretamente pelo repositório.</p>
-      </div>
-      <div class="header-actions">
-        <button id="refreshButton" type="button">Atualizar lista</button>
-        <button id="updateLoaderButton" type="button">Migração obrigatória</button>
-        <div class="account-control">
-          <button id="accountButton" type="button" aria-label="Informações da conta SPX" title="Informações da conta SPX" aria-haspopup="dialog" aria-expanded="false" aria-controls="accountPanel" data-state="loading">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
-            <span class="account-dot" aria-hidden="true"></span>
-          </button>
-          <section id="accountPanel" class="account-panel" role="dialog" aria-labelledby="accountPanelTitle" aria-busy="true" hidden>
-            <div class="account-panel-header"><span id="accountPanelTitle">CONTA SPX</span><button id="closeAccountButton" type="button" aria-label="Fechar informações da conta">×</button></div>
-            <strong id="accountName">Identificando conta...</strong>
-            <p id="accountLogin"></p>
-            <div id="accountDetails" hidden>
-              <span id="accountRole" class="account-role">Não identificado</span>
-              <dl><div><dt>HUB atual</dt><dd id="accountHub">—</dd></div><div class="account-id-row"><div><dt>ID do HUB</dt><dd id="accountHubId">—</dd></div><div><dt>ID do usuário</dt><dd id="accountUserId">—</dd></div></div></dl>
-            </div>
-            <p id="accountMessage" class="account-message" role="status">Consultando a sessão autenticada do SPX.</p>
-            <p id="accountUsageNotice" class="account-usage-notice">Registro de uso aguardando configuração.</p>
-          </section>
-        </div>
-      </div>
-    </header>
-
-    <aside class="migration-banner" id="migrationBanner" role="alert" aria-label="Migração obrigatória do SPX Extension Loader" hidden>
-      <div class="migration-banner-copy">
-        <span class="migration-eyebrow">VERSÃO LOCAL SERÁ DESCONTINUADA</span>
-        <strong>Migração obrigatória até sábado, 31/10/2026</strong>
-        <p>O <b>SPX Extension Loader</b> instalado manualmente será descontinuado. <b>Após 31/10, os módulos desta versão serão removidos e deixarão de funcionar.</b> Para continuar usando as ferramentas, instale o <b>TRILHO</b> pela Chrome Web Store e remova a extensão antiga.</p>
-        <p class="migration-support">Suporte para migração: <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a></p>
-      </div>
-      <div class="migration-banner-actions">
-        <span class="migration-deadline">Prazo final · 31/10/2026</span>
-        <a class="migration-store-link" href="https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml" target="_blank" rel="noopener noreferrer">Instalar TRILHO agora</a>
-        <button id="openMigrationGuideButton" type="button">Ver tutorial</button>
-      </div>
-    </aside>
-
-    <div class="workspace" id="workspace">
-      <section class="module-panel">
-        <div class="status" id="status">Carregando módulos...</div>
-        <section class="module-grid" id="moduleGrid"></section>
-      </section>
-
-      <aside class="description-sidebar" id="descriptionSidebar" aria-hidden="true">
-        <div class="description-header">
-          <div>
-            <span class="description-label">DESCRIÇÃO DO MÓDULO</span>
-            <h2 id="descriptionTitle">Descrição</h2>
-          </div>
-          <button class="close-description" id="closeDescriptionButton" type="button" aria-label="Fechar descrição">×</button>
-        </div>
-
-        <div class="description-toolbar" id="descriptionToolbar" hidden>
-          <span id="descriptionPageCount"></span>
-          <button id="openPdfButton" type="button">Abrir PDF</button>
-        </div>
-
-        <div class="description-loading" id="descriptionLoading">Carregando PDF...</div>
-        <div class="description-error" id="descriptionError" hidden>
-          Não foi possível exibir o PDF. Verifique se o arquivo está publicado no repositório.
-        </div>
-
-        <div
-          class="description-viewer"
-          id="descriptionViewer"
-          role="document"
-          aria-label="Descrição do módulo em PDF"
-        ></div>
-      </aside>
-    </div>
-
-    <footer>
-      <p>Esta versão local será descontinuada após <strong>31/10/2026</strong>. Para continuar usando os módulos, instale o TRILHO pela loja. Suporte para migração: <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
-      <span id="loaderVersion"></span>
-    </footer>
+  <main>
+    <div class="eyebrow">SPX EXTENSION HUB · MIGRAÇÃO OBRIGATÓRIA</div>
+    <h1>O prazo de migração terminou.</h1>
+    <p>O <strong>SPX Extension Hub / SPX Extension Loader</strong> foi descontinuado em <strong>31/10/2026</strong>. As ferramentas <strong>Dock Flow, Assistente de AutoAdd e Assistente de Devoluções</strong> não estão mais disponíveis nesta versão.</p>
+    <div class="notice"><strong>Para continuar utilizando as ferramentas, instale exclusivamente o TRILHO pela Chrome Web Store.</strong> Não é necessário instalar arquivos ZIP ou atualizar o loader antigo.</div>
+    <a class="cta" href="https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml" target="_blank" rel="noopener noreferrer">Instalar TRILHO na Chrome Web Store</a>
+    <ol>
+      <li><strong>Instale o TRILHO</strong> pelo botão acima.</li>
+      <li><strong>Remova o SPX Extension Loader</strong> antigo em <code>chrome://extensions</code>. Não remova o novo TRILHO.</li>
+      <li><strong>Atualize as abas do SPX</strong> para evitar scripts duplicados.</li>
+    </ol>
+    <p class="secondary">Não mantenha as duas extensões ativadas simultaneamente. Caso a instalação seja administrada pela empresa, solicite a remoção ao responsável.</p>
+    <p class="secondary">Suporte: <a href="mailto:igor.camara@shopee.com">igor.camara@shopee.com</a>.</p>
+    <div id="deactivationStatus" class="status" role="status" aria-live="polite">Verificando a desativação dos módulos antigos...</div>
   </main>
-
-  <dialog class="loader-update-dialog" id="loaderUpdateDialog" aria-labelledby="loaderUpdateTitle">
-    <header><h2 id="loaderUpdateTitle">Migração obrigatória até 31/10/2026</h2><form method="dialog"><button type="submit" autofocus>Fechar</button></form></header>
-    <iframe title="Tutorial para migrar para a Chrome Web Store"></iframe>
-  </dialog>
-
   <script src="../shared/loader-bridge.js"></script>
-  <script src="../shared/spx-access.js?v=20260916-8"></script>
-  <script src="spx-auth.js?v=20260930-4"></script>
-  <script src="../shared/hub-usage.js?v=20261023-3"></script>
-  <script src="account.js?v=20261023-5"></script>
-  <script src="launcher.js?v=20261029-1"></script>
   <script>
-    (() => {
-      const MIGRATION_KEY = 'spxAutoAddAssistantMigrationV112';
-      const MODULE_ID = 'spx-dock-flow-autoadd';
-
-      async function migrate() {
-        if (localStorage.getItem(MIGRATION_KEY) === '1') return;
-        if (!window.LoaderBridge?.requestForModule) return;
-
-        try {
-          const current = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.status');
-          if (!current?.ok) return;
-
-          if (current.enabled) {
-            const disabled = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.setEnabled', { enabled: false });
-            if (!disabled?.ok) return;
-            const enabled = await LoaderBridge.requestForModule(MODULE_ID, 'userscripts.setEnabled', { enabled: true });
-            if (!enabled?.ok) return;
-          }
-
-          localStorage.setItem(MIGRATION_KEY, '1');
-        } catch {}
+    (async function () {
+      const status = document.getElementById('deactivationStatus');
+      const modules = [
+        'spx-dock-flow-autoadd',
+        'assistente-de-devolucoes',
+        'importador-de-planilhas'
+      ];
+      if (!window.LoaderBridge || window.parent === window) {
+        status.textContent = 'A versão antiga deve ser removida manualmente em chrome://extensions.';
+        return;
       }
-
-      window.setTimeout(migrate, 800);
+      let disabled = 0;
+      for (const id of modules) {
+        try {
+          const response = await window.LoaderBridge.requestForModule(
+            id, 'userscripts.setEnabled', { enabled: false }
+          );
+          if (response && response.ok) disabled += 1;
+        } catch (_) {
+          // A desinstalação da extensão antiga continua sendo obrigatória.
+        }
+      }
+      status.textContent = disabled === modules.length
+        ? 'Scripts antigos desativados neste navegador. Remova agora o SPX Extension Loader em chrome://extensions.'
+        : 'A desativação automática foi parcial. Remova o SPX Extension Loader em chrome://extensions para concluir a migração.';
     })();
   </script>
 </body>

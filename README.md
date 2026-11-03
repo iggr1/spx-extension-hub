@@ -2,7 +2,7 @@
 
 > **Distribuição atual:** [TRILHO na Chrome Web Store](https://chromewebstore.google.com/detail/TRILHO/mbeceoiffpjhcjkmfhbjmabfcdbgkeml). Esta documentação descreve também o loader local legado.
 >
-> **Migração obrigatória até sábado, 31/10/2026.** Após essa data, os módulos do loader local serão removidos e deixarão de funcionar. Para continuar utilizando o TRILHO, instale-o pela loja, remova **SPX Extension Loader** em `chrome://extensions` e recarregue as abas SPX. O catálogo remoto exibe um aviso permanente. **Suporte:** igor.camara@shopee.com.
+> **Prazo de migração encerrado em 31/10/2026.** O catálogo legado foi substituído por aviso obrigatório; scripts antigos são desativados e a versão local não deve mais ser utilizada. Para continuar utilizando o TRILHO, instale-o pela loja, remova **SPX Extension Loader** em `chrome://extensions` e recarregue as abas SPX. O catálogo remoto exibe um aviso permanente. **Suporte:** igor.camara@shopee.com.
 
 
 Este repositório contém todo o conteúdo remoto usado pelo **SPX Extension Loader**:
